@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "redmon",
+  "version": "${version}",
+  "name": "Redmon",
+  "description": "A client side monitoring tool for computational redstone.",
+  "authors": [
+    "alexander.cramb.94@gmail.com"
+  ],
+  "contact": {
+    "homepage": "https://github.com/ac101m/redmon/issues",
+    "sources": "https://github.com/ac101m/redmon"
+  },
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "com.ac101m.redmon.RedmonRoot"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.14.21",
+    "minecraft": "~1.18.2",
+    "java": ">=17",
+    "fabric-api": "*"
+  },
+  "suggests": {
+    "another-mod": "*"
+  },
+  "package": "com.ac101m.redmon"
+}
