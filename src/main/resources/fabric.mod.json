@@ -15,7 +15,7 @@
   "environment": "*",
   "entrypoints": {
     "client": [
-      "com.ac101m.redmon.RedmonRoot"
+      "com.ac101m.redmon.RedmonClient"
     ]
   },
   "depends": {
