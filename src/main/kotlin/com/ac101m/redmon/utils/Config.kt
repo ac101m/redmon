@@ -1,13 +1,14 @@
 package com.ac101m.redmon.utils
 
 import net.fabricmc.loader.api.FabricLoader
+import java.nio.file.Path
 
 
 class Config {
     companion object {
 
         // Save files related constants
-        val PROFILE_REGISTRY_SAVE_FILE = "redmon_profiles.json"
-        val PROFILE_REGISTRY_SAVE_PATH = FabricLoader.getInstance().configDir.resolve(PROFILE_REGISTRY_SAVE_FILE)
+        private const val PROFILE_REGISTRY_SAVE_FILE = "redmon_profiles.json"
+        val PROFILE_REGISTRY_SAVE_PATH: Path = FabricLoader.getInstance().configDir.resolve(PROFILE_REGISTRY_SAVE_FILE)
     }
 }
