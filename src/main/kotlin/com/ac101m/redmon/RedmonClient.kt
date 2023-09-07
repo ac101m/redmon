@@ -10,26 +10,21 @@ import java.nio.file.Path
 import kotlin.io.path.exists
 
 
-class RedmonRoot : ClientModInitializer {
+class RedmonClient : ClientModInitializer {
     private lateinit var profileRegistry: ProfileRegistryV1
 
-    fun loadProfileRegistry(path: Path) {
+    private fun loadProfileRegistry(path: Path) {
         if (path.exists()) {
-            profileRegistry = ProfileRegistry.load(PROFILE_REGISTRY_SAVE_PATH)
+            profileRegistry = ProfileRegistry.load(path)
         } else {
             profileRegistry = ProfileRegistryV1()
-            profileRegistry.save(PROFILE_REGISTRY_SAVE_PATH)
+            profileRegistry.save(path)
         }
     }
 
     override fun onInitializeClient() {
         // Load the profile registry (if it exists)
-        profileRegistry = try {
-            ProfileRegistry.load(PROFILE_REGISTRY_SAVE_PATH)
-        } catch (e: Exception) {
-            println("Failed to load profile registry, ${e.message}")
-            ProfileRegistryV1()
-        }
+        loadProfileRegistry(PROFILE_REGISTRY_SAVE_PATH)
 
         // Register rendering code with hud render callback
         HudRenderCallback.EVENT.register { matrixStack, _ ->

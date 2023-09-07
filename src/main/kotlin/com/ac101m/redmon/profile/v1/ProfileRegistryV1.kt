@@ -19,10 +19,12 @@ data class ProfileRegistryV1(
     }
 
     fun save(path: Path) {
-        save(path.outputStream())
+        path.outputStream().use { outputStream ->
+            save(outputStream)
+        }
     }
 
     fun save(outputStream: OutputStream) {
-        objectMapper.writeValue(outputStream, ProfileRegistryV1::class.java)
+        objectMapper.writeValue(outputStream, this)
     }
 }
