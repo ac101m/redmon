@@ -1,7 +1,7 @@
 package com.ac101m.redmon
 
-import com.ac101m.redmon.profile.SaveData
-import com.ac101m.redmon.profile.v1.SaveDataV1
+import com.ac101m.redmon.persistence.SaveData
+import com.ac101m.redmon.persistence.v1.SaveDataV1
 import com.ac101m.redmon.utils.Config.Companion.PROFILE_REGISTRY_SAVE_PATH
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback

@@ -1,6 +1,6 @@
-package com.ac101m.redmon.profile
+package com.ac101m.redmon.persistence
 
-import com.ac101m.redmon.profile.v1.SaveDataV1
+import com.ac101m.redmon.persistence.v1.SaveDataV1
 import com.ac101m.redmon.utils.RedmonConfigurationException
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo

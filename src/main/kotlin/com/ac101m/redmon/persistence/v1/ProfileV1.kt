@@ -1,4 +1,4 @@
-package com.ac101m.redmon.profile.v1
+package com.ac101m.redmon.persistence.v1
 
 import com.fasterxml.jackson.annotation.JsonProperty
 

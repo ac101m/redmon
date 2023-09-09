@@ -1,6 +1,6 @@
-package com.ac101m.redmon.profile.v1
+package com.ac101m.redmon.persistence.v1
 
-import com.ac101m.redmon.profile.SaveData
+import com.ac101m.redmon.persistence.SaveData
 import com.ac101m.redmon.utils.mapper
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.io.OutputStream
