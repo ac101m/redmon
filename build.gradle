@@ -19,11 +19,7 @@ test {
 }
 
 repositories {
-	// Add repositories to retrieve artifacts from in here.
-	// You should only use this when depending on other mods because
-	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
-	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
-	// for more information about repositories.
+	mavenLocal()
 }
 
 dependencies {
@@ -40,6 +36,7 @@ dependencies {
 	implementation include("com.fasterxml.jackson.core:jackson-databind:$jackson_version")
 	implementation include("com.fasterxml.jackson.core:jackson-annotations:$jackson_version")
 	implementation include("com.fasterxml.jackson.core:jackson-core:$jackson_version")
+	implementation include("org.docopt:docopt:$docopt_version")
 
 	// Test dependencies
 	testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junit_version"
