@@ -76,9 +76,7 @@ class RedmonClient : ClientModInitializer {
         }
 
         try {
-            if (args["hello"] == true) {
-                context.sendFeedback("hello ${context.source.player.name.string}!")
-            } else if (args["create-profile"] == true) {
+            if (args["create-profile"] == true) {
                 context.sendFeedback(processCreateProfileCommand(context, args))
             } else {
                 context.sendError("Unrecognised command.")
