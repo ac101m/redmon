@@ -42,6 +42,15 @@ class RedmonClient : ClientModInitializer {
     }
 
 
+    private fun processListProfilesCommand(context: CommandContext<FabricClientCommandSource>): String {
+        val list = saveData.profiles.keys.joinToString(
+            separator = "\n",
+            prefix = " - "
+        )
+        return "List of profiles:\n$list"
+    }
+
+
     private fun processCreateProfileCommand(context: CommandContext<FabricClientCommandSource>, args: Map<String, Any>): String {
         val name = requireNotNull(args["<name>"]) {
             "Internal error, <name> parameter is missing."
@@ -76,7 +85,9 @@ class RedmonClient : ClientModInitializer {
         }
 
         try {
-            if (args["create-profile"] == true) {
+            if (args["list-profiles"] == true) {
+                context.sendFeedback(processListProfilesCommand(context))
+            } else if (args["create-profile"] == true) {
                 context.sendFeedback(processCreateProfileCommand(context, args))
             } else {
                 context.sendError("Unrecognised command.")
