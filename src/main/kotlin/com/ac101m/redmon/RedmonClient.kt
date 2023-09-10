@@ -1,6 +1,7 @@
 package com.ac101m.redmon
 
 import com.ac101m.redmon.persistence.SaveData
+import com.ac101m.redmon.persistence.v1.ProfileV1
 import com.ac101m.redmon.persistence.v1.SaveDataV1
 import com.ac101m.redmon.utils.*
 import com.ac101m.redmon.utils.Config.Companion.COMMAND_GRAMMAR
@@ -19,21 +20,74 @@ import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.text.LiteralText
 import org.docopt.Docopt
 import org.docopt.DocoptExitException
-import java.nio.file.Path
 import kotlin.io.path.exists
 
 
 class RedmonClient : ClientModInitializer {
     private lateinit var saveData: SaveDataV1
 
-    private fun loadSaveData(path: Path) {
-        if (path.exists()) {
-            saveData = SaveData.load(path)
+
+    private fun loadProfileData() {
+        if (PROFILE_SAVE_PATH.exists()) {
+            saveData = SaveData.load(PROFILE_SAVE_PATH)
         } else {
             saveData = SaveDataV1()
-            saveData.save(path)
+            saveData.save(PROFILE_SAVE_PATH)
         }
     }
+
+
+    private fun saveProfileData() {
+        saveData.save(PROFILE_SAVE_PATH)
+    }
+
+
+    private fun processCreateProfileCommand(context: CommandContext<FabricClientCommandSource>, args: Map<String, Any>): String {
+        val name = requireNotNull(args["<name>"]) {
+            "Internal error, <name> parameter is missing."
+        }.toString()
+
+        require(saveData.getProfile(name) == null) {
+            "A profile with name '$name' already exists."
+        }
+
+        saveData.addProfile(ProfileV1(name))
+        saveProfileData()
+
+        return "Created new profile with name '$name', and set as active profile."
+    }
+
+
+    private fun processCommand(context: CommandContext<FabricClientCommandSource>, command: String) {
+        val commandTokens = command.posixLexicalSplit()
+
+        val parser = Docopt(COMMAND_GRAMMAR)
+            .withExit(false)
+            .withVersion(REDMON_VERSION)
+
+        val args = try {
+            parser.parse(commandTokens)
+        } catch (e: DocoptExitException) {
+            when (e.message) {
+                null -> context.sendError("Error: Invalid arguments, see '/redmon --help' for usage information.")
+                else -> context.sendFeedback(e.message!!)
+            }
+            return
+        }
+
+        try {
+            if (args["hello"] == true) {
+                context.sendFeedback("hello ${context.source.player.name.string}!")
+            } else if (args["create-profile"] == true) {
+                context.sendFeedback(processCreateProfileCommand(context, args))
+            } else {
+                context.sendError("Unrecognised command.")
+            }
+        } catch(e: Exception) {
+            context.sendError("Error: ${e.message}")
+        }
+    }
+
 
     private fun drawOutput(matrixStack: MatrixStack) {
         val text = listOf("Line 1", "Another line!", "the number of the lines is 3")
@@ -51,33 +105,8 @@ class RedmonClient : ClientModInitializer {
     }
 
 
-    private fun processCommand(context: CommandContext<FabricClientCommandSource>, command: String) {
-        val commandTokens = command.posixLexicalSplit()
-
-        val parser = Docopt(COMMAND_GRAMMAR)
-            .withExit(false)
-            .withVersion(REDMON_VERSION)
-
-        val args = try {
-            parser.parse(commandTokens)
-        } catch (e: DocoptExitException) {
-            when (e.message) {
-                null -> context.sendError("Invalid arguments, see '/redmon --help' for usage information.")
-                else -> context.sendFeedback(e.message!!)
-            }
-            return
-        }
-
-        if (args["hello"] == true) {
-            context.sendFeedback("hello ${context.source.player.name.string}!")
-        } else {
-            context.sendError("Unrecognised command.")
-        }
-    }
-
-
     override fun onInitializeClient() {
-        loadSaveData(PROFILE_SAVE_PATH)
+        loadProfileData()
 
         HudRenderCallback.EVENT.register { matrixStack, _ ->
             drawOutput(matrixStack)
@@ -90,7 +119,7 @@ class RedmonClient : ClientModInitializer {
                     0
                 }
             ).executes { context ->
-                context.source.sendError(LiteralText("Missing arguments, see '/redmon --help' for usage info."))
+                context.source.sendError(LiteralText("Error: Missing arguments, see '/redmon --help' for usage info."))
                 0
             }
         )

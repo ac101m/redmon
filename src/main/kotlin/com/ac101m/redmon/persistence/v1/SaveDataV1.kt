@@ -7,7 +7,6 @@ import java.io.OutputStream
 import java.nio.file.Path
 import kotlin.io.path.outputStream
 
-
 data class SaveDataV1(
     @JsonProperty("profiles", required = true)
     val profiles: HashMap<String, ProfileV1> = HashMap()
@@ -15,6 +14,10 @@ data class SaveDataV1(
 
     fun addProfile(profile: ProfileV1) {
         profiles[profile.name] = profile
+    }
+
+    fun getProfile(name: String): ProfileV1? {
+        return profiles[name]
     }
 
     fun save(path: Path) {

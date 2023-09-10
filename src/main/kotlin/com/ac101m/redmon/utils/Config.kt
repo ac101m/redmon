@@ -8,7 +8,7 @@ class Config {
     companion object {
 
         // Version
-        val REDMON_VERSION = "1.0.0-SNAPSHOT"
+        const val REDMON_VERSION = "1.0.0-SNAPSHOT"
 
         // Save files related constants
         private const val PROFILE_SAVE_FILE = "redmon_profiles.json"

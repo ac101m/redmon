@@ -1,6 +1,7 @@
 Usage:
     /redmon (-h | --help)
     /redmon --version
+    /redmon create-profile <name>
     /redmon hello
 
 Options:
