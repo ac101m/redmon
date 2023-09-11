@@ -45,6 +45,10 @@ class RedmonClient : ClientModInitializer {
 
 
     private fun processProfileListCommand(): String {
+        if (saveData.profiles.size == 0) {
+            return "\nNo profiles loaded."
+        }
+
         val list = saveData.profiles.keys.joinToString(
             separator = "\n"
         ) { key ->
