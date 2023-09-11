@@ -1,6 +1,6 @@
 package com.ac101m.redmon.persistence
 
-import com.ac101m.redmon.persistence.v1.SaveDataV1
+import com.ac101m.redmon.persistence.v1.ProfileDataV1
 import com.ac101m.redmon.utils.RedmonConfigurationException
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
@@ -20,16 +20,16 @@ import kotlin.io.path.isRegularFile
     use = JsonTypeInfo.Id.NAME,
     include = JsonTypeInfo.As.PROPERTY,
     property = "version",
-    defaultImpl = SaveData::class
+    defaultImpl = ProfileData::class
 )
 @JsonSubTypes(
-    JsonSubTypes.Type(name = "1", value = SaveDataV1::class)
+    JsonSubTypes.Type(name = "1", value = ProfileDataV1::class)
 )
-open class SaveData {
+open class ProfileData {
     companion object {
         private val objectMapper = ObjectMapper()
 
-        fun load(path: Path): SaveDataV1 {
+        fun load(path: Path): ProfileDataV1 {
             if (!path.exists()) {
                 throw RedmonConfigurationException("No such file '$path'.")
             }
@@ -39,15 +39,15 @@ open class SaveData {
             return load(path.inputStream())
         }
 
-        fun load(inputStream: InputStream): SaveDataV1 {
+        fun load(inputStream: InputStream): ProfileDataV1 {
             val registry = try {
-                objectMapper.readValue(inputStream, SaveDataV1::class.java)
+                objectMapper.readValue(inputStream, ProfileDataV1::class.java)
             } catch (e: Exception) {
                 throw RedmonConfigurationException("Failed to load profile information, error parsing configuration.", e)
             }
 
             return when (registry) {
-                is SaveDataV1 -> registry
+                is ProfileDataV1 -> registry
                 else -> throw RedmonConfigurationException("Failed to load profile information, unrecognised registry type.")
             }
         }

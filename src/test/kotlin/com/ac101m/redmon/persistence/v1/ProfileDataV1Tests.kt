@@ -4,11 +4,11 @@ import com.ac101m.redmon.utils.mapper
 import org.junit.jupiter.api.Test
 
 
-class SaveDataV1Tests {
+class ProfileDataV1Tests {
 
     @Test
     fun `round trip test`() {
-        val original = SaveDataV1().apply {
+        val original = ProfileDataV1().apply {
             addProfile(
                 ProfileV1(
                     name = "a_profile",
@@ -30,7 +30,7 @@ class SaveDataV1Tests {
         }
 
         val serialized = mapper.writeValueAsString(original)
-        val deserialized = mapper.readValue(serialized, SaveDataV1::class.java)
+        val deserialized = mapper.readValue(serialized, ProfileDataV1::class.java)
 
         check(deserialized == original)
     }

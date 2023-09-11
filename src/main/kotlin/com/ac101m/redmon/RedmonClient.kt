@@ -1,8 +1,8 @@
 package com.ac101m.redmon
 
-import com.ac101m.redmon.persistence.SaveData
+import com.ac101m.redmon.persistence.ProfileData
 import com.ac101m.redmon.persistence.v1.ProfileV1
-import com.ac101m.redmon.persistence.v1.SaveDataV1
+import com.ac101m.redmon.persistence.v1.ProfileDataV1
 import com.ac101m.redmon.utils.*
 import com.ac101m.redmon.utils.Config.Companion.COMMAND_GRAMMAR
 import com.ac101m.redmon.utils.Config.Companion.PROFILE_SAVE_PATH
@@ -26,45 +26,50 @@ import kotlin.io.path.exists
 
 
 class RedmonClient : ClientModInitializer {
-    private lateinit var saveData: SaveDataV1
+    private lateinit var profileData: ProfileDataV1
+    private var currentProfile: ProfileV1? = null
 
 
     private fun loadProfileData() {
         if (PROFILE_SAVE_PATH.exists()) {
-            saveData = SaveData.load(PROFILE_SAVE_PATH)
+            profileData = ProfileData.load(PROFILE_SAVE_PATH)
         } else {
-            saveData = SaveDataV1()
-            saveData.save(PROFILE_SAVE_PATH)
+            profileData = ProfileDataV1()
+            profileData.save(PROFILE_SAVE_PATH)
         }
     }
 
 
     private fun saveProfileData() {
-        saveData.save(PROFILE_SAVE_PATH)
+        profileData.save(PROFILE_SAVE_PATH)
     }
 
 
     private fun processProfileListCommand(): String {
-        if (saveData.profiles.size == 0) {
-            return "No profiles loaded."
+        if (profileData.profiles.size == 0) {
+            return "No profiles available"
         }
 
-        return saveData.profiles.keys.joinToString(
+        val list = profileData.profiles.keys.joinToString(
             separator = "\n"
         ) { key ->
-            "- $key (${saveData.profiles[key]!!.registers.size} registers)"
+            "- $key (${profileData.profiles[key]!!.registers.size} registers)"
         }
+
+        return "Available profiles:\n$list"
     }
 
 
     private fun processProfileCreateCommand(args: Map<String, Any>): String {
         val profileName = args.getStringCommandArgument("<name>")
 
-        require(saveData.getProfile(profileName) == null) {
+        require(profileData.getProfile(profileName) == null) {
             "A profile with name '$profileName' already exists."
         }
 
-        saveData.addProfile(ProfileV1(profileName))
+        profileData.addProfile(ProfileV1(profileName))
+        currentProfile = profileData.getProfile(profileName)
+
         saveProfileData()
 
         return "Created new profile '$profileName', and set as active."
@@ -74,11 +79,11 @@ class RedmonClient : ClientModInitializer {
     private fun processProfileDeleteCommand(args: Map<String, Any>): String {
         val profileName = args.getStringCommandArgument("<name>")
 
-        requireNotNull(saveData.getProfile(profileName)) {
+        requireNotNull(profileData.getProfile(profileName)) {
             "No profile with name '$profileName'."
         }
 
-        saveData.removeProfile(profileName)
+        profileData.removeProfile(profileName)
         saveProfileData()
 
         return "Removed profile '$profileName'"
