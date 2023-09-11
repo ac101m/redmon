@@ -80,13 +80,26 @@ class RedmonClient : ClientModInitializer {
         val profileName = args.getStringCommandArgument("<name>")
 
         requireNotNull(profileData.getProfile(profileName)) {
-            "No profile with name '$profileName'."
+            "No profile with name '$profileName'"
         }
 
         profileData.removeProfile(profileName)
         saveProfileData()
 
         return "Removed profile '$profileName'"
+    }
+
+
+    private fun processProfileSelectCommand(args: Map<String, Any>): String {
+        val profileName = args.getStringCommandArgument("<name>")
+
+        requireNotNull(profileData.getProfile(profileName)) {
+            "No profile with name '$profileName'"
+        }
+
+        currentProfile = profileData.getProfile(profileName)
+
+        return "Set profile '$profileName' as active profile"
     }
 
 
@@ -97,6 +110,8 @@ class RedmonClient : ClientModInitializer {
             processProfileCreateCommand(args)
         } else if (args["delete"] == true) {
             processProfileDeleteCommand(args)
+        } else if (args["select"] == true) {
+            processProfileSelectCommand(args)
         } else {
             throw RedmonCommandException(UNHANDLED_COMMAND_ERROR_MESSAGE)
         }
@@ -132,8 +147,21 @@ class RedmonClient : ClientModInitializer {
     }
 
 
+    private fun getOutputText(): List<String> {
+        if (currentProfile == null) {
+            return listOf("No active profile")
+        }
+
+        val lines = ArrayList<String>()
+
+        lines.add(currentProfile!!.name)
+
+        return lines
+    }
+
+
     private fun drawOutput(matrixStack: MatrixStack) {
-        val text = listOf("Line 1", "Another line!", "the number of the lines is 3")
+        val text = getOutputText()
 
         val width = text.maxOfOrNull { textWidth(it) }!!
 
