@@ -47,10 +47,9 @@ class RedmonClient : ClientModInitializer {
 
     private fun processProfileListCommand(): String {
         val list = saveData.profiles.keys.joinToString(
-            separator = "\n",
-            prefix = " - "
+            separator = "\n"
         ) { key ->
-            "$key (${saveData.profiles[key]!!.registers.size} registers)"
+            " - $key (${saveData.profiles[key]!!.registers.size} registers)"
         }
         return "\nList of profiles:\n$list"
     }
