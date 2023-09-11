@@ -1,5 +1,6 @@
 package com.ac101m.redmon.utils
 
+import com.ac101m.redmon.utils.Config.Companion.ISSUE_CREATE_PROMPT
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.mojang.brigadier.context.CommandContext
 import net.fabricmc.fabric.api.client.command.v1.FabricClientCommandSource
@@ -13,7 +14,17 @@ fun CommandContext<FabricClientCommandSource>.sendError(error: String) {
 }
 
 fun CommandContext<FabricClientCommandSource>.sendFeedback(message: String) {
-    this.source.sendFeedback(LiteralText(message))
+    this.source.sendFeedback(LiteralText("§2$message§f"))
+}
+
+fun Map<String, Any>.getStringCommandArgument(key: String): String {
+    val anyValue = requireNotNull(this[key]) {
+        "$key parameter is missing. $ISSUE_CREATE_PROMPT"
+    }
+    require(anyValue is String) {
+        "$key parameter is not a string. $ISSUE_CREATE_PROMPT"
+    }
+    return anyValue
 }
 
 fun String.posixLexicalSplit(): List<String> {

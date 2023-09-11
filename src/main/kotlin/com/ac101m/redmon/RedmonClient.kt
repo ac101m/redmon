@@ -7,6 +7,9 @@ import com.ac101m.redmon.utils.*
 import com.ac101m.redmon.utils.Config.Companion.COMMAND_GRAMMAR
 import com.ac101m.redmon.utils.Config.Companion.PROFILE_SAVE_PATH
 import com.ac101m.redmon.utils.Config.Companion.REDMON_VERSION
+import com.ac101m.redmon.utils.Config.Companion.ISSUE_CREATE_PROMPT
+import com.ac101m.redmon.utils.Config.Companion.HELP_COMMAND_PROMPT
+import com.ac101m.redmon.utils.Config.Companion.UNHANDLED_COMMAND_ERROR_MESSAGE
 import com.mojang.brigadier.arguments.StringArgumentType.getString
 import com.mojang.brigadier.arguments.StringArgumentType.greedyString
 import com.mojang.brigadier.context.CommandContext
@@ -42,28 +45,44 @@ class RedmonClient : ClientModInitializer {
     }
 
 
-    private fun processListProfilesCommand(context: CommandContext<FabricClientCommandSource>): String {
+    private fun processProfileListCommand(): String {
         val list = saveData.profiles.keys.joinToString(
             separator = "\n",
             prefix = " - "
-        )
-        return "List of profiles:\n$list"
+        ) { key ->
+            "$key (${saveData.profiles[key]!!.registers.size} registers)"
+        }
+        return "\nList of profiles:\n$list"
     }
 
 
-    private fun processCreateProfileCommand(context: CommandContext<FabricClientCommandSource>, args: Map<String, Any>): String {
-        val name = requireNotNull(args["<name>"]) {
-            "Internal error, <name> parameter is missing."
-        }.toString()
+    private fun processProfileCreateCommand(args: Map<String, Any>): String {
+        val profileName = args.getStringCommandArgument("<name>")
 
-        require(saveData.getProfile(name) == null) {
-            "A profile with name '$name' already exists."
+        require(saveData.getProfile(profileName) == null) {
+            "A profile with name '$profileName' already exists."
         }
 
-        saveData.addProfile(ProfileV1(name))
+        saveData.addProfile(ProfileV1(profileName))
         saveProfileData()
 
-        return "Created new profile with name '$name', and set as active profile."
+        return "Created new profile with name '$profileName', and set as active profile."
+    }
+
+
+    private fun processProfileDeleteCommand(profileName: String): String {
+        throw RedmonCommandException("TODO")
+    }
+
+
+    private fun processProfileCommand(args: Map<String, Any>): String {
+        return if (args["list"] == true) {
+            processProfileListCommand()
+        } else if (args["create"] == false) {
+            processProfileCreateCommand(args)
+        } else {
+            throw RedmonCommandException(UNHANDLED_COMMAND_ERROR_MESSAGE)
+        }
     }
 
 
@@ -78,19 +97,17 @@ class RedmonClient : ClientModInitializer {
             parser.parse(commandTokens)
         } catch (e: DocoptExitException) {
             when (e.message) {
-                null -> context.sendError("Error: Invalid arguments, see '/redmon --help' for usage information.")
+                null -> context.sendError("Error: Invalid arguments. $HELP_COMMAND_PROMPT")
                 else -> context.sendFeedback(e.message!!)
             }
             return
         }
 
         try {
-            if (args["list-profiles"] == true) {
-                context.sendFeedback(processListProfilesCommand(context))
-            } else if (args["create-profile"] == true) {
-                context.sendFeedback(processCreateProfileCommand(context, args))
+            if (args["profile"] == true) {
+                context.sendFeedback(processProfileCommand(args))
             } else {
-                context.sendError("Unrecognised command.")
+                throw RedmonCommandException(UNHANDLED_COMMAND_ERROR_MESSAGE)
             }
         } catch(e: Exception) {
             context.sendError("Error: ${e.message}")
@@ -128,7 +145,7 @@ class RedmonClient : ClientModInitializer {
                     0
                 }
             ).executes { context ->
-                context.source.sendError(LiteralText("Error: Missing arguments, see '/redmon --help' for usage info."))
+                context.source.sendError(LiteralText("Error: Missing arguments, $HELP_COMMAND_PROMPT"))
                 0
             }
         )

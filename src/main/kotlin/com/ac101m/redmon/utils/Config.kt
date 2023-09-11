@@ -16,5 +16,13 @@ class Config {
 
         // Command interface info
         val COMMAND_GRAMMAR = Companion::class.java.classLoader.getResource("command-grammar.txt")!!.readText()
+
+        // Error messages
+        const val ISSUE_CREATE_PROMPT =
+            "This is a bug! Please report the issue here: https://github.com/ac101m/redmon/issues"
+        const val HELP_COMMAND_PROMPT =
+            "See '/redmon -h' for usage information."
+        const val UNHANDLED_COMMAND_ERROR_MESSAGE =
+            "Unhandled command. $ISSUE_CREATE_PROMPT"
     }
 }
