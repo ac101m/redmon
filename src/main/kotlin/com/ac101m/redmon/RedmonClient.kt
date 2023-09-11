@@ -103,6 +103,18 @@ class RedmonClient : ClientModInitializer {
     }
 
 
+    private fun processProfileDeselectCommand(): String {
+        if (currentProfile == null) {
+            return "No active profile"
+        }
+
+        val profileName = currentProfile!!.name
+        currentProfile = null
+
+        return "Deselected profile '$profileName'"
+    }
+
+
     private fun processProfileCommand(args: Map<String, Any>): String {
         return if (args["list"] == true) {
             processProfileListCommand()
@@ -112,6 +124,8 @@ class RedmonClient : ClientModInitializer {
             processProfileDeleteCommand(args)
         } else if (args["select"] == true) {
             processProfileSelectCommand(args)
+        } else if (args["deselect"] == true) {
+            processProfileDeselectCommand()
         } else {
             throw RedmonCommandException(UNHANDLED_COMMAND_ERROR_MESSAGE)
         }
