@@ -7,7 +7,6 @@ import com.ac101m.redmon.utils.*
 import com.ac101m.redmon.utils.Config.Companion.COMMAND_GRAMMAR
 import com.ac101m.redmon.utils.Config.Companion.PROFILE_SAVE_PATH
 import com.ac101m.redmon.utils.Config.Companion.REDMON_VERSION
-import com.ac101m.redmon.utils.Config.Companion.ISSUE_CREATE_PROMPT
 import com.ac101m.redmon.utils.Config.Companion.HELP_COMMAND_PROMPT
 import com.ac101m.redmon.utils.Config.Companion.UNHANDLED_COMMAND_ERROR_MESSAGE
 import com.mojang.brigadier.arguments.StringArgumentType.getString
@@ -65,20 +64,31 @@ class RedmonClient : ClientModInitializer {
         saveData.addProfile(ProfileV1(profileName))
         saveProfileData()
 
-        return "Created new profile with name '$profileName', and set as active profile."
+        return "\nCreated new profile '$profileName', and set as active."
     }
 
 
-    private fun processProfileDeleteCommand(profileName: String): String {
-        throw RedmonCommandException("TODO")
+    private fun processProfileDeleteCommand(args: Map<String, Any>): String {
+        val profileName = args.getStringCommandArgument("<name>")
+
+        requireNotNull(saveData.getProfile(profileName)) {
+            "No profile with name '$profileName'."
+        }
+
+        saveData.removeProfile(profileName)
+        saveProfileData()
+
+        return "\nRemoved profile '$profileName'"
     }
 
 
     private fun processProfileCommand(args: Map<String, Any>): String {
         return if (args["list"] == true) {
             processProfileListCommand()
-        } else if (args["create"] == false) {
+        } else if (args["create"] == true) {
             processProfileCreateCommand(args)
+        } else if (args["delete"] == true) {
+            processProfileDeleteCommand(args)
         } else {
             throw RedmonCommandException(UNHANDLED_COMMAND_ERROR_MESSAGE)
         }
@@ -108,7 +118,7 @@ class RedmonClient : ClientModInitializer {
             } else {
                 throw RedmonCommandException(UNHANDLED_COMMAND_ERROR_MESSAGE)
             }
-        } catch(e: Exception) {
+        } catch(e: Throwable) {
             context.sendError("Error: ${e.message}")
         }
     }

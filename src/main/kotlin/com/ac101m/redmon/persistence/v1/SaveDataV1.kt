@@ -20,6 +20,10 @@ data class SaveDataV1(
         return profiles[name]
     }
 
+    fun removeProfile(name: String) {
+        profiles.remove(name)
+    }
+
     fun save(path: Path) {
         path.outputStream().use { outputStream ->
             save(outputStream)

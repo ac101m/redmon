@@ -1,8 +1,8 @@
 Usage:
     /redmon (-h | --help)
-    /redmon --version
     /redmon profile list
-    /redmon profile create <name>
+    /redmon profile (create | delete) <name>
+    /redmon --version
 
 Options:
     -h --help   Show this help message.
