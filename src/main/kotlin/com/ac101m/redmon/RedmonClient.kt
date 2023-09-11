@@ -46,15 +46,14 @@ class RedmonClient : ClientModInitializer {
 
     private fun processProfileListCommand(): String {
         if (saveData.profiles.size == 0) {
-            return "\nNo profiles loaded."
+            return "No profiles loaded."
         }
 
-        val list = saveData.profiles.keys.joinToString(
+        return saveData.profiles.keys.joinToString(
             separator = "\n"
         ) { key ->
-            " - $key (${saveData.profiles[key]!!.registers.size} registers)"
+            "- $key (${saveData.profiles[key]!!.registers.size} registers)"
         }
-        return "\nList of profiles:\n$list"
     }
 
 
@@ -68,7 +67,7 @@ class RedmonClient : ClientModInitializer {
         saveData.addProfile(ProfileV1(profileName))
         saveProfileData()
 
-        return "\nCreated new profile '$profileName', and set as active."
+        return "Created new profile '$profileName', and set as active."
     }
 
 
@@ -82,7 +81,7 @@ class RedmonClient : ClientModInitializer {
         saveData.removeProfile(profileName)
         saveProfileData()
 
-        return "\nRemoved profile '$profileName'"
+        return "Removed profile '$profileName'"
     }
 
 
