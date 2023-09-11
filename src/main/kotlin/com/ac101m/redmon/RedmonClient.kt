@@ -72,7 +72,7 @@ class RedmonClient : ClientModInitializer {
 
         saveProfileData()
 
-        return "Created new profile '$profileName', and set as active."
+        return "Created new profile '$profileName', and set as active profile"
     }
 
 
