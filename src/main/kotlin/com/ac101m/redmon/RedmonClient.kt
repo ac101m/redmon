@@ -1,8 +1,8 @@
 package com.ac101m.redmon
 
-import com.ac101m.redmon.persistence.ProfileData
-import com.ac101m.redmon.persistence.v1.ProfileV1
-import com.ac101m.redmon.persistence.v1.ProfileDataV1
+import com.ac101m.redmon.persistence.PersistentProfileList
+import com.ac101m.redmon.profile.Profile
+import com.ac101m.redmon.profile.ProfileList
 import com.ac101m.redmon.utils.*
 import com.ac101m.redmon.utils.Config.Companion.COMMAND_GRAMMAR
 import com.ac101m.redmon.utils.Config.Companion.PROFILE_SAVE_PATH
@@ -26,49 +26,55 @@ import kotlin.io.path.exists
 
 
 class RedmonClient : ClientModInitializer {
-    private lateinit var profileData: ProfileDataV1
-    private var currentProfile: ProfileV1? = null
+    private val commandParser = Docopt(COMMAND_GRAMMAR)
+        .withExit(false)
+        .withVersion(REDMON_VERSION)
+
+    private lateinit var profileList: ProfileList
+    private var activeProfile: Profile? = null
 
 
-    private fun loadProfileData() {
-        if (PROFILE_SAVE_PATH.exists()) {
-            profileData = ProfileData.load(PROFILE_SAVE_PATH)
+    private fun loadProfileList() {
+        profileList = if (PROFILE_SAVE_PATH.exists()) {
+            val data = PersistentProfileList.load(PROFILE_SAVE_PATH)
+            ProfileList.fromPersistent(data)
         } else {
-            profileData = ProfileDataV1()
-            profileData.save(PROFILE_SAVE_PATH)
+            ProfileList().also {
+                it.toPersistent().save(PROFILE_SAVE_PATH)
+            }
         }
     }
 
 
     private fun saveProfileData() {
-        profileData.save(PROFILE_SAVE_PATH)
+        profileList.toPersistent().save(PROFILE_SAVE_PATH)
     }
 
 
     private fun processProfileListCommand(): String {
-        if (profileData.profiles.size == 0) {
+        if (profileList.profiles.size == 0) {
             return "No profiles available"
         }
 
-        val list = profileData.profiles.keys.joinToString(
+        val list = profileList.profiles.keys.joinToString(
             separator = "\n"
         ) { key ->
-            "- $key (${profileData.profiles[key]!!.registers.size} registers)"
+            "- $key (${profileList.profiles[key]!!.registers.size} registers)"
         }
 
         return "Available profiles:\n$list"
     }
 
 
-    private fun processProfileCreateCommand(args: Map<String, Any>): String {
+    private fun processProfileCreateCommand(context: CommandContext<FabricClientCommandSource>, args: Map<String, Any>): String {
         val profileName = args.getStringCommandArgument("<name>")
 
-        require(profileData.getProfile(profileName) == null) {
+        require(profileList.getProfile(profileName) == null) {
             "A profile with name '$profileName' already exists."
         }
 
-        profileData.addProfile(ProfileV1(profileName))
-        currentProfile = profileData.getProfile(profileName)
+        profileList.addProfile(Profile(profileName))
+        activeProfile = profileList.getProfile(profileName)
 
         saveProfileData()
 
@@ -79,53 +85,80 @@ class RedmonClient : ClientModInitializer {
     private fun processProfileDeleteCommand(args: Map<String, Any>): String {
         val profileName = args.getStringCommandArgument("<name>")
 
-        requireNotNull(profileData.getProfile(profileName)) {
+        requireNotNull(profileList.getProfile(profileName)) {
             "No profile with name '$profileName'"
         }
 
-        profileData.removeProfile(profileName)
+        profileList.removeProfile(profileName)
         saveProfileData()
 
         return "Removed profile '$profileName'"
     }
 
 
-    private fun processProfileSelectCommand(args: Map<String, Any>): String {
+    private fun processProfileSelectCommand(context: CommandContext<FabricClientCommandSource>, args: Map<String, Any>): String {
         val profileName = args.getStringCommandArgument("<name>")
 
-        requireNotNull(profileData.getProfile(profileName)) {
+        requireNotNull(profileList.getProfile(profileName)) {
             "No profile with name '$profileName'"
         }
 
-        currentProfile = profileData.getProfile(profileName)
+        activeProfile = profileList.getProfile(profileName)
 
         return "Set profile '$profileName' as active profile"
     }
 
 
     private fun processProfileDeselectCommand(): String {
-        if (currentProfile == null) {
+        if (activeProfile == null) {
             return "No active profile"
         }
 
-        val profileName = currentProfile!!.name
-        currentProfile = null
+        val profileName = activeProfile!!.name
+        activeProfile = null
 
         return "Deselected profile '$profileName'"
     }
 
 
-    private fun processProfileCommand(args: Map<String, Any>): String {
+    private fun processProfileCommand(context: CommandContext<FabricClientCommandSource>, args: Map<String, Any>): String {
         return if (args["list"] == true) {
             processProfileListCommand()
         } else if (args["create"] == true) {
-            processProfileCreateCommand(args)
+            processProfileCreateCommand(context, args)
         } else if (args["delete"] == true) {
             processProfileDeleteCommand(args)
         } else if (args["select"] == true) {
-            processProfileSelectCommand(args)
+            processProfileSelectCommand(context, args)
         } else if (args["deselect"] == true) {
             processProfileDeselectCommand()
+        } else {
+            throw RedmonCommandException(UNHANDLED_COMMAND_ERROR_MESSAGE)
+        }
+    }
+
+
+    private fun processRegisterAddCommand(args: Map<String, Any>): String {
+        val profile = checkNotNull(activeProfile) {
+            "You must select a profile before adding a register"
+        }
+
+        val initialBitCount = args.getIntCommandArgument("--bits")
+
+        TODO("Not yet implemented $initialBitCount")
+    }
+
+
+    private fun processRegisterDeleteCommand(args: Map<String, Any>): String {
+        TODO("Not yet implemented")
+    }
+
+
+    private fun processRegisterCommand(context: CommandContext<FabricClientCommandSource>, args: Map<String, Any>): String {
+        return if (args["create"] == true) {
+            processRegisterAddCommand(args)
+        } else if (args["delete"] == true) {
+            processRegisterDeleteCommand(args)
         } else {
             throw RedmonCommandException(UNHANDLED_COMMAND_ERROR_MESSAGE)
         }
@@ -135,12 +168,8 @@ class RedmonClient : ClientModInitializer {
     private fun processCommand(context: CommandContext<FabricClientCommandSource>, command: String) {
         val commandTokens = command.posixLexicalSplit()
 
-        val parser = Docopt(COMMAND_GRAMMAR)
-            .withExit(false)
-            .withVersion(REDMON_VERSION)
-
         val args = try {
-            parser.parse(commandTokens)
+            commandParser.parse(commandTokens)
         } catch (e: DocoptExitException) {
             when (e.message) {
                 null -> context.sendError("Error: Invalid arguments. $HELP_COMMAND_PROMPT")
@@ -151,7 +180,9 @@ class RedmonClient : ClientModInitializer {
 
         try {
             if (args["profile"] == true) {
-                context.sendFeedback(processProfileCommand(args))
+                context.sendFeedback(processProfileCommand(context, args))
+            } else if (args["register"] == true) {
+                context.sendFeedback(processRegisterCommand(context, args))
             } else {
                 throw RedmonCommandException(UNHANDLED_COMMAND_ERROR_MESSAGE)
             }
@@ -162,13 +193,13 @@ class RedmonClient : ClientModInitializer {
 
 
     private fun getOutputText(): List<String> {
-        if (currentProfile == null) {
+        if (activeProfile == null) {
             return listOf("No active profile")
         }
 
         val lines = ArrayList<String>()
 
-        lines.add(currentProfile!!.name)
+        lines.add(activeProfile!!.name)
 
         return lines
     }
@@ -191,7 +222,7 @@ class RedmonClient : ClientModInitializer {
 
 
     override fun onInitializeClient() {
-        loadProfileData()
+        loadProfileList()
 
         HudRenderCallback.EVENT.register { matrixStack, _ ->
             drawOutput(matrixStack)

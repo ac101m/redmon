@@ -27,6 +27,20 @@ fun Map<String, Any>.getStringCommandArgument(key: String): String {
     return anyValue
 }
 
+fun Map<String, Any>.getIntCommandArgument(key: String): Int {
+    val anyValue = requireNotNull(this[key]) {
+        "$key parameter is missing. $ISSUE_CREATE_PROMPT"
+    }
+    require(anyValue is String) {
+        "$key parameter is not a string. $ISSUE_CREATE_PROMPT"
+    }
+    return try {
+        anyValue.toInt()
+    } catch (e: Exception) {
+        throw RedmonCommandException("$key expects an integer value, got $anyValue")
+    }
+}
+
 fun String.posixLexicalSplit(): List<String> {
     val tokens: MutableList<String> = ArrayList()
     var escaping = false

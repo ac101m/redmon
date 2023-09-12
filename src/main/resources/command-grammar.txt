@@ -1,9 +1,11 @@
 Usage:
-    /redmon (-h | --help)
-    /redmon profile (list | deselect)
-    /redmon profile (create | delete | select) <name>
-    /redmon --version
+  /redmon profile (list | deselect)
+  /redmon profile (create | delete | select) <name>
+  /redmon register (create | delete) <name> [--bits=<count>]
+  /redmon (-h | --help)
+  /redmon --version
 
 Options:
-    -h --help   Show this help message.
-    --version   Show the version of the mod.
+  -h --help        Show this help message.
+  --version        Show the version of the mod.
+  --bits=<count>   Register bit count [default: 0].

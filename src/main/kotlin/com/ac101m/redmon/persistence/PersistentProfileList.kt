@@ -1,6 +1,6 @@
 package com.ac101m.redmon.persistence
 
-import com.ac101m.redmon.persistence.v1.ProfileDataV1
+import com.ac101m.redmon.persistence.v1.PersistentPersistentProfileListV1
 import com.ac101m.redmon.utils.RedmonConfigurationException
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
@@ -20,16 +20,16 @@ import kotlin.io.path.isRegularFile
     use = JsonTypeInfo.Id.NAME,
     include = JsonTypeInfo.As.PROPERTY,
     property = "version",
-    defaultImpl = ProfileData::class
+    defaultImpl = PersistentProfileList::class
 )
 @JsonSubTypes(
-    JsonSubTypes.Type(name = "1", value = ProfileDataV1::class)
+    JsonSubTypes.Type(name = "1", value = PersistentPersistentProfileListV1::class)
 )
-open class ProfileData {
+open class PersistentProfileList {
     companion object {
         private val objectMapper = ObjectMapper()
 
-        fun load(path: Path): ProfileDataV1 {
+        fun load(path: Path): PersistentPersistentProfileListV1 {
             if (!path.exists()) {
                 throw RedmonConfigurationException("No such file '$path'.")
             }
@@ -39,15 +39,15 @@ open class ProfileData {
             return load(path.inputStream())
         }
 
-        fun load(inputStream: InputStream): ProfileDataV1 {
+        fun load(inputStream: InputStream): PersistentPersistentProfileListV1 {
             val registry = try {
-                objectMapper.readValue(inputStream, ProfileDataV1::class.java)
+                objectMapper.readValue(inputStream, PersistentPersistentProfileListV1::class.java)
             } catch (e: Exception) {
                 throw RedmonConfigurationException("Failed to load profile information, error parsing configuration.", e)
             }
 
             return when (registry) {
-                is ProfileDataV1 -> registry
+                is PersistentPersistentProfileListV1 -> registry
                 else -> throw RedmonConfigurationException("Failed to load profile information, unrecognised registry type.")
             }
         }
