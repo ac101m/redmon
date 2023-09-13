@@ -8,7 +8,7 @@ import java.nio.file.Path
 import kotlin.io.path.outputStream
 
 
-data class PersistentPersistentProfileListV1(
+data class PersistentProfileListV1(
     @JsonProperty("profiles", required = true)
     val profiles: List<PersistentProfileV1>
 ) : PersistentProfileList() {
