@@ -1,6 +1,6 @@
 package com.ac101m.redmon.persistence
 
-import com.ac101m.redmon.persistence.v1.PersistentPersistentProfileListV1
+import com.ac101m.redmon.persistence.v1.PersistentProfileListV1
 import com.ac101m.redmon.utils.RedmonConfigurationException
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
@@ -23,13 +23,13 @@ import kotlin.io.path.isRegularFile
     defaultImpl = PersistentProfileList::class
 )
 @JsonSubTypes(
-    JsonSubTypes.Type(name = "1", value = PersistentPersistentProfileListV1::class)
+    JsonSubTypes.Type(name = "1", value = PersistentProfileListV1::class)
 )
 open class PersistentProfileList {
     companion object {
         private val objectMapper = ObjectMapper()
 
-        fun load(path: Path): PersistentPersistentProfileListV1 {
+        fun load(path: Path): PersistentProfileListV1 {
             if (!path.exists()) {
                 throw RedmonConfigurationException("No such file '$path'.")
             }
@@ -39,15 +39,15 @@ open class PersistentProfileList {
             return load(path.inputStream())
         }
 
-        fun load(inputStream: InputStream): PersistentPersistentProfileListV1 {
+        fun load(inputStream: InputStream): PersistentProfileListV1 {
             val registry = try {
-                objectMapper.readValue(inputStream, PersistentPersistentProfileListV1::class.java)
+                objectMapper.readValue(inputStream, PersistentProfileListV1::class.java)
             } catch (e: Exception) {
                 throw RedmonConfigurationException("Failed to load profile information, error parsing configuration.", e)
             }
 
             return when (registry) {
-                is PersistentPersistentProfileListV1 -> registry
+                is PersistentProfileListV1 -> registry
                 else -> throw RedmonConfigurationException("Failed to load profile information, unrecognised registry type.")
             }
         }

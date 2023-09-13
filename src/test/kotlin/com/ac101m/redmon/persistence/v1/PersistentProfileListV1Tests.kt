@@ -9,7 +9,7 @@ class PersistentProfileListV1Tests {
 
     @Test
     fun `round trip test`() {
-        val original = PersistentPersistentProfileListV1(
+        val original = PersistentProfileListV1(
             listOf(
                 PersistentProfileV1(
                     name = "a_profile",
@@ -31,7 +31,7 @@ class PersistentProfileListV1Tests {
         )
 
         val serialized = mapper.writeValueAsString(original)
-        val deserialized = mapper.readValue(serialized, PersistentPersistentProfileListV1::class.java)
+        val deserialized = mapper.readValue(serialized, PersistentProfileListV1::class.java)
 
         check(deserialized == original)
     }

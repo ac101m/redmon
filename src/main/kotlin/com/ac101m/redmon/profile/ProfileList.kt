@@ -1,24 +1,24 @@
 package com.ac101m.redmon.profile
 
 import com.ac101m.redmon.persistence.v1.PersistentProfileV1
-import com.ac101m.redmon.persistence.v1.PersistentPersistentProfileListV1
+import com.ac101m.redmon.persistence.v1.PersistentProfileListV1
 
 
 data class ProfileList(
     val profiles: HashMap<String, Profile> = HashMap(),
 ) {
     companion object {
-        fun fromPersistent(data: PersistentPersistentProfileListV1): ProfileList {
+        fun fromPersistent(data: PersistentProfileListV1): ProfileList {
             val profiles = HashMap<String, Profile>()
             data.profiles.forEach { profile -> profiles[profile.name] = Profile.fromPersistent(profile) }
             return ProfileList(profiles)
         }
     }
 
-    fun toPersistent(): PersistentPersistentProfileListV1 {
+    fun toPersistent(): PersistentProfileListV1 {
         val persistentProfiles = arrayListOf<PersistentProfileV1>()
         profiles.keys.forEach { profileName -> persistentProfiles.add(profiles[profileName]!!.toPersistent()) }
-        return PersistentPersistentProfileListV1(persistentProfiles)
+        return PersistentProfileListV1(persistentProfiles)
     }
 
     val size get() = profiles.size
