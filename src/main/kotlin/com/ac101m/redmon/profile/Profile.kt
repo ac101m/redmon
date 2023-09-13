@@ -7,7 +7,7 @@ import net.minecraft.world.World
 
 data class Profile(
     val name: String,
-    val registers: HashMap<String, Register> = HashMap()
+    val registers: HashMap<String, Register> = LinkedHashMap()
 ) {
     companion object {
         fun fromPersistent(data: PersistentProfileV1): Profile {

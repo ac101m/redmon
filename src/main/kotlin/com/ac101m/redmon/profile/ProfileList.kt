@@ -5,7 +5,7 @@ import com.ac101m.redmon.persistence.v1.PersistentProfileListV1
 
 
 data class ProfileList(
-    val profiles: HashMap<String, Profile> = HashMap(),
+    val profiles: HashMap<String, Profile> = HashMap()
 ) {
     companion object {
         fun fromPersistent(data: PersistentProfileListV1): ProfileList {
