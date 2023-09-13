@@ -23,10 +23,9 @@ data class Profile(
     }
 
     fun toPersistent(): PersistentProfileV1 {
-        val registers = registers.values.map { it.toPersistent() }
         return PersistentProfileV1(
             name,
-            registers
+            registers.keys.map { registers[it]!!.toPersistent() }
         )
     }
 
