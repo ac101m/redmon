@@ -13,7 +13,7 @@ data class PersistentProfileListV1(
     val profiles: List<PersistentProfileV1>
 ) : PersistentProfileList() {
     fun save(outputStream: OutputStream) {
-        mapper.writeValue(outputStream, this)
+        mapper.writerWithDefaultPrettyPrinter().writeValue(outputStream, this)
     }
 
     fun save(path: Path) {
