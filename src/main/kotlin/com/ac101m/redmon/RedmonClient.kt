@@ -300,7 +300,7 @@ class RedmonClient : ClientModInitializer {
 
         val lines = ArrayList<String>()
 
-        lines.add("${profile.name} ($profileOffset)")
+        lines.add("${profile.name}@(x=${profileOffset!!.x} y=${profileOffset!!.y} z=${profileOffset!!.z})")
 
         profile.registers.values.forEach { register ->
             register.updateState(world, profileOffset!!)
