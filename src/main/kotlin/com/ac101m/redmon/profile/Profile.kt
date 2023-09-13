@@ -1,9 +1,8 @@
 package com.ac101m.redmon.profile
 
 import com.ac101m.redmon.persistence.v1.PersistentProfileV1
-import com.mojang.brigadier.context.CommandContext
-import net.fabricmc.fabric.api.client.command.v1.FabricClientCommandSource
 import net.minecraft.util.math.Vec3i
+import net.minecraft.world.World
 
 
 data class Profile(
@@ -31,9 +30,21 @@ data class Profile(
         )
     }
 
-    fun updateState(context: CommandContext<FabricClientCommandSource>, offset: Vec3i) {
+    fun addRegister(register: Register) {
+        registers[register.name] = register
+    }
+
+    fun removeRegister(name: String) {
+        registers.remove(name)
+    }
+
+    fun getRegister(name: String): Register? {
+        return registers[name]
+    }
+
+    fun updateState(world: World, offset: Vec3i) {
         registers.values.forEach { register ->
-            register.updateState(context, offset)
+            register.updateState(world, offset)
         }
     }
 }

@@ -2,10 +2,11 @@ package com.ac101m.redmon.profile
 
 import com.ac101m.redmon.persistence.v1.PersistentRegisterV1
 import com.ac101m.redmon.persistence.v1.PersistentRegisterBitV1
-import com.mojang.brigadier.context.CommandContext
-import net.fabricmc.fabric.api.client.command.v1.FabricClientCommandSource
+import net.minecraft.block.AbstractRedstoneGateBlock
+import net.minecraft.block.RepeaterBlock
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3i
+import net.minecraft.world.World
 
 
 data class Register(
@@ -13,6 +14,8 @@ data class Register(
     val type: RegisterType,
     val watchPoints: List<Vec3i> = listOf()
 ) {
+    private var state: Long = 0
+
     companion object {
         fun fromPersistent(data: PersistentRegisterV1): Register {
             return Register(
@@ -33,9 +36,20 @@ data class Register(
 
     val size get() = watchPoints.size
 
-    fun updateState(context: CommandContext<FabricClientCommandSource>, offset: Vec3i) {
-        for (position in watchPoints) {
-            val blockState = context.source.player.world.getBlockState(BlockPos(position.add(offset)))
+    fun updateState(world: World, offset: Vec3i) {
+        watchPoints.forEachIndexed { i, position ->
+            val blockState = world.getBlockState(BlockPos(position.add(offset)))
+            val mask = 1L shl i
+            state = state and mask.inv()
+            if (blockState.block is RepeaterBlock) {
+                if (blockState.get(AbstractRedstoneGateBlock.POWERED)) {
+                    state = state or mask
+                }
+            }
         }
+    }
+
+    fun getState(): Long {
+        return state and ((1L shl size) - 1)
     }
 }

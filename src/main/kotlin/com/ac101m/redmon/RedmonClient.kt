@@ -3,6 +3,8 @@ package com.ac101m.redmon
 import com.ac101m.redmon.persistence.PersistentProfileList
 import com.ac101m.redmon.profile.Profile
 import com.ac101m.redmon.profile.ProfileList
+import com.ac101m.redmon.profile.Register
+import com.ac101m.redmon.profile.RegisterType
 import com.ac101m.redmon.utils.*
 import com.ac101m.redmon.utils.Config.Companion.COMMAND_GRAMMAR
 import com.ac101m.redmon.utils.Config.Companion.PROFILE_SAVE_PATH
@@ -18,11 +20,19 @@ import net.fabricmc.fabric.api.client.command.v1.ClientCommandManager.argument
 import net.fabricmc.fabric.api.client.command.v1.ClientCommandManager.literal
 import net.fabricmc.fabric.api.client.command.v1.FabricClientCommandSource
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback
+import net.minecraft.block.Blocks
+import net.minecraft.client.MinecraftClient
+import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.text.LiteralText
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3d
+import net.minecraft.util.math.Vec3i
+import net.minecraft.world.World
 import org.docopt.Docopt
 import org.docopt.DocoptExitException
 import kotlin.io.path.exists
+import kotlin.math.abs
 
 
 class RedmonClient : ClientModInitializer {
@@ -31,7 +41,9 @@ class RedmonClient : ClientModInitializer {
         .withVersion(REDMON_VERSION)
 
     private lateinit var profileList: ProfileList
-    private var activeProfile: Profile? = null
+
+    private var selectedProfile: Profile? = null
+    private var profileOffset: Vec3i? = null
 
 
     private fun loadProfileList() {
@@ -51,6 +63,22 @@ class RedmonClient : ClientModInitializer {
     }
 
 
+    private fun setActiveProfile(player: ClientPlayerEntity, profileName: String) {
+        selectedProfile = profileList.getProfile(profileName)
+        if (selectedProfile != null) {
+            profileOffset = player.blockPos
+        } else {
+            profileOffset = null
+        }
+    }
+
+
+    private fun deactivateSelectedProfile() {
+        selectedProfile = null
+        profileOffset = null
+    }
+
+
     private fun processProfileListCommand(): String {
         if (profileList.profiles.size == 0) {
             return "No profiles available"
@@ -66,7 +94,7 @@ class RedmonClient : ClientModInitializer {
     }
 
 
-    private fun processProfileCreateCommand(context: CommandContext<FabricClientCommandSource>, args: Map<String, Any>): String {
+    private fun processProfileCreateCommand(player: ClientPlayerEntity, args: Map<String, Any>): String {
         val profileName = args.getStringCommandArgument("<name>")
 
         require(profileList.getProfile(profileName) == null) {
@@ -74,7 +102,7 @@ class RedmonClient : ClientModInitializer {
         }
 
         profileList.addProfile(Profile(profileName))
-        activeProfile = profileList.getProfile(profileName)
+        setActiveProfile(player, profileName)
 
         saveProfileData()
 
@@ -90,34 +118,41 @@ class RedmonClient : ClientModInitializer {
         }
 
         profileList.removeProfile(profileName)
+
+        if (selectedProfile != null) {
+            if (selectedProfile!!.name == profileName) {
+                deactivateSelectedProfile()
+            }
+        }
+
         saveProfileData()
 
         return "Removed profile '$profileName'"
     }
 
 
-    private fun processProfileSelectCommand(context: CommandContext<FabricClientCommandSource>, args: Map<String, Any>): String {
+    private fun processProfileSelectCommand(player: ClientPlayerEntity, args: Map<String, Any>): String {
         val profileName = args.getStringCommandArgument("<name>")
 
         requireNotNull(profileList.getProfile(profileName)) {
             "No profile with name '$profileName'"
         }
 
-        activeProfile = profileList.getProfile(profileName)
+        setActiveProfile(player, profileName)
 
         return "Set profile '$profileName' as active profile"
     }
 
 
     private fun processProfileDeselectCommand(): String {
-        if (activeProfile == null) {
+        if (selectedProfile == null) {
             return "No active profile"
         }
 
-        val profileName = activeProfile!!.name
-        activeProfile = null
+        val profileName = selectedProfile!!.name
+        deactivateSelectedProfile()
 
-        return "Deselected profile '$profileName'"
+        return "Deactivated profile '$profileName'"
     }
 
 
@@ -125,11 +160,11 @@ class RedmonClient : ClientModInitializer {
         return if (args["list"] == true) {
             processProfileListCommand()
         } else if (args["create"] == true) {
-            processProfileCreateCommand(context, args)
+            processProfileCreateCommand(context.source.player, args)
         } else if (args["delete"] == true) {
             processProfileDeleteCommand(args)
         } else if (args["select"] == true) {
-            processProfileSelectCommand(context, args)
+            processProfileSelectCommand(context.source.player, args)
         } else if (args["deselect"] == true) {
             processProfileDeselectCommand()
         } else {
@@ -138,25 +173,89 @@ class RedmonClient : ClientModInitializer {
     }
 
 
-    private fun processRegisterAddCommand(args: Map<String, Any>): String {
-        val profile = checkNotNull(activeProfile) {
+    private fun getRegisterBitsFromLookDirection(
+        player: ClientPlayerEntity,
+        requestedBits: Int,
+        type: RegisterType
+    ): List<Vec3i> {
+        val look = Vec3d.fromPolar(player.pitch, player.yaw)
+        val eyePos = player.eyePos
+
+        val stepScaleFactor = 1 / maxOf(abs(look.x), abs(look.y), abs(look.z))
+        val step = look.multiply(stepScaleFactor)
+
+        var currentPos = eyePos
+        var bitsFound = 0
+
+        val bitPositions = ArrayList<Vec3i>()
+
+        while ((bitsFound < requestedBits) and (currentPos.isInRange(eyePos, 256.0))) {
+            val blockPos = BlockPos(currentPos)
+            val blockState = player.world.getBlockState(blockPos)
+
+            if (blockState.block == Blocks.REPEATER) {
+                bitsFound++
+                bitPositions.add(blockPos)
+            }
+
+            currentPos = currentPos.add(step)
+        }
+
+        check(bitsFound == requestedBits) {
+            "Failed to find register bits, requested $requestedBits but found $bitsFound"
+        }
+
+        return bitPositions
+    }
+
+
+    private fun processRegisterAddCommand(player: ClientPlayerEntity, args: Map<String, Any>): String {
+        val profile = checkNotNull(selectedProfile) {
             "You must select a profile before adding a register"
         }
 
+        val registerName = args.getStringCommandArgument("<name>")
+        val registerType = RegisterType.REPEATER
         val initialBitCount = args.getIntCommandArgument("--bits")
 
-        TODO("Not yet implemented $initialBitCount")
+        require(profile.getRegister(registerName) == null) {
+            "Register with name '$registerName' already exists"
+        }
+
+        val bitLocations = when(initialBitCount) {
+            0 -> emptyList()
+            else -> getRegisterBitsFromLookDirection(player, initialBitCount, registerType)
+        }
+
+        val register = Register(registerName, registerType, bitLocations.map { it.subtract(profileOffset!!) })
+
+        profile.addRegister(register)
+        saveProfileData()
+
+        return "Added register '$registerName' with $initialBitCount bits"
     }
 
 
     private fun processRegisterDeleteCommand(args: Map<String, Any>): String {
-        TODO("Not yet implemented")
+        val profile = checkNotNull(selectedProfile) {
+            "You must select a profile before deleting a register"
+        }
+
+        val registerName = args.getStringCommandArgument("<name>")
+
+        require(profile.registers.containsKey(registerName)) {
+            "No register with name '$registerName' in profile '${profile.name}'"
+        }
+
+        profile.removeRegister(registerName)
+
+        return "Removed register '$registerName' from profile '${profile.name}'"
     }
 
 
     private fun processRegisterCommand(context: CommandContext<FabricClientCommandSource>, args: Map<String, Any>): String {
         return if (args["create"] == true) {
-            processRegisterAddCommand(args)
+            processRegisterAddCommand(context.source.player, args)
         } else if (args["delete"] == true) {
             processRegisterDeleteCommand(args)
         } else {
@@ -192,21 +291,30 @@ class RedmonClient : ClientModInitializer {
     }
 
 
-    private fun getOutputText(): List<String> {
-        if (activeProfile == null) {
+    private fun getOutputText(world: World): List<String> {
+        val profile = if (selectedProfile == null) {
             return listOf("No active profile")
+        } else {
+            selectedProfile!!
         }
 
         val lines = ArrayList<String>()
 
-        lines.add(activeProfile!!.name)
+        lines.add("${profile.name} ($profileOffset)")
+
+        profile.registers.values.forEach { register ->
+            register.updateState(world, profileOffset!!)
+            lines.add("${register.name} | ${register.getState()}")
+        }
 
         return lines
     }
 
 
     private fun drawOutput(matrixStack: MatrixStack) {
-        val text = getOutputText()
+        val world = MinecraftClient.getInstance().player?.world ?: return
+
+        val text = getOutputText(world)
 
         val width = text.maxOfOrNull { textWidth(it) }!!
 
