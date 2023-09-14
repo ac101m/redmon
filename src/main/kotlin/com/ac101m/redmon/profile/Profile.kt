@@ -11,7 +11,7 @@ data class Profile(
 ) {
     companion object {
         fun fromPersistent(data: PersistentProfileV1): Profile {
-            val registers = HashMap<String, Register>()
+            val registers = LinkedHashMap<String, Register>()
             data.registers.forEach {
                 registers[it.name] = Register.fromPersistent(it)
             }
