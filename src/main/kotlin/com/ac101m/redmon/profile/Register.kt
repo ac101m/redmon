@@ -12,6 +12,7 @@ import net.minecraft.world.World
 data class Register(
     val name: String,
     val type: RegisterType,
+    var invert: Boolean,
     val watchPoints: List<Vec3i> = listOf()
 ) {
     private var state: Long = 0
@@ -21,6 +22,7 @@ data class Register(
             return Register(
                 data.name,
                 RegisterType.valueOf(data.type),
+                data.invert,
                 data.bitLocations.map { Vec3i(it.x, it.y, it.z) }
             )
         }
@@ -30,6 +32,7 @@ data class Register(
         return PersistentRegisterV1(
             name,
             type.name,
+            invert,
             watchPoints.map { PersistentRegisterBitV1(it.x, it.y, it.z) }
         )
     }
@@ -50,6 +53,14 @@ data class Register(
     }
 
     fun getState(): Long {
-        return state and ((1L shl size) - 1)
+        val mask = (1L shl size) - 1
+        return when (invert) {
+            false -> state and mask
+            true -> state.inv() and mask
+        }
+    }
+
+    fun invert() {
+        invert = !invert
     }
 }

@@ -7,6 +7,8 @@ data class PersistentRegisterV1(
     val name: String,
     @JsonProperty("type", required = true)
     val type: String,
+    @JsonProperty("invert", required = false)
+    val invert: Boolean = false,
     @JsonProperty("bitLocations", required = true)
     val bitLocations: List<PersistentRegisterBitV1>
 )

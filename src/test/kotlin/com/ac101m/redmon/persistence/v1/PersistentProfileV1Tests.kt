@@ -15,6 +15,7 @@ class PersistentProfileV1Tests {
                 PersistentRegisterV1(
                     name = "r1",
                     type = RegisterType.REPEATER.toString(),
+                    invert = false,
                     bitLocations = listOf(
                         PersistentRegisterBitV1(
                             x = 0,

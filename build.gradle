@@ -36,6 +36,7 @@ dependencies {
 	implementation include("com.fasterxml.jackson.core:jackson-databind:$jackson_version")
 	implementation include("com.fasterxml.jackson.core:jackson-annotations:$jackson_version")
 	implementation include("com.fasterxml.jackson.core:jackson-core:$jackson_version")
+	implementation include("com.fasterxml.jackson.module:jackson-module-kotlin:$jackson_kotlin_version")
 	implementation include("org.docopt:docopt:$docopt_version")
 
 	// Test dependencies

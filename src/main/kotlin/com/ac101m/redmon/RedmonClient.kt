@@ -65,10 +65,10 @@ class RedmonClient : ClientModInitializer {
 
     private fun setActiveProfile(player: ClientPlayerEntity, profileName: String) {
         selectedProfile = profileList.getProfile(profileName)
-        if (selectedProfile != null) {
-            profileOffset = player.blockPos
+        profileOffset = if (selectedProfile != null) {
+            player.blockPos
         } else {
-            profileOffset = null
+            null
         }
     }
 
@@ -222,12 +222,14 @@ class RedmonClient : ClientModInitializer {
             "Register with name '$registerName' already exists"
         }
 
-        val bitLocations = when(initialBitCount) {
-            0 -> emptyList()
-            else -> getRegisterBitsFromLookDirection(player, initialBitCount, registerType)
-        }
+        val bitLocations = getRegisterBitsFromLookDirection(player, initialBitCount, registerType)
 
-        val register = Register(registerName, registerType, bitLocations.map { it.subtract(profileOffset!!) })
+        val register = Register(
+            registerName,
+            registerType,
+            args.getBooleanCommandArgument("--invert"),
+            bitLocations.map { it.subtract(profileOffset!!) }
+        )
 
         profile.addRegister(register)
         saveProfileData()
@@ -253,11 +255,34 @@ class RedmonClient : ClientModInitializer {
     }
 
 
+    private fun processRegisterInvertCommand(args: Map<String, Any>): String {
+        val profile = checkNotNull(selectedProfile) {
+            "You must select a profile before deleting a register"
+        }
+
+        val registerName = args.getStringCommandArgument("<name>")
+
+        require(profile.registers.containsKey(registerName)) {
+            "No register with name '$registerName' in profile '${profile.name}'"
+        }
+
+        val register = profile.getRegister(registerName)!!
+        register.invert()
+
+        return when (register.invert) {
+            true -> "Register '$registerName' now in inverting mode."
+            false -> "Register '$registerName' now in non-inverting mode."
+        }
+    }
+
+
     private fun processRegisterCommand(context: CommandContext<FabricClientCommandSource>, args: Map<String, Any>): String {
         return if (args["create"] == true) {
             processRegisterAddCommand(context.source.player, args)
         } else if (args["delete"] == true) {
             processRegisterDeleteCommand(args)
+        } else if (args["invert"] == true) {
+            processRegisterInvertCommand(args)
         } else {
             throw RedmonCommandException(UNHANDLED_COMMAND_ERROR_MESSAGE)
         }
