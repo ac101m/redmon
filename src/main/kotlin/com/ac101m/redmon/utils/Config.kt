@@ -2,13 +2,18 @@ package com.ac101m.redmon.utils
 
 import net.fabricmc.loader.api.FabricLoader
 import java.nio.file.Path
+import java.util.*
 
 
 class Config {
     companion object {
 
-        // Version
-        const val REDMON_VERSION = "1.0.0-SNAPSHOT"
+        // Build properties
+        private val buildProperties = Properties().apply {
+            load(Companion::class.java.classLoader.getResource("build.properties")!!.openStream())
+        }
+
+        val REDMON_VERSION = buildProperties["mod_version"]!!.toString()
 
         // Save files related constants
         private const val PROFILE_SAVE_FILE = "redmon_profiles.json"
