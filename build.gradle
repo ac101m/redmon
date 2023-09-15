@@ -71,7 +71,19 @@ java {
 	targetCompatibility = JavaVersion.VERSION_17
 }
 
+tasks.register('generateBuildProperties') {
+	dependsOn processResources
+	doLast {
+		new File("$buildDir/resources/main/build.properties").withWriter { writer ->
+			Properties p = new Properties()
+			p['mod_version'] = project.version.toString()
+			p.store writer, null
+		}
+	}
+}
+
 jar {
+	dependsOn generateBuildProperties
 	from("LICENSE") {
 		rename { "${it}_${project.base.archivesName.get()}"}
 	}
