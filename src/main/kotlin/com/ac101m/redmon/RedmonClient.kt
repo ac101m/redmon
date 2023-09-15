@@ -151,7 +151,7 @@ class RedmonClient : ClientModInitializer {
             "Failed to find register bits, requested $requestedBits but found $bitsFound"
         }
 
-        return bitPositions
+        return List(bitPositions.size) { i -> bitPositions[(bitPositions.size - 1) - i] }
     }
 
 
@@ -175,9 +175,7 @@ class RedmonClient : ClientModInitializer {
             registerType,
             false,
             bitLocations.map { it.subtract(redmon.profileOffset!!) }
-        ).also { register ->
-            register.flipBits()
-        }
+        )
 
         profile.addRegister(register)
         redmon.saveProfiles()
