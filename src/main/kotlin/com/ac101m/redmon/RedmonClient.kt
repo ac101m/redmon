@@ -217,6 +217,8 @@ class RedmonClient : ClientModInitializer {
         val register = profile.getRegister(registerName)!!
         register.invert()
 
+        redmon.saveProfiles()
+
         return when (register.invert) {
             true -> "Register '$registerName' now in inverting mode."
             false -> "Register '$registerName' now in non-inverting mode."
@@ -237,6 +239,8 @@ class RedmonClient : ClientModInitializer {
 
         val register = profile.getRegister(registerName)!!
         register.flipBits()
+
+        redmon.saveProfiles()
 
         return "Flipped register '${register.name}'"
     }
