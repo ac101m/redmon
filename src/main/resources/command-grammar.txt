@@ -1,8 +1,8 @@
 Usage:
   /redmon profile (list | deselect)
   /redmon profile (create | delete | select) <name>
-  /redmon register (delete | invert) <name>
-  /redmon register create <name> [--bits=<count>] [--invert]
+  /redmon register (delete | invert | flip) <name>
+  /redmon register create <name> [--bits=<count>]
   /redmon (-h | --help)
   /redmon --version
 
@@ -10,4 +10,3 @@ Options:
   -h --help       Show this help message.
   --version       Show the version of the mod.
   --bits=<count>  Register bit count [default: 1].
-  --invert        Invert register content [default: false].

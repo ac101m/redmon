@@ -13,9 +13,12 @@ data class Register(
     val name: String,
     val type: RegisterType,
     var invert: Boolean,
-    val watchPoints: List<Vec3i> = listOf()
+    var watchPoints: List<Vec3i> = listOf()
 ) {
     private var state: Long = 0
+
+    val size get() = watchPoints.size
+
 
     companion object {
         fun fromPersistent(data: PersistentRegisterV1): Register {
@@ -28,6 +31,7 @@ data class Register(
         }
     }
 
+
     fun toPersistent(): PersistentRegisterV1 {
         return PersistentRegisterV1(
             name,
@@ -37,7 +41,6 @@ data class Register(
         )
     }
 
-    val size get() = watchPoints.size
 
     fun updateState(world: World, offset: Vec3i) {
         watchPoints.forEachIndexed { i, position ->
@@ -52,6 +55,7 @@ data class Register(
         }
     }
 
+
     fun getState(): Long {
         val mask = (1L shl size) - 1
         return when (invert) {
@@ -60,7 +64,15 @@ data class Register(
         }
     }
 
+
     fun invert() {
         invert = !invert
+    }
+
+
+    fun flipBits() {
+        watchPoints = List(watchPoints.size) { i ->
+            watchPoints[(size - 1) - i]
+        }
     }
 }

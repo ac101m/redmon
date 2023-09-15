@@ -222,6 +222,24 @@ class RedmonClient : ClientModInitializer {
     }
 
 
+    private fun processRegisterFlipCommand(args: Map<String, Any>): String {
+        val profile = checkNotNull(redmon.activeProfile) {
+            "You must select a profile before flipping a register"
+        }
+
+        val registerName = args.getStringCommandArgument("<name>")
+
+        require(profile.registers.containsKey(registerName)) {
+            "No register with name '$registerName' in profile '${profile.name}'"
+        }
+
+        val register = profile.getRegister(registerName)!!
+        register.flipBits()
+
+        return "Flipped register '${register.name}'"
+    }
+
+
     private fun processRegisterCommand(context: CommandContext<FabricClientCommandSource>, args: Map<String, Any>): String {
         return if (args["create"] == true) {
             processRegisterAddCommand(context.source.player, args)
@@ -229,6 +247,8 @@ class RedmonClient : ClientModInitializer {
             processRegisterDeleteCommand(args)
         } else if (args["invert"] == true) {
             processRegisterInvertCommand(args)
+        } else if (args["flip"] == true) {
+            processRegisterFlipCommand(args)
         } else {
             throw RedmonCommandException(UNHANDLED_COMMAND_ERROR_MESSAGE)
         }
