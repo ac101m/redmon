@@ -173,9 +173,11 @@ class RedmonClient : ClientModInitializer {
         val register = Register(
             registerName,
             registerType,
-            args.getBooleanCommandArgument("--invert"),
+            false,
             bitLocations.map { it.subtract(redmon.profileOffset!!) }
-        )
+        ).also { register ->
+            register.flipBits()
+        }
 
         profile.addRegister(register)
         redmon.saveProfiles()
