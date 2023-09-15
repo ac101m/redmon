@@ -1,8 +1,6 @@
 package com.ac101m.redmon
 
-import com.ac101m.redmon.persistence.PersistentProfileList
 import com.ac101m.redmon.profile.Profile
-import com.ac101m.redmon.profile.ProfileList
 import com.ac101m.redmon.profile.Register
 import com.ac101m.redmon.profile.RegisterType
 import com.ac101m.redmon.utils.*
@@ -31,7 +29,6 @@ import net.minecraft.util.math.Vec3i
 import net.minecraft.world.World
 import org.docopt.Docopt
 import org.docopt.DocoptExitException
-import kotlin.io.path.exists
 import kotlin.math.abs
 
 
@@ -40,54 +37,18 @@ class RedmonClient : ClientModInitializer {
         .withExit(false)
         .withVersion(REDMON_VERSION)
 
-    private lateinit var profileList: ProfileList
-
-    private var selectedProfile: Profile? = null
-    private var profileOffset: Vec3i? = null
-
-
-    private fun loadProfileList() {
-        profileList = if (PROFILE_SAVE_PATH.exists()) {
-            val data = PersistentProfileList.load(PROFILE_SAVE_PATH)
-            ProfileList.fromPersistent(data)
-        } else {
-            ProfileList().also {
-                it.toPersistent().save(PROFILE_SAVE_PATH)
-            }
-        }
-    }
-
-
-    private fun saveProfileData() {
-        profileList.toPersistent().save(PROFILE_SAVE_PATH)
-    }
-
-
-    private fun setActiveProfile(player: ClientPlayerEntity, profileName: String) {
-        selectedProfile = profileList.getProfile(profileName)
-        profileOffset = if (selectedProfile != null) {
-            player.blockPos
-        } else {
-            null
-        }
-    }
-
-
-    private fun deactivateSelectedProfile() {
-        selectedProfile = null
-        profileOffset = null
-    }
+    private val redmon = RedmonState(PROFILE_SAVE_PATH)
 
 
     private fun processProfileListCommand(): String {
-        if (profileList.profiles.size == 0) {
+        if (redmon.profiles.size == 0) {
             return "No profiles available"
         }
 
-        val list = profileList.profiles.keys.joinToString(
+        val list = redmon.profiles.names.joinToString(
             separator = "\n"
-        ) { key ->
-            "- $key (${profileList.profiles[key]!!.registers.size} registers)"
+        ) { name ->
+            "- $name (${redmon.profiles.getProfile(name).registers.size} registers)"
         }
 
         return "Available profiles:\n$list"
@@ -97,14 +58,10 @@ class RedmonClient : ClientModInitializer {
     private fun processProfileCreateCommand(player: ClientPlayerEntity, args: Map<String, Any>): String {
         val profileName = args.getStringCommandArgument("<name>")
 
-        require(profileList.getProfile(profileName) == null) {
-            "A profile with name '$profileName' already exists."
-        }
+        redmon.profiles.addProfile(Profile(profileName))
 
-        profileList.addProfile(Profile(profileName))
-        setActiveProfile(player, profileName)
-
-        saveProfileData()
+        redmon.setActiveProfile(player, profileName)
+        redmon.saveProfiles()
 
         return "Created new profile '$profileName', and set as active profile"
     }
@@ -112,20 +69,16 @@ class RedmonClient : ClientModInitializer {
 
     private fun processProfileDeleteCommand(args: Map<String, Any>): String {
         val profileName = args.getStringCommandArgument("<name>")
+        redmon.profiles.requireProfileExists(profileName)
 
-        requireNotNull(profileList.getProfile(profileName)) {
-            "No profile with name '$profileName'"
-        }
-
-        profileList.removeProfile(profileName)
-
-        if (selectedProfile != null) {
-            if (selectedProfile!!.name == profileName) {
-                deactivateSelectedProfile()
+        if (redmon.activeProfile != null) {
+            if (redmon.activeProfile!!.name == profileName) {
+                redmon.clearActiveProfile()
             }
         }
 
-        saveProfileData()
+        redmon.profiles.removeProfile(profileName)
+        redmon.saveProfiles()
 
         return "Removed profile '$profileName'"
     }
@@ -133,26 +86,19 @@ class RedmonClient : ClientModInitializer {
 
     private fun processProfileSelectCommand(player: ClientPlayerEntity, args: Map<String, Any>): String {
         val profileName = args.getStringCommandArgument("<name>")
-
-        requireNotNull(profileList.getProfile(profileName)) {
-            "No profile with name '$profileName'"
-        }
-
-        setActiveProfile(player, profileName)
-
+        redmon.setActiveProfile(player, profileName)
         return "Set profile '$profileName' as active profile"
     }
 
 
     private fun processProfileDeselectCommand(): String {
-        if (selectedProfile == null) {
-            return "No active profile"
+        return if (redmon.activeProfile == null) {
+            "No active profile"
+        } else {
+            val profileName = redmon.activeProfile!!.name
+            redmon.clearActiveProfile()
+            "Deactivated profile '$profileName'"
         }
-
-        val profileName = selectedProfile!!.name
-        deactivateSelectedProfile()
-
-        return "Deactivated profile '$profileName'"
     }
 
 
@@ -210,7 +156,7 @@ class RedmonClient : ClientModInitializer {
 
 
     private fun processRegisterAddCommand(player: ClientPlayerEntity, args: Map<String, Any>): String {
-        val profile = checkNotNull(selectedProfile) {
+        val profile = checkNotNull(redmon.activeProfile) {
             "You must select a profile before adding a register"
         }
 
@@ -228,18 +174,18 @@ class RedmonClient : ClientModInitializer {
             registerName,
             registerType,
             args.getBooleanCommandArgument("--invert"),
-            bitLocations.map { it.subtract(profileOffset!!) }
+            bitLocations.map { it.subtract(redmon.profileOffset!!) }
         )
 
         profile.addRegister(register)
-        saveProfileData()
+        redmon.saveProfiles()
 
         return "Added register '$registerName' with $initialBitCount bits"
     }
 
 
     private fun processRegisterDeleteCommand(args: Map<String, Any>): String {
-        val profile = checkNotNull(selectedProfile) {
+        val profile = checkNotNull(redmon.activeProfile) {
             "You must select a profile before deleting a register"
         }
 
@@ -256,7 +202,7 @@ class RedmonClient : ClientModInitializer {
 
 
     private fun processRegisterInvertCommand(args: Map<String, Any>): String {
-        val profile = checkNotNull(selectedProfile) {
+        val profile = checkNotNull(redmon.activeProfile) {
             "You must select a profile before deleting a register"
         }
 
@@ -317,18 +263,19 @@ class RedmonClient : ClientModInitializer {
 
 
     private fun getOutputText(world: World): List<String> {
-        val profile = if (selectedProfile == null) {
+        val profile = if (redmon.activeProfile == null) {
             return listOf("No active profile")
         } else {
-            selectedProfile!!
+            redmon.activeProfile!!
         }
 
         val lines = ArrayList<String>()
+        val offset = redmon.profileOffset!!
 
-        lines.add("${profile.name}@(x=${profileOffset!!.x} y=${profileOffset!!.y} z=${profileOffset!!.z})")
+        lines.add("${profile.name}@(x=${offset.x} y=${offset.y} z=${offset.z})")
 
         profile.registers.values.forEach { register ->
-            register.updateState(world, profileOffset!!)
+            register.updateState(world, offset)
             lines.add("${register.name} | ${register.getState()}")
         }
 
@@ -355,7 +302,7 @@ class RedmonClient : ClientModInitializer {
 
 
     override fun onInitializeClient() {
-        loadProfileList()
+        redmon.loadProfiles()
 
         HudRenderCallback.EVENT.register { matrixStack, _ ->
             val client = MinecraftClient.getInstance()

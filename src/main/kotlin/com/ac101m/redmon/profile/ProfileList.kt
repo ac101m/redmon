@@ -5,8 +5,11 @@ import com.ac101m.redmon.persistence.v1.PersistentProfileListV1
 
 
 data class ProfileList(
-    val profiles: HashMap<String, Profile> = HashMap()
+    private val profileMap: HashMap<String, Profile> = HashMap()
 ) {
+    val size get() = profileMap.size
+    val names get() = profileMap.keys
+
     companion object {
         fun fromPersistent(data: PersistentProfileListV1): ProfileList {
             val profiles = HashMap<String, Profile>()
@@ -15,23 +18,42 @@ data class ProfileList(
         }
     }
 
+
     fun toPersistent(): PersistentProfileListV1 {
         val persistentProfiles = arrayListOf<PersistentProfileV1>()
-        profiles.keys.forEach { profileName -> persistentProfiles.add(profiles[profileName]!!.toPersistent()) }
+        profileMap.keys.forEach { profileName -> persistentProfiles.add(profileMap[profileName]!!.toPersistent()) }
         return PersistentProfileListV1(persistentProfiles)
     }
 
-    val size get() = profiles.size
+
+    fun requireProfileExists(name: String) {
+        require(profileMap.containsKey(name)) {
+            "No profile with name '$name'"
+        }
+    }
+
+
+    fun requireProfileDoesNotExist(name: String) {
+        require(!profileMap.containsKey(name)) {
+            "A profile with name '$name' already exists"
+        }
+    }
+
+
+    fun getProfile(name: String): Profile {
+        requireProfileExists(name)
+        return profileMap[name]!!
+    }
+
 
     fun addProfile(profile: Profile) {
-        profiles[profile.name] = profile
+        requireProfileDoesNotExist(profile.name)
+        profileMap[profile.name] = profile
     }
 
-    fun getProfile(name: String): Profile? {
-        return profiles[name]
-    }
 
     fun removeProfile(name: String) {
-        profiles.remove(name)
+        requireProfileExists(name)
+        profileMap.remove(name)
     }
 }
