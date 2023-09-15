@@ -155,7 +155,7 @@ class RedmonClient : ClientModInitializer {
     }
 
 
-    private fun processRegisterAddCommand(player: ClientPlayerEntity, args: Map<String, Any>): String {
+    private fun processRegisterCreateCommand(player: ClientPlayerEntity, args: Map<String, Any>): String {
         val profile = checkNotNull(redmon.activeProfile) {
             "You must select a profile before adding a register"
         }
@@ -244,7 +244,7 @@ class RedmonClient : ClientModInitializer {
 
     private fun processRegisterCommand(context: CommandContext<FabricClientCommandSource>, args: Map<String, Any>): String {
         return if (args["create"] == true) {
-            processRegisterAddCommand(context.source.player, args)
+            processRegisterCreateCommand(context.source.player, args)
         } else if (args["delete"] == true) {
             processRegisterDeleteCommand(args)
         } else if (args["invert"] == true) {
