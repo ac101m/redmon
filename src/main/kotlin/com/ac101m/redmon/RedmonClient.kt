@@ -333,7 +333,10 @@ class RedmonClient : ClientModInitializer {
         loadProfileList()
 
         HudRenderCallback.EVENT.register { matrixStack, _ ->
-            drawOutput(matrixStack)
+            val client = MinecraftClient.getInstance()
+            if (client.player != null && !client.options.debugEnabled) {
+                drawOutput(matrixStack)
+            }
         }
 
         ClientCommandManager.DISPATCHER.register(
