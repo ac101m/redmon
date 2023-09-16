@@ -1,6 +1,7 @@
 Usage:
   /redmon profile (list | deselect)
   /redmon profile (create | delete | select) <name>
+  /redmon profile rename <name> <new-name>
   /redmon register (delete | invert | flip) <name>
   /redmon register (create | append) <name> [--bits=<count>] [--lsb]
   /redmon (-h | --help)

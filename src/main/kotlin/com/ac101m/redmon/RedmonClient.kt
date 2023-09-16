@@ -102,6 +102,18 @@ class RedmonClient : ClientModInitializer {
     }
 
 
+    private fun processProfileRenameCommand(args: Map<String, Any>): String {
+        val profileName = args.getStringCommandArgument("<name>")
+        val newProfileName = args.getStringCommandArgument("<new-name>")
+
+        val profile = redmon.profiles.getProfile(profileName)
+
+        profile.name = newProfileName
+
+        return "Renamed profile '$profileName' to '$newProfileName'"
+    }
+
+
     private fun processProfileCommand(context: CommandContext<FabricClientCommandSource>, args: Map<String, Any>): String {
         return if (args["list"] == true) {
             processProfileListCommand()
@@ -113,6 +125,8 @@ class RedmonClient : ClientModInitializer {
             processProfileSelectCommand(context.source.player, args)
         } else if (args["deselect"] == true) {
             processProfileDeselectCommand()
+        } else if (args["rename"] == true) {
+            processProfileRenameCommand(args)
         } else {
             throw RedmonCommandException(UNHANDLED_COMMAND_ERROR_MESSAGE)
         }

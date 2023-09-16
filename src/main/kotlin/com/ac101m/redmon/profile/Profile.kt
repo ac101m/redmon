@@ -6,7 +6,7 @@ import net.minecraft.world.World
 
 
 data class Profile(
-    val name: String,
+    var name: String,
     val registers: HashMap<String, Register> = LinkedHashMap()
 ) {
     companion object {
