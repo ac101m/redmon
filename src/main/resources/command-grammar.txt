@@ -2,7 +2,7 @@ Usage:
   /redmon profile (list | deselect)
   /redmon profile (create | delete | select) <name>
   /redmon register (delete | invert | flip) <name>
-  /redmon register (create | append) <name> [--bits=<count>]
+  /redmon register (create | append) <name> [--bits=<count>] [--lsb]
   /redmon (-h | --help)
   /redmon --version
 
@@ -10,3 +10,4 @@ Options:
   -h --help       Show this help message.
   --version       Show the version of the mod.
   --bits=<count>  Register bit count [default: 1].
+  --lsb           Register LSB first [default: false].

@@ -122,7 +122,8 @@ class RedmonClient : ClientModInitializer {
     private fun getRegisterBitsFromLookDirection(
         player: ClientPlayerEntity,
         requestedBits: Int,
-        type: RegisterType
+        type: RegisterType,
+        lsbFirst: Boolean
     ): List<Vec3i> {
         val look = Vec3d.fromPolar(player.pitch, player.yaw)
         val eyePos = player.eyePos
@@ -151,7 +152,10 @@ class RedmonClient : ClientModInitializer {
             "Failed to find register bits, requested $requestedBits but found $bitsFound"
         }
 
-        return List(bitPositions.size) { i -> bitPositions[(bitPositions.size - 1) - i] }
+        return when (lsbFirst) {
+            true -> bitPositions
+            false -> List(bitPositions.size) { i -> bitPositions[(bitPositions.size - 1) - i] }
+        }
     }
 
 
@@ -163,12 +167,13 @@ class RedmonClient : ClientModInitializer {
         val registerName = args.getStringCommandArgument("<name>")
         val registerType = RegisterType.REPEATER
         val initialBitCount = args.getIntCommandArgument("--bits")
+        val lsbFirst = args.getBooleanCommandArgument("--lsb")
 
         require(profile.getRegister(registerName) == null) {
             "Register with name '$registerName' already exists"
         }
 
-        val bitLocations = getRegisterBitsFromLookDirection(player, initialBitCount, registerType)
+        val bitLocations = getRegisterBitsFromLookDirection(player, initialBitCount, registerType, lsbFirst)
 
         val register = Register(
             registerName,
@@ -252,16 +257,15 @@ class RedmonClient : ClientModInitializer {
         val registerName = args.getStringCommandArgument("<name>")
         val registerType = RegisterType.REPEATER
         val bitCount = args.getIntCommandArgument("--bits")
+        val lsbFirst = args.getBooleanCommandArgument("--lsb")
 
         val register = requireNotNull(profile.getRegister(registerName)) {
             "No register with name '$registerName' in profile '${profile.name}'"
         }
 
-        val bitPositions = getRegisterBitsFromLookDirection(player, bitCount, registerType).map { position ->
-            position.subtract(redmon.profileOffset!!)
-        }
+        val bitPositions = getRegisterBitsFromLookDirection(player, bitCount, registerType, lsbFirst)
 
-        register.appendBits(bitPositions)
+        register.appendBits(bitPositions.map { position -> position.subtract(redmon.profileOffset!!) })
         redmon.saveProfiles()
 
         return "Appended $bitCount bits to register '${register.name}' in profile '${profile.name}'"
