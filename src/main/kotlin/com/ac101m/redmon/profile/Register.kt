@@ -75,4 +75,9 @@ data class Register(
             watchPoints[(size - 1) - i]
         }
     }
+
+
+    fun appendBits(positionsToAppend: List<Vec3i>) {
+        watchPoints = watchPoints.plus(positionsToAppend)
+    }
 }

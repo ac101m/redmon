@@ -244,6 +244,30 @@ class RedmonClient : ClientModInitializer {
     }
 
 
+    private fun processRegisterAppendCommand(player: ClientPlayerEntity, args: Map<String, Any>): String {
+        val profile = checkNotNull(redmon.activeProfile) {
+            "You must select a profile before appending bits to a register"
+        }
+
+        val registerName = args.getStringCommandArgument("<name>")
+        val registerType = RegisterType.REPEATER
+        val bitCount = args.getIntCommandArgument("--bits")
+
+        val register = requireNotNull(profile.getRegister(registerName)) {
+            "No register with name '$registerName' in profile '${profile.name}'"
+        }
+
+        val bitPositions = getRegisterBitsFromLookDirection(player, bitCount, registerType).map { position ->
+            position.subtract(redmon.profileOffset!!)
+        }
+
+        register.appendBits(bitPositions)
+        redmon.saveProfiles()
+
+        return "Appended $bitCount bits to register '${register.name}' in profile '${profile.name}'"
+    }
+
+
     private fun processRegisterCommand(context: CommandContext<FabricClientCommandSource>, args: Map<String, Any>): String {
         return if (args["create"] == true) {
             processRegisterCreateCommand(context.source.player, args)
@@ -253,6 +277,8 @@ class RedmonClient : ClientModInitializer {
             processRegisterInvertCommand(args)
         } else if (args["flip"] == true) {
             processRegisterFlipCommand(args)
+        } else if (args["append"] == true) {
+            processRegisterAppendCommand(context.source.player, args)
         } else {
             throw RedmonCommandException(UNHANDLED_COMMAND_ERROR_MESSAGE)
         }

@@ -2,7 +2,7 @@ Usage:
   /redmon profile (list | deselect)
   /redmon profile (create | delete | select) <name>
   /redmon register (delete | invert | flip) <name>
-  /redmon register create <name> [--bits=<count>]
+  /redmon register (create | append) <name> [--bits=<count>]
   /redmon (-h | --help)
   /redmon --version
 
