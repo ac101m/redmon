@@ -109,6 +109,7 @@ class RedmonClient : ClientModInitializer {
         val profile = redmon.profiles.getProfile(profileName)
 
         profile.name = newProfileName
+        redmon.saveProfiles()
 
         return "Renamed profile '$profileName' to '$newProfileName'"
     }
@@ -286,6 +287,25 @@ class RedmonClient : ClientModInitializer {
     }
 
 
+    private fun processRegisterRenameCommand(args: Map<String, Any>): String {
+        val profile = checkNotNull(redmon.activeProfile) {
+            "You must select a profile before appending bits to a register"
+        }
+
+        val registerName = args.getStringCommandArgument("<name>")
+        val newRegisterName = args.getStringCommandArgument("<new-name>")
+
+        val register = requireNotNull(profile.getRegister(registerName)) {
+            "No register with name '$registerName' in profile '${profile.name}'"
+        }
+
+        register.name = newRegisterName
+        redmon.saveProfiles()
+
+        return "Renamed register '$registerName' in profile ${profile.name} to '$newRegisterName'"
+    }
+
+
     private fun processRegisterCommand(context: CommandContext<FabricClientCommandSource>, args: Map<String, Any>): String {
         return if (args["create"] == true) {
             processRegisterCreateCommand(context.source.player, args)
@@ -297,6 +317,8 @@ class RedmonClient : ClientModInitializer {
             processRegisterFlipCommand(args)
         } else if (args["append"] == true) {
             processRegisterAppendCommand(context.source.player, args)
+        } else if (args["rename"] == true) {
+            processRegisterRenameCommand(args)
         } else {
             throw RedmonCommandException(UNHANDLED_COMMAND_ERROR_MESSAGE)
         }

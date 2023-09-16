@@ -10,7 +10,7 @@ import net.minecraft.world.World
 
 
 data class Register(
-    val name: String,
+    var name: String,
     val type: RegisterType,
     var invert: Boolean,
     var watchPoints: List<Vec3i> = listOf()

@@ -4,6 +4,7 @@ Usage:
   /redmon profile rename <name> <new-name>
   /redmon register (delete | invert | flip) <name>
   /redmon register (create | append) <name> [--bits=<count>] [--lsb]
+  /redmon register rename <name> <new-name>
   /redmon (-h | --help)
   /redmon --version
 
