@@ -218,6 +218,7 @@ class RedmonClient : ClientModInitializer {
         }
 
         profile.removeRegister(registerName)
+        redmon.saveProfiles()
 
         return "Removed register '$registerName' from profile '${profile.name}'"
     }
