@@ -65,6 +65,11 @@ data class Register(
     }
 
 
+    fun getRepresentation(): String {
+        return "${getState()}"
+    }
+
+
     fun invert() {
         invert = !invert
     }

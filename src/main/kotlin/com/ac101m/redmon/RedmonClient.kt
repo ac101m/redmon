@@ -1,5 +1,6 @@
 package com.ac101m.redmon
 
+import com.ac101m.redmon.gui.ProfileOverlay
 import com.ac101m.redmon.profile.Profile
 import com.ac101m.redmon.profile.Register
 import com.ac101m.redmon.profile.RegisterType
@@ -8,6 +9,7 @@ import com.ac101m.redmon.utils.Config.Companion.COMMAND_GRAMMAR
 import com.ac101m.redmon.utils.Config.Companion.PROFILE_SAVE_PATH
 import com.ac101m.redmon.utils.Config.Companion.REDMON_VERSION
 import com.ac101m.redmon.utils.Config.Companion.HELP_COMMAND_PROMPT
+import com.ac101m.redmon.utils.Config.Companion.OVERLAY_POSITION
 import com.ac101m.redmon.utils.Config.Companion.UNHANDLED_COMMAND_ERROR_MESSAGE
 import com.mojang.brigadier.arguments.StringArgumentType.getString
 import com.mojang.brigadier.arguments.StringArgumentType.greedyString
@@ -374,20 +376,18 @@ class RedmonClient : ClientModInitializer {
 
 
     private fun drawOutput(matrixStack: MatrixStack) {
-        val world = MinecraftClient.getInstance().player?.world ?: return
-
-        val text = getOutputText(world)
-
-        val width = text.maxOfOrNull { textWidth(it) }!!
-
-        val x = 2
-        val y = 2
-
-        drawRectangle(Rectangle(x, y, 0, width + 3, (text.size * 10) + 2, 0x7f000000))
-
-        text.forEachIndexed { i, line ->
-            drawText(matrixStack, line, x + 1, (i * 10) + y + 1, 0xffffff)
+        val profile = if (redmon.activeProfile == null) {
+            redmon.inactiveUI.draw(matrixStack, OVERLAY_POSITION)
+            return
+        } else {
+            redmon.activeProfile!!
         }
+
+        val world = MinecraftClient.getInstance().player?.world ?: return
+        profile.updateState(world, redmon.profileOffset!!)
+
+        redmon.profileUI.update(profile, redmon.profileOffset!!)
+        redmon.profileUI.draw(matrixStack, OVERLAY_POSITION)
     }
 
 

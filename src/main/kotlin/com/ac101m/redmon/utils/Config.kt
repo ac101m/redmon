@@ -1,6 +1,7 @@
 package com.ac101m.redmon.utils
 
 import net.fabricmc.loader.api.FabricLoader
+import net.minecraft.util.math.Vec3i
 import java.nio.file.Path
 import java.util.*
 
@@ -29,5 +30,8 @@ class Config {
             "See '/redmon -h' for usage information."
         const val UNHANDLED_COMMAND_ERROR_MESSAGE =
             "Unhandled command. $ISSUE_CREATE_PROMPT"
+
+        // UI Constants
+        val OVERLAY_POSITION = Vec3i(1, 1, 0)
     }
 }

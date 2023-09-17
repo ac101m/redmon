@@ -1,5 +1,7 @@
 package com.ac101m.redmon
 
+import com.ac101m.redmon.gui.ProfileOverlay
+import com.ac101m.redmon.gui.TextOverlay
 import com.ac101m.redmon.persistence.PersistentProfileList
 import com.ac101m.redmon.profile.Profile
 import com.ac101m.redmon.profile.ProfileList
@@ -14,6 +16,9 @@ class RedmonState(private val profileSavePath: Path) {
 
     var activeProfile: Profile? = null
     var profileOffset: Vec3i? = null
+
+    val profileUI = ProfileOverlay()
+    val inactiveUI = TextOverlay("No active profiles")
 
 
     fun loadProfiles() {
