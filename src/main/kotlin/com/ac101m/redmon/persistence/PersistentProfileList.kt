@@ -2,6 +2,7 @@ package com.ac101m.redmon.persistence
 
 import com.ac101m.redmon.persistence.v1.PersistentProfileListV1
 import com.ac101m.redmon.utils.RedmonConfigurationException
+import com.ac101m.redmon.utils.mapper
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -27,7 +28,6 @@ import kotlin.io.path.isRegularFile
 )
 open class PersistentProfileList {
     companion object {
-        private val objectMapper = ObjectMapper()
 
         fun load(path: Path): PersistentProfileListV1 {
             if (!path.exists()) {
@@ -41,7 +41,7 @@ open class PersistentProfileList {
 
         fun load(inputStream: InputStream): PersistentProfileListV1 {
             val registry = try {
-                objectMapper.readValue(inputStream, PersistentProfileListV1::class.java)
+                mapper.readValue(inputStream, PersistentProfileListV1::class.java)
             } catch (e: Exception) {
                 throw RedmonConfigurationException("Failed to load profile information, error parsing configuration.", e)
             }

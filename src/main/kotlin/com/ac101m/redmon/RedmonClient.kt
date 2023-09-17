@@ -3,6 +3,7 @@ package com.ac101m.redmon
 import com.ac101m.redmon.gui.ProfileOverlay
 import com.ac101m.redmon.profile.Profile
 import com.ac101m.redmon.profile.Register
+import com.ac101m.redmon.profile.RegisterFormat
 import com.ac101m.redmon.profile.RegisterType
 import com.ac101m.redmon.utils.*
 import com.ac101m.redmon.utils.Config.Companion.COMMAND_GRAMMAR
@@ -196,6 +197,7 @@ class RedmonClient : ClientModInitializer {
             registerName,
             registerType,
             false,
+            RegisterFormat.UNSIGNED,
             bitLocations.map { it.subtract(redmon.profileOffset!!) }
         )
 
@@ -309,6 +311,37 @@ class RedmonClient : ClientModInitializer {
     }
 
 
+    private fun processRegisterFormatCommand(args: Map<String, Any>): String {
+        val profile = checkNotNull(redmon.activeProfile) {
+            "You must select a profile before setting register format"
+        }
+
+        val registerName = args.getStringCommandArgument("<name>")
+        val newFormatArg = args.getStringCommandArgument("<format>")
+
+        val newFormat = try {
+            RegisterFormat.valueOf(newFormatArg.uppercase())
+        } catch (e: IllegalArgumentException) {
+            throw IllegalArgumentException(
+                "'$newFormatArg' is not a valid format. " +
+                "Valid formats are ${RegisterFormat.entries.joinToString(", ") { it.name.lowercase() }}", e)
+        }
+
+        return if (registerName == "all") {
+            profile.registers.forEach { it.value.format = newFormat }
+            "Set format of all registers in profile ${profile.name} to '$newFormat'"
+        } else {
+            val register = requireNotNull(profile.getRegister(registerName)) {
+                "No register with name '$registerName' in profile '${profile.name}'"
+            }
+            register.format = newFormat
+            "Set format of register '${register.name}' in profile '${profile.name}' to '$newFormat'"
+        }.also {
+            redmon.saveProfiles()
+        }
+    }
+
+
     private fun processRegisterCommand(context: CommandContext<FabricClientCommandSource>, args: Map<String, Any>): String {
         return if (args["create"] == true) {
             processRegisterCreateCommand(context.source.player, args)
@@ -322,6 +355,8 @@ class RedmonClient : ClientModInitializer {
             processRegisterAppendCommand(context.source.player, args)
         } else if (args["rename"] == true) {
             processRegisterRenameCommand(args)
+        } else if (args["format"] == true) {
+            processRegisterFormatCommand(args)
         } else {
             throw RedmonCommandException(UNHANDLED_COMMAND_ERROR_MESSAGE)
         }

@@ -16,7 +16,7 @@ class PersistentProfileListV1Tests {
                     registers = listOf(
                         PersistentRegisterV1(
                             name = "r1",
-                            type = RegisterType.REPEATER.toString(),
+                            type = RegisterType.REPEATER,
                             invert = false,
                             bitLocations = listOf(
                                 PersistentRegisterBitV1(

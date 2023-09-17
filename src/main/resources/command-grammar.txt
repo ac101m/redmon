@@ -5,6 +5,7 @@ Usage:
   /redmon register (delete | invert | flip) <name>
   /redmon register (create | append) <name> [--bits=<count>] [--lsb]
   /redmon register rename <name> <new-name>
+  /redmon register format <name> <format>
   /redmon (-h | --help)
   /redmon --version
 
