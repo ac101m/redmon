@@ -41,6 +41,7 @@ class RedmonClient : ClientModInitializer {
         .withVersion(REDMON_VERSION)
 
     private val redmon = RedmonState(PROFILE_SAVE_PATH)
+    private var hidden = false
 
     private fun processProfileListCommand(): String {
         if (redmon.profiles.size == 0) {
@@ -407,6 +408,22 @@ class RedmonClient : ClientModInitializer {
         redmon.profileUI.draw(context, OVERLAY_POSITION)
     }
 
+    /**
+     * Disable drawing.
+     */
+    private fun hide(): Int {
+        hidden = true
+        return 0
+    }
+
+    /**
+     * Enable drawing.
+     */
+    private fun show(): Int {
+        hidden = false
+        return 0
+    }
+
     override fun onInitializeClient() {
         redmon.loadProfiles()
 
@@ -416,7 +433,7 @@ class RedmonClient : ClientModInitializer {
         ) { context, _ ->
             val client = Minecraft.getInstance()
             // TODO: Restore functionality which prevents hud rendering when debug overlay is active
-            if (client.player != null /* && !client.options.debugEnabled */) {
+            if (client.player != null && !hidden /* && !client.options.debugEnabled */) {
                 drawOutput(context)
             }
         }
@@ -433,6 +450,18 @@ class RedmonClient : ClientModInitializer {
                     context.source.sendError(MutableComponent.create(plainTextComponent))
                     0
                 }
+            )
+
+            dispatcher.register(
+                literal("redmon").then(literal("hide").executes {
+                    hidden = true
+                    0
+                })
+            )
+
+            dispatcher.register(literal("redmon")
+                .then(literal("hide").executes { hide() })
+                .then(literal("show").executes { show() })
             )
         }
     }
