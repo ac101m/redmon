@@ -4,31 +4,70 @@ import com.ac101m.redmon.profile.Profile
 import com.ac101m.redmon.profile.Register
 import com.ac101m.redmon.profile.RegisterFormat
 import com.ac101m.redmon.profile.RegisterType
-import com.ac101m.redmon.utils.*
-import com.ac101m.redmon.utils.Config.Companion.PROFILE_SAVE_PATH
+import com.ac101m.redmon.utils.CardinalDirection
+import com.ac101m.redmon.utils.RedmonException
+import com.ac101m.redmon.utils.int
+import com.ac101m.redmon.utils.length
+import com.ac101m.redmon.utils.sendError
+import com.ac101m.redmon.utils.sendFeedback
+import com.ac101m.redmon.utils.str
+import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.IntegerArgumentType.getInteger
 import com.mojang.brigadier.arguments.StringArgumentType.getString
 import com.mojang.brigadier.context.CommandContext
-import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
-import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry
-import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Vec3i
-import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.HitResult
 
 /**
- * Mod entrypoint.
- * Contains command registrations and logic
+ * Manages the redmon command interface.
+ * Command registration and execution logic lives here.
+ *
+ * @param redmon The main redmon state object.
  */
-class RedmonClient : ClientModInitializer {
-    private val redmon = RedmonState(PROFILE_SAVE_PATH)
+class CommandManager(
+    val redmon: RedmonState
+) {
+    fun registerCommands(dispatcher: CommandDispatcher<FabricClientCommandSource>) {
+        dispatcher.register(literal("redmon")
+            .then(literal("hide").executes { _ -> hideCommand() })
+            .then(literal("show").executes { _ -> showCommand() })
+            .then(literal("profile")
+                .then(literal("list").executes { c -> profileListCommand(c) })
+                .then(literal("create").then(str("name")
+                    .executes { c -> profileCreateCommand(c) }))
+                .then(literal("delete").then(str("name")
+                    .executes { c -> profileDeleteCommand(c) }))
+                .then(literal("select").then(str("name")
+                    .executes { c -> profileSelectCommand(c) }))
+                .then(literal("deselect").then(str("name")
+                    .executes { c -> profileDeselectCommand(c) }))
+                .then(literal("rename").then(str("name").then(str("new-name")
+                    .executes { c -> profileRenameCommand(c) })))
+            )
+            .then(literal("register")
+                .then(literal("add").then(str("name").then(int("bit-count")
+                    .executes { c -> registerAddCommand(c) })))
+                .then(literal("delete").then(str("name")
+                    .executes { c -> registerDeleteCommand(c) }))
+                .then(literal("invert").then(str("name")
+                    .executes { c -> registerInvertCommand(c) }))
+                .then(literal("flip").then(str("name")
+                    .executes { c -> registerFlipCommand(c) }))
+                .then(literal("append-bits").then(str("name").then(int("bit-count")
+                    .executes { c -> registerAppendBitsCommand(c) })))
+                .then(literal("rename").then(str("name").then(str("new-name")
+                    .executes { c -> registerRenameCommand(c) })))
+                .then(literal("format").then(str("name").then(str("format")
+                    .executes { c -> registerFormatCommand(c) } )))
+            )
+        )
+    }
 
     private fun showCommand(): Int {
         redmon.show()
@@ -101,7 +140,7 @@ class RedmonClient : ClientModInitializer {
         val step = CardinalDirection.fromLook(player.lookAngle).vector
 
         val hitResult = Minecraft.getInstance().hitResult ?:
-            throw RedmonException("Crosshair is not pointing at anything.")
+        throw RedmonException("Crosshair is not pointing at anything.")
 
         val blockHitResult = if (hitResult.type != HitResult.Type.BLOCK) {
             throw RedmonException("Crosshair is not pointing at a block.")
@@ -265,7 +304,7 @@ class RedmonClient : ClientModInitializer {
         } catch (e: IllegalArgumentException) {
             throw IllegalArgumentException(
                 "'$newFormatArg' is not a valid format. " +
-                "Valid formats are ${RegisterFormat.entries.joinToString(", ") { it.name.lowercase() }}", e)
+                        "Valid formats are ${RegisterFormat.entries.joinToString(", ") { it.name.lowercase() }}", e)
         }
 
         if (registerName == "all") {
@@ -279,57 +318,6 @@ class RedmonClient : ClientModInitializer {
             ctx.sendFeedback("Set format of register '${register.name}' in profile '${profile.name}' to '$newFormat'")
         }.also {
             redmon.saveProfiles()
-        }
-    }
-
-    override fun onInitializeClient() {
-        redmon.loadProfiles()
-
-        HudElementRegistry.attachElementAfter(
-            VanillaHudElements.CHAT,
-            ResourceLocation.fromNamespaceAndPath("redmon", "overlay")
-        ) { context, _ ->
-            val client = Minecraft.getInstance()
-            // TODO: Restore functionality which prevents hud rendering when debug overlay is active
-            if (client.player != null /* && !client.options.debugEnabled */) {
-                redmon.drawOverlay(context)
-            }
-        }
-
-        ClientCommandRegistrationCallback.EVENT.register { dispatcher, _ ->
-            dispatcher.register(literal("redmon")
-                .then(literal("hide").executes { _ -> hideCommand() })
-                .then(literal("show").executes { _ -> showCommand() })
-                .then(literal("profile")
-                    .then(literal("list").executes { c -> profileListCommand(c) })
-                    .then(literal("create").then(str("name")
-                        .executes { c -> profileCreateCommand(c) }))
-                    .then(literal("delete").then(str("name")
-                        .executes { c -> profileDeleteCommand(c) }))
-                    .then(literal("select").then(str("name")
-                        .executes { c -> profileSelectCommand(c) }))
-                    .then(literal("deselect").then(str("name")
-                        .executes { c -> profileDeselectCommand(c) }))
-                    .then(literal("rename").then(str("name").then(str("new-name")
-                        .executes { c -> profileRenameCommand(c) })))
-                )
-                .then(literal("register")
-                    .then(literal("add").then(str("name").then(int("bit-count")
-                        .executes { c -> registerAddCommand(c) })))
-                    .then(literal("delete").then(str("name")
-                        .executes { c -> registerDeleteCommand(c) }))
-                    .then(literal("invert").then(str("name")
-                        .executes { c -> registerInvertCommand(c) }))
-                    .then(literal("flip").then(str("name")
-                        .executes { c -> registerFlipCommand(c) }))
-                    .then(literal("append-bits").then(str("name").then(int("bit-count")
-                        .executes { c -> registerAppendBitsCommand(c) })))
-                    .then(literal("rename").then(str("name").then(str("new-name")
-                        .executes { c -> registerRenameCommand(c) })))
-                    .then(literal("format").then(str("name").then(str("format")
-                        .executes { c -> registerFormatCommand(c) } )))
-                )
-            )
         }
     }
 
