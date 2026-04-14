@@ -7,7 +7,7 @@ data class ProfileList(
     private val profileMap: HashMap<String, Profile> = HashMap()
 ) {
     val size get() = profileMap.size
-    val names get() = profileMap.keys
+    val profiles get() = profileMap.values.toList()
 
     companion object {
         fun fromPersistent(data: PersistentProfileListV1): ProfileList {
@@ -17,13 +17,11 @@ data class ProfileList(
         }
     }
 
-
     fun toPersistent(): PersistentProfileListV1 {
         val persistentProfiles = arrayListOf<PersistentProfileV1>()
         profileMap.keys.forEach { profileName -> persistentProfiles.add(profileMap[profileName]!!.toPersistent()) }
         return PersistentProfileListV1(persistentProfiles)
     }
-
 
     fun requireProfileExists(name: String) {
         require(profileMap.containsKey(name)) {
@@ -31,27 +29,31 @@ data class ProfileList(
         }
     }
 
-
     fun requireProfileDoesNotExist(name: String) {
         require(!profileMap.containsKey(name)) {
             "A profile with name '$name' already exists"
         }
     }
 
-
     fun getProfile(name: String): Profile {
         requireProfileExists(name)
         return profileMap[name]!!
     }
-
 
     fun addProfile(profile: Profile) {
         requireProfileDoesNotExist(profile.name)
         profileMap[profile.name] = profile
     }
 
+    fun renameProfile(name: String, newName: String) {
+        requireProfileExists(name)
+        requireProfileDoesNotExist(newName)
+        val profile = profileMap.remove(name)
+        profile!!.name = newName
+        profileMap[profile.name] = profile
+    }
 
-    fun removeProfile(name: String) {
+    fun deleteProfile(name: String) {
         requireProfileExists(name)
         profileMap.remove(name)
     }

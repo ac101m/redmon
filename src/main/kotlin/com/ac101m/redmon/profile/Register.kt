@@ -9,6 +9,7 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.RepeaterBlock
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import java.io.StringWriter
+import kotlin.and
 
 data class Register(
     var name: String,
@@ -17,12 +18,20 @@ data class Register(
     var format: RegisterFormat,
     var watchPoints: List<Vec3i> = listOf()
 ) {
-    private var state: ULong = 0UL
+    // Raw state of the register bits
+    private var rawState: ULong = 0UL
+
+    // State taking into account inversion
+    private val state: ULong get() {
+        val mask = (1UL shl size) - 1UL
+        return when (invert) {
+            false -> rawState and mask
+            true -> rawState.inv() and mask
+        }
+    }
 
     val size get() = watchPoints.size
-
     var missingBits = 0
-
 
     companion object {
         fun fromPersistent(data: PersistentRegisterV1): Register {
@@ -36,7 +45,6 @@ data class Register(
         }
     }
 
-
     fun toPersistent(): PersistentRegisterV1 {
         return PersistentRegisterV1(
             name,
@@ -47,32 +55,21 @@ data class Register(
         )
     }
 
-
     fun updateState(world: Level, offset: Vec3i) {
         missingBits = 0
         watchPoints.forEachIndexed { i, position ->
             val blockState = world.getBlockState(BlockPos(position.offset(offset)))
             val mask = 1UL shl i
-            state = state and mask.inv()
+            rawState = rawState and mask.inv()
             if (blockState.block is RepeaterBlock) {
                 if (blockState.getValue(BlockStateProperties.POWERED)) {
-                    state = state or mask
+                    rawState = rawState or mask
                 }
             } else {
                 missingBits++
             }
         }
     }
-
-
-    fun getState(): ULong {
-        val mask = (1UL shl size) - 1UL
-        return when (invert) {
-            false -> state and mask
-            true -> state.inv() and mask
-        }
-    }
-
 
     private fun formatSigned(): String {
         val signBitMask = (1UL shl (size - 1))
@@ -85,7 +82,6 @@ data class Register(
 
         return "${signExtended.toLong()}"
     }
-
 
     private fun formatHex(): String {
         val digitCount = when (size % 4) {
@@ -104,7 +100,6 @@ data class Register(
 
         return "0x$sw"
     }
-
 
     private fun formatBinary(): String {
         val digitCount = size
@@ -138,18 +133,13 @@ data class Register(
         }
     }
 
-
     fun invert() {
         invert = !invert
     }
 
-
     fun flipBits() {
-        watchPoints = List(watchPoints.size) { i ->
-            watchPoints[(size - 1) - i]
-        }
+        watchPoints = watchPoints.reversed()
     }
-
 
     fun appendBits(positionsToAppend: List<Vec3i>) {
         watchPoints = watchPoints.plus(positionsToAppend)

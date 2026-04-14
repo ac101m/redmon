@@ -5,150 +5,118 @@ import com.ac101m.redmon.profile.Register
 import com.ac101m.redmon.profile.RegisterFormat
 import com.ac101m.redmon.profile.RegisterType
 import com.ac101m.redmon.utils.*
-import com.ac101m.redmon.utils.Config.Companion.COMMAND_GRAMMAR
 import com.ac101m.redmon.utils.Config.Companion.PROFILE_SAVE_PATH
-import com.ac101m.redmon.utils.Config.Companion.REDMON_VERSION
-import com.ac101m.redmon.utils.Config.Companion.HELP_COMMAND_PROMPT
-import com.ac101m.redmon.utils.Config.Companion.OVERLAY_POSITION
-import com.ac101m.redmon.utils.Config.Companion.UNHANDLED_COMMAND_ERROR_MESSAGE
+import com.mojang.brigadier.arguments.IntegerArgumentType.getInteger
 import com.mojang.brigadier.arguments.StringArgumentType.getString
-import com.mojang.brigadier.arguments.StringArgumentType.greedyString
 import com.mojang.brigadier.context.CommandContext
 import net.fabricmc.api.ClientModInitializer
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements
 import net.minecraft.client.Minecraft
-import net.minecraft.client.gui.GuiGraphics
-import net.minecraft.client.player.AbstractClientPlayer
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Vec3i
-import net.minecraft.network.chat.MutableComponent
-import net.minecraft.network.chat.contents.PlainTextContents
 import net.minecraft.resources.ResourceLocation
-import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Blocks
-import org.docopt.Docopt
-import org.docopt.DocoptExitException
-import kotlin.math.abs
+import net.minecraft.world.phys.BlockHitResult
+import net.minecraft.world.phys.HitResult
 
+/**
+ * Mod entrypoint.
+ * Contains command registrations and logic
+ */
 class RedmonClient : ClientModInitializer {
-    private val commandParser = Docopt(COMMAND_GRAMMAR)
-        .withExit(false)
-        .withVersion(REDMON_VERSION)
-
     private val redmon = RedmonState(PROFILE_SAVE_PATH)
-    private var hidden = false
 
-    private fun processProfileListCommand(): String {
-        if (redmon.profiles.size == 0) {
-            return "No profiles available"
+    private fun showCommand(): Int {
+        redmon.show()
+        return COMMAND_SUCCESS
+    }
+
+    private fun hideCommand(): Int {
+        redmon.hide()
+        return COMMAND_SUCCESS
+    }
+
+    private fun profileListCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val profiles = redmon.getAllProfiles()
+
+        if (profiles.isEmpty()) {
+            ctx.sendFeedback("No profiles available")
         }
 
-        val list = redmon.profiles.names.joinToString(
+        val list = profiles.joinToString(
             separator = "\n"
-        ) { name ->
-            "- $name (${redmon.profiles.getProfile(name).registers.size} registers)"
+        ) { profile ->
+            "- ${profile.name} (${profile.registers.size} registers)"
         }
 
-        return "Available profiles:\n$list"
+        ctx.sendFeedback("Available profiles:\n$list")
     }
 
-    private fun processProfileCreateCommand(player: AbstractClientPlayer, args: Map<String, Any>): String {
-        val profileName = args.getStringCommandArgument("<name>")
-
-        redmon.profiles.addProfile(Profile(profileName))
-
-        redmon.setActiveProfile(player, profileName)
-        redmon.saveProfiles()
-
-        return "Created new profile '$profileName', and set as active profile"
+    private fun profileCreateCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val profileName = getString(ctx, "name")
+        redmon.addProfile(Profile(profileName))
+        redmon.setActiveProfile(ctx.source.player, profileName)
+        ctx.sendFeedback("Created new profile '$profileName', and set as active profile")
     }
 
-    private fun processProfileDeleteCommand(args: Map<String, Any>): String {
-        val profileName = args.getStringCommandArgument("<name>")
-        redmon.profiles.requireProfileExists(profileName)
-
-        if (redmon.activeProfile != null) {
-            if (redmon.activeProfile!!.name == profileName) {
-                redmon.clearActiveProfile()
-            }
-        }
-
-        redmon.profiles.removeProfile(profileName)
-        redmon.saveProfiles()
-
-        return "Removed profile '$profileName'"
+    private fun profileDeleteCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val profileName = getString(ctx, "name")
+        redmon.deleteProfile(profileName)
+        ctx.sendFeedback("Removed profile '$profileName'")
     }
 
-    private fun processProfileSelectCommand(player: AbstractClientPlayer, args: Map<String, Any>): String {
-        val profileName = args.getStringCommandArgument("<name>")
-        redmon.setActiveProfile(player, profileName)
-        return "Set profile '$profileName' as active profile"
+    private fun profileSelectCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val profileName = getString(ctx,"name")
+        redmon.setActiveProfile(ctx.source.player, profileName)
+        ctx.sendFeedback("Set profile '$profileName' as active profile")
     }
 
-    private fun processProfileDeselectCommand(): String {
-        return if (redmon.activeProfile == null) {
-            "No active profile"
+    private fun profileDeselectCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        if (redmon.activeProfile == null) {
+            ctx.sendFeedback("No active profile")
         } else {
             val profileName = redmon.activeProfile!!.name
             redmon.clearActiveProfile()
-            "Deactivated profile '$profileName'"
+            ctx.sendFeedback("Deactivated profile '$profileName'")
         }
     }
 
-    private fun processProfileRenameCommand(args: Map<String, Any>): String {
-        val profileName = args.getStringCommandArgument("<name>")
-        val newProfileName = args.getStringCommandArgument("<new-name>")
-
-        val profile = redmon.profiles.getProfile(profileName)
-
-        profile.name = newProfileName
-        redmon.saveProfiles()
-
-        return "Renamed profile '$profileName' to '$newProfileName'"
+    private fun profileRenameCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val name = getString(ctx, "name")
+        val newName = getString(ctx,"new-name")
+        redmon.renameProfile(name, newName)
+        ctx.sendFeedback("Renamed profile '$name' to '$newName'")
     }
 
-    private fun processProfileCommand(context: CommandContext<FabricClientCommandSource>, args: Map<String, Any>): String {
-        return if (args["list"] == true) {
-            processProfileListCommand()
-        } else if (args["create"] == true) {
-            processProfileCreateCommand(context.source.player, args)
-        } else if (args["delete"] == true) {
-            processProfileDeleteCommand(args)
-        } else if (args["select"] == true) {
-            processProfileSelectCommand(context.source.player, args)
-        } else if (args["deselect"] == true) {
-            processProfileDeselectCommand()
-        } else if (args["rename"] == true) {
-            processProfileRenameCommand(args)
-        } else {
-            throw RedmonCommandException(UNHANDLED_COMMAND_ERROR_MESSAGE)
-        }
-    }
-
-    private fun getRegisterBitsFromLookDirection(
-        player: AbstractClientPlayer,
+    private fun getProbeBitsFromCrosshairTarget(
+        ctx: CommandContext<FabricClientCommandSource>,
         requestedBits: Int,
-        type: RegisterType,
-        lsbFirst: Boolean
+        type: RegisterType
     ): List<Vec3i> {
-        val look = player.lookAngle
-        val eyePos = player.eyePosition
+        val player = ctx.source.player
+        val step = CardinalDirection.fromLook(player.lookAngle).vector
 
-        val stepScaleFactor = 1 / maxOf(abs(look.x), abs(look.y), abs(look.z))
-        val step = look.multiply(stepScaleFactor, stepScaleFactor, stepScaleFactor)
+        val hitResult = Minecraft.getInstance().hitResult ?:
+            throw RedmonException("Crosshair is not pointing at anything.")
 
-        var currentPos = eyePos
+        val blockHitResult = if (hitResult.type != HitResult.Type.BLOCK) {
+            throw RedmonException("Crosshair is not pointing at a block.")
+        } else {
+            hitResult as BlockHitResult
+        }
+
+        val initialPos = blockHitResult.blockPos
+        var currentPos = initialPos
         var bitsFound = 0
 
         val bitPositions = ArrayList<Vec3i>()
 
-        while ((bitsFound < requestedBits) and (currentPos.subtract(eyePos).length() < 256.0)) {
-            val blockPos = BlockPos(currentPos.x.toInt(), currentPos.y.toInt(), currentPos.z.toInt())
+        while (bitsFound < requestedBits && (initialPos.subtract(currentPos).length() < 256.0)) {
+            val blockPos = BlockPos(currentPos.x, currentPos.y, currentPos.z)
             val blockState = player.level().getBlockState(blockPos)
 
             if (blockState.block == Blocks.REPEATER) {
@@ -156,36 +124,33 @@ class RedmonClient : ClientModInitializer {
                 bitPositions.add(blockPos)
             }
 
-            currentPos = currentPos.add(step)
+            currentPos = currentPos.offset(step)
         }
 
         check(bitsFound == requestedBits) {
             "Failed to find register bits, requested $requestedBits but found $bitsFound"
         }
 
-        return when (lsbFirst) {
-            true -> bitPositions
-            false -> List(bitPositions.size) { i -> bitPositions[(bitPositions.size - 1) - i] }
-        }
+        bitPositions.reverse()
+        return bitPositions
     }
 
-    private fun processRegisterCreateCommand(player: AbstractClientPlayer, args: Map<String, Any>): String {
+    private fun registerAddCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val profile = checkNotNull(redmon.activeProfile) {
             "You must select a profile before adding a register"
         }
 
-        val registerName = args.getStringCommandArgument("<name>")
+        val registerName = getString(ctx, "name")
         val registerType = RegisterType.REPEATER
-        val initialBitCount = args.getIntCommandArgument("--bits")
-        val lsbFirst = args.getBooleanCommandArgument("--lsb")
+        val initialBitCount = getInteger(ctx, "bit-count")
 
         require(profile.getRegister(registerName) == null) {
             "Register with name '$registerName' already exists"
         }
 
-        val bitLocations = getRegisterBitsFromLookDirection(player, initialBitCount, registerType, lsbFirst)
+        val bitLocations = getProbeBitsFromCrosshairTarget(ctx, initialBitCount, registerType)
 
-        val register = Register(
+        val newRegister = Register(
             registerName,
             registerType,
             false,
@@ -193,18 +158,18 @@ class RedmonClient : ClientModInitializer {
             bitLocations.map { it.subtract(redmon.profileOffset!!) }
         )
 
-        profile.addRegister(register)
+        profile.addRegister(newRegister)
         redmon.saveProfiles()
 
-        return "Added register '$registerName' with $initialBitCount bits"
+        ctx.sendFeedback("Added register '$registerName' with $initialBitCount bits")
     }
 
-    private fun processRegisterDeleteCommand(args: Map<String, Any>): String {
+    private fun registerDeleteCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val profile = checkNotNull(redmon.activeProfile) {
             "You must select a profile before deleting a register"
         }
 
-        val registerName = args.getStringCommandArgument("<name>")
+        val registerName = getString(ctx, "name")
 
         require(profile.registers.containsKey(registerName)) {
             "No register with name '$registerName' in profile '${profile.name}'"
@@ -213,97 +178,87 @@ class RedmonClient : ClientModInitializer {
         profile.removeRegister(registerName)
         redmon.saveProfiles()
 
-        return "Removed register '$registerName' from profile '${profile.name}'"
+        ctx.sendFeedback("Removed register '$registerName' from profile '${profile.name}'")
     }
 
-    private fun processRegisterInvertCommand(args: Map<String, Any>): String {
+    private fun registerInvertCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val profile = checkNotNull(redmon.activeProfile) {
             "You must select a profile before deleting a register"
         }
 
-        val registerName = args.getStringCommandArgument("<name>")
+        val registerName = getString(ctx, "name")
 
-        require(profile.registers.containsKey(registerName)) {
+        val register = requireNotNull(profile.getRegister(registerName)) {
             "No register with name '$registerName' in profile '${profile.name}'"
         }
 
-        val register = profile.getRegister(registerName)!!
         register.invert()
-
         redmon.saveProfiles()
 
-        return when (register.invert) {
-            true -> "Register '$registerName' now in inverting mode."
-            false -> "Register '$registerName' now in non-inverting mode."
+        when (register.invert) {
+            true -> ctx.sendFeedback("Register '$registerName' now in inverting mode")
+            false -> ctx.sendFeedback("Register '$registerName' now in non-inverting mode")
         }
     }
 
-    private fun processRegisterFlipCommand(args: Map<String, Any>): String {
+    private fun registerFlipCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val profile = checkNotNull(redmon.activeProfile) {
             "You must select a profile before flipping a register"
         }
 
-        val registerName = args.getStringCommandArgument("<name>")
-
-        require(profile.registers.containsKey(registerName)) {
-            "No register with name '$registerName' in profile '${profile.name}'"
-        }
-
-        val register = profile.getRegister(registerName)!!
-        register.flipBits()
-
-        redmon.saveProfiles()
-
-        return "Flipped register '${register.name}'"
-    }
-
-    private fun processRegisterAppendCommand(player: AbstractClientPlayer, args: Map<String, Any>): String {
-        val profile = checkNotNull(redmon.activeProfile) {
-            "You must select a profile before appending bits to a register"
-        }
-
-        val registerName = args.getStringCommandArgument("<name>")
-        val registerType = RegisterType.REPEATER
-        val bitCount = args.getIntCommandArgument("--bits")
-        val lsbFirst = args.getBooleanCommandArgument("--lsb")
+        val registerName = getString(ctx, "name")
 
         val register = requireNotNull(profile.getRegister(registerName)) {
             "No register with name '$registerName' in profile '${profile.name}'"
         }
 
-        val bitPositions = getRegisterBitsFromLookDirection(player, bitCount, registerType, lsbFirst)
+        register.flipBits()
+        redmon.saveProfiles()
+
+        ctx.sendFeedback("Flipped register '${register.name}'")
+    }
+
+    private fun registerAppendBitsCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val profile = checkNotNull(redmon.activeProfile) {
+            "You must select a profile before appending bits to a register"
+        }
+
+        val registerName = getString(ctx,"name")
+        val bitCount = getInteger(ctx,"bit-count")
+        val registerType = RegisterType.REPEATER
+
+        val register = requireNotNull(profile.getRegister(registerName)) {
+            "No register with name '$registerName' in profile '${profile.name}'"
+        }
+
+        val bitPositions = getProbeBitsFromCrosshairTarget(ctx, bitCount, registerType)
 
         register.appendBits(bitPositions.map { position -> position.subtract(redmon.profileOffset!!) })
         redmon.saveProfiles()
 
-        return "Appended $bitCount bits to register '${register.name}' in profile '${profile.name}'"
+        ctx.sendFeedback("Appended $bitCount bits to register '${register.name}' in profile '${profile.name}'")
     }
 
-    private fun processRegisterRenameCommand(args: Map<String, Any>): String {
+    private fun registerRenameCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val profile = checkNotNull(redmon.activeProfile) {
-            "You must select a profile before appending bits to a register"
+            "You must select a profile before renaming a register"
         }
 
-        val registerName = args.getStringCommandArgument("<name>")
-        val newRegisterName = args.getStringCommandArgument("<new-name>")
+        val name = getString(ctx,"name")
+        val newName = getString(ctx,"new-name")
 
-        val register = requireNotNull(profile.getRegister(registerName)) {
-            "No register with name '$registerName' in profile '${profile.name}'"
-        }
+        redmon.renameRegister(name, newName)
 
-        register.name = newRegisterName
-        redmon.saveProfiles()
-
-        return "Renamed register '$registerName' in profile ${profile.name} to '$newRegisterName'"
+        ctx.sendFeedback("Renamed register '$name' in profile ${profile.name} to '$newName'")
     }
 
-    private fun processRegisterFormatCommand(args: Map<String, Any>): String {
+    private fun registerFormatCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val profile = checkNotNull(redmon.activeProfile) {
             "You must select a profile before setting register format"
         }
 
-        val registerName = args.getStringCommandArgument("<name>")
-        val newFormatArg = args.getStringCommandArgument("<format>")
+        val registerName = getString(ctx, "name")
+        val newFormatArg = getString(ctx, "format")
 
         val newFormat = try {
             RegisterFormat.valueOf(newFormatArg.uppercase())
@@ -313,115 +268,18 @@ class RedmonClient : ClientModInitializer {
                 "Valid formats are ${RegisterFormat.entries.joinToString(", ") { it.name.lowercase() }}", e)
         }
 
-        return if (registerName == "all") {
+        if (registerName == "all") {
             profile.registers.forEach { it.value.format = newFormat }
-            "Set format of all registers in profile ${profile.name} to '$newFormat'"
+            ctx.sendFeedback("Set format of all registers in profile ${profile.name} to '$newFormat'")
         } else {
             val register = requireNotNull(profile.getRegister(registerName)) {
                 "No register with name '$registerName' in profile '${profile.name}'"
             }
             register.format = newFormat
-            "Set format of register '${register.name}' in profile '${profile.name}' to '$newFormat'"
+            ctx.sendFeedback("Set format of register '${register.name}' in profile '${profile.name}' to '$newFormat'")
         }.also {
             redmon.saveProfiles()
         }
-    }
-
-    private fun processRegisterCommand(context: CommandContext<FabricClientCommandSource>, args: Map<String, Any>): String {
-        return if (args["create"] == true) {
-            processRegisterCreateCommand(context.source.player, args)
-        } else if (args["delete"] == true) {
-            processRegisterDeleteCommand(args)
-        } else if (args["invert"] == true) {
-            processRegisterInvertCommand(args)
-        } else if (args["flip"] == true) {
-            processRegisterFlipCommand(args)
-        } else if (args["append"] == true) {
-            processRegisterAppendCommand(context.source.player, args)
-        } else if (args["rename"] == true) {
-            processRegisterRenameCommand(args)
-        } else if (args["format"] == true) {
-            processRegisterFormatCommand(args)
-        } else {
-            throw RedmonCommandException(UNHANDLED_COMMAND_ERROR_MESSAGE)
-        }
-    }
-
-    private fun processCommand(context: CommandContext<FabricClientCommandSource>, command: String) {
-        val commandTokens = command.posixLexicalSplit()
-
-        val args = try {
-            commandParser.parse(commandTokens)
-        } catch (e: DocoptExitException) {
-            when (e.message) {
-                null -> context.sendError("Error: Invalid arguments. $HELP_COMMAND_PROMPT")
-                else -> context.sendFeedback(e.message!!)
-            }
-            return
-        }
-
-        try {
-            if (args["profile"] == true) {
-                context.sendFeedback(processProfileCommand(context, args))
-            } else if (args["register"] == true) {
-                context.sendFeedback(processRegisterCommand(context, args))
-            } else {
-                throw RedmonCommandException(UNHANDLED_COMMAND_ERROR_MESSAGE)
-            }
-        } catch(e: Throwable) {
-            context.sendError("Error: ${e.message}")
-        }
-    }
-
-    private fun getOutputText(world: Level): List<String> {
-        val profile = if (redmon.activeProfile == null) {
-            return listOf("No active profile")
-        } else {
-            redmon.activeProfile!!
-        }
-
-        val lines = ArrayList<String>()
-        val offset = redmon.profileOffset!!
-
-        lines.add("${profile.name}@(x=${offset.x} y=${offset.y} z=${offset.z})")
-
-        profile.registers.values.forEach { register ->
-            register.updateState(world, offset)
-            lines.add("${register.name} | ${register.getState()}")
-        }
-
-        return lines
-    }
-
-    private fun drawOutput(context: GuiGraphics) {
-        val profile = if (redmon.activeProfile == null) {
-            redmon.inactiveUI.draw(context, OVERLAY_POSITION)
-            return
-        } else {
-            redmon.activeProfile!!
-        }
-
-        val world = Minecraft.getInstance().player?.level() ?: return
-        profile.updateState(world, redmon.profileOffset!!)
-
-        redmon.profileUI.update(profile, redmon.profileOffset!!)
-        redmon.profileUI.draw(context, OVERLAY_POSITION)
-    }
-
-    /**
-     * Disable drawing.
-     */
-    private fun hide(): Int {
-        hidden = true
-        return 0
-    }
-
-    /**
-     * Enable drawing.
-     */
-    private fun show(): Int {
-        hidden = false
-        return 0
     }
 
     override fun onInitializeClient() {
@@ -433,36 +291,63 @@ class RedmonClient : ClientModInitializer {
         ) { context, _ ->
             val client = Minecraft.getInstance()
             // TODO: Restore functionality which prevents hud rendering when debug overlay is active
-            if (client.player != null && !hidden /* && !client.options.debugEnabled */) {
-                drawOutput(context)
+            if (client.player != null /* && !client.options.debugEnabled */) {
+                redmon.drawOverlay(context)
             }
         }
 
         ClientCommandRegistrationCallback.EVENT.register { dispatcher, _ ->
-            dispatcher.register(
-                literal("redmon").then(
-                    argument("args", greedyString()).executes { context ->
-                        processCommand(context, getString(context, "args"))
-                        0
-                    }
-                ).executes { context ->
-                    val plainTextComponent = PlainTextContents.LiteralContents("Error: Missing arguments, $HELP_COMMAND_PROMPT")
-                    context.source.sendError(MutableComponent.create(plainTextComponent))
-                    0
-                }
-            )
-
-            dispatcher.register(
-                literal("redmon").then(literal("hide").executes {
-                    hidden = true
-                    0
-                })
-            )
-
             dispatcher.register(literal("redmon")
-                .then(literal("hide").executes { hide() })
-                .then(literal("show").executes { show() })
+                .then(literal("hide").executes { _ -> hideCommand() })
+                .then(literal("show").executes { _ -> showCommand() })
+                .then(literal("profile")
+                    .then(literal("list").executes { c -> profileListCommand(c) })
+                    .then(literal("create").then(str("name")
+                        .executes { c -> profileCreateCommand(c) }))
+                    .then(literal("delete").then(str("name")
+                        .executes { c -> profileDeleteCommand(c) }))
+                    .then(literal("select").then(str("name")
+                        .executes { c -> profileSelectCommand(c) }))
+                    .then(literal("deselect").then(str("name")
+                        .executes { c -> profileDeselectCommand(c) }))
+                    .then(literal("rename").then(str("name").then(str("new-name")
+                        .executes { c -> profileRenameCommand(c) })))
+                )
+                .then(literal("register")
+                    .then(literal("add").then(str("name").then(int("bit-count")
+                        .executes { c -> registerAddCommand(c) })))
+                    .then(literal("delete").then(str("name")
+                        .executes { c -> registerDeleteCommand(c) }))
+                    .then(literal("invert").then(str("name")
+                        .executes { c -> registerInvertCommand(c) }))
+                    .then(literal("flip").then(str("name")
+                        .executes { c -> registerFlipCommand(c) }))
+                    .then(literal("append-bits").then(str("name").then(int("bit-count")
+                        .executes { c -> registerAppendBitsCommand(c) })))
+                    .then(literal("rename").then(str("name").then(str("new-name")
+                        .executes { c -> registerRenameCommand(c) })))
+                    .then(literal("format").then(str("name").then(str("format")
+                        .executes { c -> registerFormatCommand(c) } )))
+                )
             )
+        }
+    }
+
+    companion object {
+        private const val COMMAND_ERROR = -1
+        private const val COMMAND_SUCCESS = 1
+
+        private fun commandWrapper(
+            ctx: CommandContext<FabricClientCommandSource>,
+            actions: (CommandContext<FabricClientCommandSource>) -> Unit
+        ): Int {
+            return try {
+                actions(ctx)
+                COMMAND_SUCCESS
+            } catch (e: Throwable) {
+                ctx.sendError("Error: ${e.message}")
+                COMMAND_ERROR
+            }
         }
     }
 }

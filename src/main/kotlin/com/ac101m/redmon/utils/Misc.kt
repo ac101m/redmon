@@ -1,90 +1,39 @@
 package com.ac101m.redmon.utils
 
-import com.ac101m.redmon.utils.Config.Companion.ISSUE_CREATE_PROMPT
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import com.mojang.brigadier.arguments.IntegerArgumentType.integer
+import com.mojang.brigadier.arguments.StringArgumentType.string
+import com.mojang.brigadier.builder.RequiredArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
+import net.minecraft.core.Vec3i
 import net.minecraft.network.chat.MutableComponent
 import net.minecraft.network.chat.contents.PlainTextContents
+import kotlin.math.sqrt
 
 val mapper = ObjectMapper().registerKotlinModule()
 
-fun CommandContext<FabricClientCommandSource>.sendError(error: String) {
-    val componentContents = PlainTextContents.create(error)
+fun CommandContext<FabricClientCommandSource>.sendError(message: String) {
+    val componentContents = PlainTextContents.create("[redmon] $message")
     this.source.sendError(MutableComponent.create(componentContents))
 }
 
 fun CommandContext<FabricClientCommandSource>.sendFeedback(message: String) {
-    val componentContents = PlainTextContents.create("§2$message§f")
+    val componentContents = PlainTextContents.create("§2[redmon]§f $message")
     this.source.sendFeedback(MutableComponent.create(componentContents))
 }
 
-fun Map<String, Any>.getStringCommandArgument(key: String): String {
-    val anyValue = requireNotNull(this[key]) {
-        "$key parameter is missing. $ISSUE_CREATE_PROMPT"
-    }
-    require(anyValue is String) {
-        "$key parameter is not a string. $ISSUE_CREATE_PROMPT"
-    }
-    return anyValue
+fun Vec3i.length(): Double {
+    val lengthSquared = (x.toLong() * x.toLong()) + (y.toLong() * y.toLong()) + (z.toLong() * z.toLong())
+    return sqrt(lengthSquared.toDouble())
 }
 
-fun Map<String, Any>.getIntCommandArgument(key: String): Int {
-    val anyValue = requireNotNull(this[key]) {
-        "$key parameter is missing. $ISSUE_CREATE_PROMPT"
-    }
-    require(anyValue is String) {
-        "$key parameter is not a string. $ISSUE_CREATE_PROMPT"
-    }
-    return try {
-        anyValue.toInt()
-    } catch (e: Exception) {
-        throw RedmonCommandException("$key expects an integer value, got $anyValue")
-    }
+fun str(name: String): RequiredArgumentBuilder<FabricClientCommandSource, String> {
+    return argument(name, string())
 }
 
-fun Map<String, Any>.getBooleanCommandArgument(key: String): Boolean {
-    val anyValue = requireNotNull(this[key]) {
-        "$key parameter is missing. $ISSUE_CREATE_PROMPT"
-    }
-    require(anyValue is Boolean) {
-        "$key parameter is not a boolean. $ISSUE_CREATE_PROMPT"
-    }
-    return anyValue == true
-}
-
-fun String.posixLexicalSplit(): List<String> {
-    val tokens: MutableList<String> = ArrayList()
-    var escaping = false
-    var quoteChar = ' '
-    var quoting = false
-    var lastCloseQuoteIndex = Int.MIN_VALUE
-    var current = StringBuilder()
-    for (i in this.indices) {
-        val c = this[i]
-        if (escaping) {
-            current.append(c)
-            escaping = false
-        } else if (c == '\\' && !(quoting && quoteChar == '\'')) {
-            escaping = true
-        } else if (quoting && c == quoteChar) {
-            quoting = false
-            lastCloseQuoteIndex = i
-        } else if (!quoting && (c == '\'' || c == '"')) {
-            quoting = true
-            quoteChar = c
-        } else if (!quoting && Character.isWhitespace(c)) {
-            if (current.isNotEmpty() || lastCloseQuoteIndex == i - 1) {
-                tokens.add(current.toString())
-                current = StringBuilder()
-            }
-        } else {
-            current.append(c)
-        }
-    }
-    if (current.isNotEmpty() || lastCloseQuoteIndex == this.length - 1) {
-        tokens.add(current.toString())
-    }
-    return tokens
+fun int(name: String): RequiredArgumentBuilder<FabricClientCommandSource, Int> {
+    return argument(name, integer())
 }

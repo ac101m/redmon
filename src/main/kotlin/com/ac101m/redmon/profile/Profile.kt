@@ -28,16 +28,32 @@ data class Profile(
         )
     }
 
+    private fun requireRegisterDoesNotExist(name: String) {
+        require(registers[name] == null) {
+            "A register already exists with name '$name' in profile '${this.name}'."
+        }
+    }
+
     fun addRegister(register: Register) {
+        requireRegisterDoesNotExist(register.name)
         registers[register.name] = register
+    }
+
+    fun getRegister(name: String): Register {
+        return requireNotNull(registers[name]) {
+            "No register with name '$name' in profile '${this.name}."
+        }
+    }
+
+    fun renameRegister(name: String, newName: String) {
+        val register = getRegister(name)
+        register.name = newName
+        registers.remove(name)
+        registers[newName] = register
     }
 
     fun removeRegister(name: String) {
         registers.remove(name)
-    }
-
-    fun getRegister(name: String): Register? {
-        return registers[name]
     }
 
     fun updateState(world: Level, offset: Vec3i) {
