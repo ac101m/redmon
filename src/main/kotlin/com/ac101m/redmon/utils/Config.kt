@@ -1,10 +1,9 @@
 package com.ac101m.redmon.utils
 
 import net.fabricmc.loader.api.FabricLoader
-import net.minecraft.util.math.Vec3i
+import net.minecraft.core.Vec3i
 import java.nio.file.Path
 import java.util.*
-
 
 class Config {
     companion object {

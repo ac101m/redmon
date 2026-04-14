@@ -19,7 +19,6 @@ enum class MinecraftColor(val prefix: String) {
     WHITE("§f");
 }
 
-
 fun String.color(color: MinecraftColor): String {
     return "${color.prefix}$this"
 }

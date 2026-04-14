@@ -1,9 +1,8 @@
 package com.ac101m.redmon.profile
 
 import com.ac101m.redmon.persistence.v1.PersistentProfileV1
-import net.minecraft.util.math.Vec3i
-import net.minecraft.world.World
-
+import net.minecraft.core.Vec3i
+import net.minecraft.world.level.Level
 
 data class Profile(
     var name: String,
@@ -41,7 +40,7 @@ data class Profile(
         return registers[name]
     }
 
-    fun updateState(world: World, offset: Vec3i) {
+    fun updateState(world: Level, offset: Vec3i) {
         registers.values.forEach { register ->
             register.updateState(world, offset)
         }

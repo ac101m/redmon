@@ -12,7 +12,6 @@ import kotlin.io.path.exists
 import kotlin.io.path.inputStream
 import kotlin.io.path.isRegularFile
 
-
 /**
  * Profiles each belong to a context.
  * Each world-space the player may join has its own context which contains the users profiles for that world.

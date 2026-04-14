@@ -3,7 +3,6 @@ package com.ac101m.redmon.profile
 import com.ac101m.redmon.persistence.v1.PersistentProfileV1
 import com.ac101m.redmon.persistence.v1.PersistentProfileListV1
 
-
 data class ProfileList(
     private val profileMap: HashMap<String, Profile> = HashMap()
 ) {

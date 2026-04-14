@@ -3,13 +3,12 @@ package com.ac101m.redmon.profile
 import com.ac101m.redmon.persistence.v1.PersistentRegisterV1
 import com.ac101m.redmon.persistence.v1.PersistentRegisterBitV1
 import com.ac101m.redmon.utils.red
-import net.minecraft.block.AbstractRedstoneGateBlock
-import net.minecraft.block.RepeaterBlock
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Vec3i
-import net.minecraft.world.World
+import net.minecraft.core.BlockPos
+import net.minecraft.core.Vec3i
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.RepeaterBlock
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import java.io.StringWriter
-
 
 data class Register(
     var name: String,
@@ -49,14 +48,14 @@ data class Register(
     }
 
 
-    fun updateState(world: World, offset: Vec3i) {
+    fun updateState(world: Level, offset: Vec3i) {
         missingBits = 0
         watchPoints.forEachIndexed { i, position ->
-            val blockState = world.getBlockState(BlockPos(position.add(offset)))
+            val blockState = world.getBlockState(BlockPos(position.offset(offset)))
             val mask = 1UL shl i
             state = state and mask.inv()
             if (blockState.block is RepeaterBlock) {
-                if (blockState.get(AbstractRedstoneGateBlock.POWERED)) {
+                if (blockState.getValue(BlockStateProperties.POWERED)) {
                     state = state or mask
                 }
             } else {

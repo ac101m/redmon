@@ -1,6 +1,5 @@
 package com.ac101m.redmon
 
-import com.ac101m.redmon.gui.ProfileOverlay
 import com.ac101m.redmon.profile.Profile
 import com.ac101m.redmon.profile.Register
 import com.ac101m.redmon.profile.RegisterFormat
@@ -16,24 +15,25 @@ import com.mojang.brigadier.arguments.StringArgumentType.getString
 import com.mojang.brigadier.arguments.StringArgumentType.greedyString
 import com.mojang.brigadier.context.CommandContext
 import net.fabricmc.api.ClientModInitializer
-import net.fabricmc.fabric.api.client.command.v1.ClientCommandManager
-import net.fabricmc.fabric.api.client.command.v1.ClientCommandManager.argument
-import net.fabricmc.fabric.api.client.command.v1.ClientCommandManager.literal
-import net.fabricmc.fabric.api.client.command.v1.FabricClientCommandSource
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback
-import net.minecraft.block.Blocks
-import net.minecraft.client.MinecraftClient
-import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.client.util.math.MatrixStack
-import net.minecraft.text.LiteralText
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Vec3d
-import net.minecraft.util.math.Vec3i
-import net.minecraft.world.World
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
+import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry
+import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements
+import net.minecraft.client.Minecraft
+import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.player.AbstractClientPlayer
+import net.minecraft.core.BlockPos
+import net.minecraft.core.Vec3i
+import net.minecraft.network.chat.MutableComponent
+import net.minecraft.network.chat.contents.PlainTextContents
+import net.minecraft.resources.ResourceLocation
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.Blocks
 import org.docopt.Docopt
 import org.docopt.DocoptExitException
 import kotlin.math.abs
-
 
 class RedmonClient : ClientModInitializer {
     private val commandParser = Docopt(COMMAND_GRAMMAR)
@@ -41,7 +41,6 @@ class RedmonClient : ClientModInitializer {
         .withVersion(REDMON_VERSION)
 
     private val redmon = RedmonState(PROFILE_SAVE_PATH)
-
 
     private fun processProfileListCommand(): String {
         if (redmon.profiles.size == 0) {
@@ -57,8 +56,7 @@ class RedmonClient : ClientModInitializer {
         return "Available profiles:\n$list"
     }
 
-
-    private fun processProfileCreateCommand(player: ClientPlayerEntity, args: Map<String, Any>): String {
+    private fun processProfileCreateCommand(player: AbstractClientPlayer, args: Map<String, Any>): String {
         val profileName = args.getStringCommandArgument("<name>")
 
         redmon.profiles.addProfile(Profile(profileName))
@@ -68,7 +66,6 @@ class RedmonClient : ClientModInitializer {
 
         return "Created new profile '$profileName', and set as active profile"
     }
-
 
     private fun processProfileDeleteCommand(args: Map<String, Any>): String {
         val profileName = args.getStringCommandArgument("<name>")
@@ -86,13 +83,11 @@ class RedmonClient : ClientModInitializer {
         return "Removed profile '$profileName'"
     }
 
-
-    private fun processProfileSelectCommand(player: ClientPlayerEntity, args: Map<String, Any>): String {
+    private fun processProfileSelectCommand(player: AbstractClientPlayer, args: Map<String, Any>): String {
         val profileName = args.getStringCommandArgument("<name>")
         redmon.setActiveProfile(player, profileName)
         return "Set profile '$profileName' as active profile"
     }
-
 
     private fun processProfileDeselectCommand(): String {
         return if (redmon.activeProfile == null) {
@@ -103,7 +98,6 @@ class RedmonClient : ClientModInitializer {
             "Deactivated profile '$profileName'"
         }
     }
-
 
     private fun processProfileRenameCommand(args: Map<String, Any>): String {
         val profileName = args.getStringCommandArgument("<name>")
@@ -116,7 +110,6 @@ class RedmonClient : ClientModInitializer {
 
         return "Renamed profile '$profileName' to '$newProfileName'"
     }
-
 
     private fun processProfileCommand(context: CommandContext<FabricClientCommandSource>, args: Map<String, Any>): String {
         return if (args["list"] == true) {
@@ -136,27 +129,26 @@ class RedmonClient : ClientModInitializer {
         }
     }
 
-
     private fun getRegisterBitsFromLookDirection(
-        player: ClientPlayerEntity,
+        player: AbstractClientPlayer,
         requestedBits: Int,
         type: RegisterType,
         lsbFirst: Boolean
     ): List<Vec3i> {
-        val look = Vec3d.fromPolar(player.pitch, player.yaw)
-        val eyePos = player.eyePos
+        val look = player.lookAngle
+        val eyePos = player.eyePosition
 
         val stepScaleFactor = 1 / maxOf(abs(look.x), abs(look.y), abs(look.z))
-        val step = look.multiply(stepScaleFactor)
+        val step = look.multiply(stepScaleFactor, stepScaleFactor, stepScaleFactor)
 
         var currentPos = eyePos
         var bitsFound = 0
 
         val bitPositions = ArrayList<Vec3i>()
 
-        while ((bitsFound < requestedBits) and (currentPos.isInRange(eyePos, 256.0))) {
-            val blockPos = BlockPos(currentPos)
-            val blockState = player.world.getBlockState(blockPos)
+        while ((bitsFound < requestedBits) and (currentPos.subtract(eyePos).length() < 256.0)) {
+            val blockPos = BlockPos(currentPos.x.toInt(), currentPos.y.toInt(), currentPos.z.toInt())
+            val blockState = player.level().getBlockState(blockPos)
 
             if (blockState.block == Blocks.REPEATER) {
                 bitsFound++
@@ -176,8 +168,7 @@ class RedmonClient : ClientModInitializer {
         }
     }
 
-
-    private fun processRegisterCreateCommand(player: ClientPlayerEntity, args: Map<String, Any>): String {
+    private fun processRegisterCreateCommand(player: AbstractClientPlayer, args: Map<String, Any>): String {
         val profile = checkNotNull(redmon.activeProfile) {
             "You must select a profile before adding a register"
         }
@@ -207,7 +198,6 @@ class RedmonClient : ClientModInitializer {
         return "Added register '$registerName' with $initialBitCount bits"
     }
 
-
     private fun processRegisterDeleteCommand(args: Map<String, Any>): String {
         val profile = checkNotNull(redmon.activeProfile) {
             "You must select a profile before deleting a register"
@@ -224,7 +214,6 @@ class RedmonClient : ClientModInitializer {
 
         return "Removed register '$registerName' from profile '${profile.name}'"
     }
-
 
     private fun processRegisterInvertCommand(args: Map<String, Any>): String {
         val profile = checkNotNull(redmon.activeProfile) {
@@ -248,7 +237,6 @@ class RedmonClient : ClientModInitializer {
         }
     }
 
-
     private fun processRegisterFlipCommand(args: Map<String, Any>): String {
         val profile = checkNotNull(redmon.activeProfile) {
             "You must select a profile before flipping a register"
@@ -268,8 +256,7 @@ class RedmonClient : ClientModInitializer {
         return "Flipped register '${register.name}'"
     }
 
-
-    private fun processRegisterAppendCommand(player: ClientPlayerEntity, args: Map<String, Any>): String {
+    private fun processRegisterAppendCommand(player: AbstractClientPlayer, args: Map<String, Any>): String {
         val profile = checkNotNull(redmon.activeProfile) {
             "You must select a profile before appending bits to a register"
         }
@@ -291,7 +278,6 @@ class RedmonClient : ClientModInitializer {
         return "Appended $bitCount bits to register '${register.name}' in profile '${profile.name}'"
     }
 
-
     private fun processRegisterRenameCommand(args: Map<String, Any>): String {
         val profile = checkNotNull(redmon.activeProfile) {
             "You must select a profile before appending bits to a register"
@@ -309,7 +295,6 @@ class RedmonClient : ClientModInitializer {
 
         return "Renamed register '$registerName' in profile ${profile.name} to '$newRegisterName'"
     }
-
 
     private fun processRegisterFormatCommand(args: Map<String, Any>): String {
         val profile = checkNotNull(redmon.activeProfile) {
@@ -341,7 +326,6 @@ class RedmonClient : ClientModInitializer {
         }
     }
 
-
     private fun processRegisterCommand(context: CommandContext<FabricClientCommandSource>, args: Map<String, Any>): String {
         return if (args["create"] == true) {
             processRegisterCreateCommand(context.source.player, args)
@@ -361,7 +345,6 @@ class RedmonClient : ClientModInitializer {
             throw RedmonCommandException(UNHANDLED_COMMAND_ERROR_MESSAGE)
         }
     }
-
 
     private fun processCommand(context: CommandContext<FabricClientCommandSource>, command: String) {
         val commandTokens = command.posixLexicalSplit()
@@ -389,8 +372,7 @@ class RedmonClient : ClientModInitializer {
         }
     }
 
-
-    private fun getOutputText(world: World): List<String> {
+    private fun getOutputText(world: Level): List<String> {
         val profile = if (redmon.activeProfile == null) {
             return listOf("No active profile")
         } else {
@@ -410,43 +392,48 @@ class RedmonClient : ClientModInitializer {
         return lines
     }
 
-
-    private fun drawOutput(matrixStack: MatrixStack) {
+    private fun drawOutput(context: GuiGraphics) {
         val profile = if (redmon.activeProfile == null) {
-            redmon.inactiveUI.draw(matrixStack, OVERLAY_POSITION)
+            redmon.inactiveUI.draw(context, OVERLAY_POSITION)
             return
         } else {
             redmon.activeProfile!!
         }
 
-        val world = MinecraftClient.getInstance().player?.world ?: return
+        val world = Minecraft.getInstance().player?.level() ?: return
         profile.updateState(world, redmon.profileOffset!!)
 
         redmon.profileUI.update(profile, redmon.profileOffset!!)
-        redmon.profileUI.draw(matrixStack, OVERLAY_POSITION)
+        redmon.profileUI.draw(context, OVERLAY_POSITION)
     }
-
 
     override fun onInitializeClient() {
         redmon.loadProfiles()
 
-        HudRenderCallback.EVENT.register { matrixStack, _ ->
-            val client = MinecraftClient.getInstance()
-            if (client.player != null && !client.options.debugEnabled) {
-                drawOutput(matrixStack)
+        HudElementRegistry.attachElementAfter(
+            VanillaHudElements.CHAT,
+            ResourceLocation.fromNamespaceAndPath("redmon", "overlay")
+        ) { context, _ ->
+            val client = Minecraft.getInstance()
+            // TODO: Restore functionality which prevents hud rendering when debug overlay is active
+            if (client.player != null /* && !client.options.debugEnabled */) {
+                drawOutput(context)
             }
         }
 
-        ClientCommandManager.DISPATCHER.register(
-            literal("redmon").then(
-                argument("args", greedyString()).executes { context ->
-                    processCommand(context, getString(context, "args"))
+        ClientCommandRegistrationCallback.EVENT.register { dispatcher, _ ->
+            dispatcher.register(
+                literal("redmon").then(
+                    argument("args", greedyString()).executes { context ->
+                        processCommand(context, getString(context, "args"))
+                        0
+                    }
+                ).executes { context ->
+                    val plainTextComponent = PlainTextContents.LiteralContents("Error: Missing arguments, $HELP_COMMAND_PROMPT")
+                    context.source.sendError(MutableComponent.create(plainTextComponent))
                     0
                 }
-            ).executes { context ->
-                context.source.sendError(LiteralText("Error: Missing arguments, $HELP_COMMAND_PROMPT"))
-                0
-            }
-        )
+            )
+        }
     }
 }

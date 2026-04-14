@@ -4,22 +4,21 @@ import com.ac101m.redmon.utils.Config.Companion.ISSUE_CREATE_PROMPT
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.mojang.brigadier.context.CommandContext
-import net.fabricmc.fabric.api.client.command.v1.FabricClientCommandSource
-import net.minecraft.text.LiteralText
-
+import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
+import net.minecraft.network.chat.MutableComponent
+import net.minecraft.network.chat.contents.PlainTextContents
 
 val mapper = ObjectMapper().registerKotlinModule()
 
-
 fun CommandContext<FabricClientCommandSource>.sendError(error: String) {
-    this.source.sendError(LiteralText(error))
+    val componentContents = PlainTextContents.create(error)
+    this.source.sendError(MutableComponent.create(componentContents))
 }
-
 
 fun CommandContext<FabricClientCommandSource>.sendFeedback(message: String) {
-    this.source.sendFeedback(LiteralText("§2$message§f"))
+    val componentContents = PlainTextContents.create("§2$message§f")
+    this.source.sendFeedback(MutableComponent.create(componentContents))
 }
-
 
 fun Map<String, Any>.getStringCommandArgument(key: String): String {
     val anyValue = requireNotNull(this[key]) {
@@ -30,7 +29,6 @@ fun Map<String, Any>.getStringCommandArgument(key: String): String {
     }
     return anyValue
 }
-
 
 fun Map<String, Any>.getIntCommandArgument(key: String): Int {
     val anyValue = requireNotNull(this[key]) {
@@ -46,7 +44,6 @@ fun Map<String, Any>.getIntCommandArgument(key: String): Int {
     }
 }
 
-
 fun Map<String, Any>.getBooleanCommandArgument(key: String): Boolean {
     val anyValue = requireNotNull(this[key]) {
         "$key parameter is missing. $ISSUE_CREATE_PROMPT"
@@ -56,7 +53,6 @@ fun Map<String, Any>.getBooleanCommandArgument(key: String): Boolean {
     }
     return anyValue == true
 }
-
 
 fun String.posixLexicalSplit(): List<String> {
     val tokens: MutableList<String> = ArrayList()

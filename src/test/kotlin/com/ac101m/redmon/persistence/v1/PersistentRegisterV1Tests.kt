@@ -5,7 +5,6 @@ import com.ac101m.redmon.profile.RegisterType
 import com.ac101m.redmon.utils.mapper
 import org.junit.jupiter.api.Test
 
-
 class PersistentRegisterV1Tests {
 
     @Test

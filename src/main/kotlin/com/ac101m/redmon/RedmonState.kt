@@ -5,11 +5,10 @@ import com.ac101m.redmon.gui.TextOverlay
 import com.ac101m.redmon.persistence.PersistentProfileList
 import com.ac101m.redmon.profile.Profile
 import com.ac101m.redmon.profile.ProfileList
-import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.util.math.Vec3i
+import net.minecraft.client.player.AbstractClientPlayer
+import net.minecraft.core.Vec3i
 import java.nio.file.Path
 import kotlin.io.path.exists
-
 
 class RedmonState(private val profileSavePath: Path) {
     lateinit var profiles: ProfileList
@@ -19,7 +18,6 @@ class RedmonState(private val profileSavePath: Path) {
 
     val profileUI = ProfileOverlay()
     val inactiveUI = TextOverlay("No active profiles")
-
 
     fun loadProfiles() {
         profiles = if (profileSavePath.exists()) {
@@ -32,17 +30,15 @@ class RedmonState(private val profileSavePath: Path) {
         }
     }
 
-
     fun saveProfiles() {
         profiles.toPersistent().save(profileSavePath)
     }
 
-
-    fun setActiveProfile(player: ClientPlayerEntity, profileName: String) {
+    fun setActiveProfile(player: AbstractClientPlayer, profileName: String) {
         activeProfile = profiles.getProfile(profileName)
-        profileOffset = player.blockPos
+        val p = player.position()
+        profileOffset = Vec3i(p.x.toInt(), p.y.toInt(), p.z.toInt())
     }
-
 
     fun clearActiveProfile() {
         activeProfile = null
