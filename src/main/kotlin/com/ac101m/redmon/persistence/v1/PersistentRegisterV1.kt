@@ -5,14 +5,14 @@ import com.ac101m.redmon.profile.RegisterType
 import com.fasterxml.jackson.annotation.JsonProperty
 
 data class PersistentRegisterV1(
-    @JsonProperty("name", required = true)
+    @param:JsonProperty("name", required = true)
     val name: String,
-    @JsonProperty("type", required = true)
+    @param:JsonProperty("type", required = true)
     val type: RegisterType,
-    @JsonProperty("invert", required = false)
+    @param:JsonProperty("invert", required = false)
     val invert: Boolean = false,
-    @JsonProperty("format", required = false)
+    @param:JsonProperty("format", required = false)
     val format: RegisterFormat = RegisterFormat.UNSIGNED,
-    @JsonProperty("bitLocations", required = true)
+    @param:JsonProperty("bitLocations", required = true)
     val bitLocations: List<PersistentRegisterBitV1>
 )
