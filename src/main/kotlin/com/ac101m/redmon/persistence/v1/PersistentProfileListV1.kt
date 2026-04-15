@@ -8,11 +8,11 @@ import java.nio.file.Path
 import kotlin.io.path.outputStream
 
 data class PersistentProfileListV1(
-    @JsonProperty("profiles", required = true)
+    @param:JsonProperty("profiles", required = true)
     val profiles: List<PersistentProfileV1>
 ) : PersistentProfileList() {
     fun save(outputStream: OutputStream) {
-        mapper.writerWithDefaultPrettyPrinter().writeValue(outputStream, this)
+        mapper.writer().writeValue(outputStream, this)
     }
 
     fun save(path: Path) {

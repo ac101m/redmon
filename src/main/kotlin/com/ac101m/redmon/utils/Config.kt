@@ -17,20 +17,10 @@ class Config {
 
         // Save files related constants
         private const val PROFILE_SAVE_FILE = "redmon_profiles.json"
-        val PROFILE_SAVE_PATH: Path = FabricLoader.getInstance().configDir.resolve(PROFILE_SAVE_FILE)
-
-        // Command interface info
-        val COMMAND_GRAMMAR = Companion::class.java.classLoader.getResource("command-grammar.txt")!!.readText()
-
-        // Error messages
-        const val ISSUE_CREATE_PROMPT =
-            "This is a bug! Please report the issue here: https://github.com/ac101m/redmon/issues"
-        const val HELP_COMMAND_PROMPT =
-            "See '/redmon -h' for usage information."
-        const val UNHANDLED_COMMAND_ERROR_MESSAGE =
-            "Unhandled command. $ISSUE_CREATE_PROMPT"
+        val PROFILE_STORAGE_PATH: Path = FabricLoader.getInstance().configDir.resolve(PROFILE_SAVE_FILE)
 
         // UI Constants
         val OVERLAY_POSITION = Vec3i(1, 1, 0)
+        const val PROFILES_PER_PAGE = 10
     }
 }
