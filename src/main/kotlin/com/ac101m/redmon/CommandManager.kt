@@ -13,6 +13,7 @@ import com.ac101m.redmon.utils.str
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.IntegerArgumentType.getInteger
 import com.mojang.brigadier.arguments.StringArgumentType.getString
+import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
@@ -30,9 +31,8 @@ import net.minecraft.world.phys.HitResult
 class CommandManager(
     val redmon: RedmonState
 ) {
-    fun registerCommands(dispatcher: CommandDispatcher<FabricClientCommandSource>) {
-        dispatcher.register(literal("redmon")
-            .then(literal("hide").executes { _ -> hideCommand() })
+    private fun LiteralArgumentBuilder<FabricClientCommandSource>.allCommands(): LiteralArgumentBuilder<FabricClientCommandSource> {
+        return this.then(literal("hide").executes { _ -> hideCommand() })
             .then(literal("show").executes { _ -> showCommand() })
             .then(literal("profile")
                 .then(literal("list").executes { c -> profileListCommand(c) })
@@ -69,7 +69,11 @@ class CommandManager(
                         .executes { c -> registerMoveDownCommand(c) })))
                 )
             )
-        )
+    }
+
+    fun registerCommands(dispatcher: CommandDispatcher<FabricClientCommandSource>) {
+        dispatcher.register(literal("redmon").allCommands())
+        dispatcher.register(literal("rm").allCommands())
     }
 
     private fun showCommand(): Int {
