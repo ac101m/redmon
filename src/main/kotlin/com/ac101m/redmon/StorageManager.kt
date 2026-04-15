@@ -27,11 +27,13 @@ class StorageManager(private val profileStoragePath: Path) {
 
     /**
      * Load profiles from disk.
-     * Returns a list of [Profile] objects.
+     *
+     * @return A list of loaded [Profile] objects.
      */
     fun loadProfiles(): List<Profile> {
         return when (val persistentProfileList = PersistentProfileList.load(profileStoragePath)) {
             is PersistentProfileListV1 -> loadProfilesV1(persistentProfileList)
+            else -> error("Unrecognised profile storage type ${persistentProfileList::class.java}")
         }
     }
 
