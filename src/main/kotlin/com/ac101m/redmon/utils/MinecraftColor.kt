@@ -24,3 +24,4 @@ fun String.color(color: MinecraftColor): String {
 }
 
 fun String.red() = this.color(MinecraftColor.RED)
+fun String.gray() = this.color(MinecraftColor.GRAY)

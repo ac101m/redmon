@@ -2,6 +2,7 @@ package com.ac101m.redmon.profile
 
 import com.ac101m.redmon.persistence.v1.PersistentSignalV1
 import com.ac101m.redmon.persistence.v1.PersistentSignalBitV1
+import com.ac101m.redmon.utils.gray
 import com.ac101m.redmon.utils.red
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Vec3i
@@ -100,6 +101,10 @@ data class Signal(
     }
 
     fun getRepresentation(): String {
+        if (bitCount == 0) {
+            return "EMPTY".gray()
+        }
+
         if (missingBits == bitCount) {
             return "MISSING ALL".red()
         }

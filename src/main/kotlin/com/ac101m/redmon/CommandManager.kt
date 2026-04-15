@@ -231,7 +231,10 @@ class CommandManager(
         val signalType = SignalType.REPEATER
         val inverted = false
         val format = SignalFormat.UNSIGNED
-        val blockLocations = getBlocksFromCrosshairTargetAndLookDirection(ctx, initialBlockCount, signalType)
+        val blockLocations = when (initialBlockCount) {
+            0 -> emptyList()
+            else -> getBlocksFromCrosshairTargetAndLookDirection(ctx, initialBlockCount, signalType)
+        }
 
         redmon.addSignal(signalName, signalType, inverted, format, blockLocations)
 
