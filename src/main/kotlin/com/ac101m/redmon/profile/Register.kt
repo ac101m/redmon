@@ -11,7 +11,7 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import java.io.StringWriter
 
 data class Register(
-    var name: String,
+    val name: String,
     val type: RegisterType,
     var invert: Boolean,
     var format: RegisterFormat,

@@ -61,7 +61,13 @@ class CommandManager(
                 .then(literal("rename").then(str("name").then(str("new-name")
                     .executes { c -> registerRenameCommand(c) })))
                 .then(literal("format").then(str("name").then(str("format")
-                    .executes { c -> registerFormatCommand(c) } )))
+                    .executes { c -> registerFormatCommand(c) })))
+                .then(literal("move").then(str("name")
+                    .then(literal("up").then(int("count")
+                        .executes { c -> registerMoveUpCommand(c) }))
+                    .then(literal("down").then(int("count")
+                        .executes { c -> registerMoveDownCommand(c) })))
+                )
             )
         )
     }
@@ -243,6 +249,24 @@ class CommandManager(
         }
     }
 
+    private fun registerMoveUpCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val registerName = getString(ctx, "name")
+        val count = 0 - getInteger(ctx, "count")
+        when (val n = redmon.moveRegister(registerName, count)) {
+            0 -> ctx.sendFeedback("Register '$registerName' is already at the top.")
+            else -> ctx.sendFeedback("Moved register '$registerName' in active profile up ${0 - n} places")
+        }
+    }
+
+    private fun registerMoveDownCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val registerName = getString(ctx, "name")
+        val count = getInteger(ctx, "count")
+        when (val n = redmon.moveRegister(registerName, count)) {
+            0 -> ctx.sendFeedback("Register '$registerName' is already at the bottom.")
+            else -> ctx.sendFeedback("Moved register '$registerName' in active profile down $n places")
+        }
+    }
+
     companion object {
         private const val COMMAND_ERROR = -1
         private const val COMMAND_SUCCESS = 1
@@ -255,7 +279,7 @@ class CommandManager(
                 actions(ctx)
                 COMMAND_SUCCESS
             } catch (e: Throwable) {
-                ctx.sendError("Error: ${e.message}")
+                ctx.sendError(e.message ?: e.javaClass.toString())
                 COMMAND_ERROR
             }
         }

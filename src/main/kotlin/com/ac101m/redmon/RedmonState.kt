@@ -196,8 +196,11 @@ class RedmonState(profileStoragePath: Path) {
         val profileInfo = requireActiveProfile {
             "Cannot append bits to register, no profile is selected"
         }
+
+        val watchPoints = bitPositions.map { it.subtract(profileInfo.offset) }
         val register = profileInfo.profile.getRegister(name)
-        register.appendBits(bitPositions)
+
+        register.appendBits(watchPoints)
         saveProfiles()
     }
 
@@ -227,6 +230,22 @@ class RedmonState(profileStoragePath: Path) {
         }
         profileInfo.profile.registers.forEach { it.format = format }
         saveProfiles()
+    }
+
+    /**
+     * Move a register up or down within a profile.
+     * Returns true if the register moved, false if it's already at the top.
+     *
+     * @param name The name of the register to move.
+     * @param n The number of spaces to move the register. Negative for up, positive for down.
+     */
+    fun moveRegister(name: String, n: Int): Int {
+        val profileInfo = requireActiveProfile {
+            "Cannot set register formats, no profile is selected"
+        }
+        val n = profileInfo.profile.moveRegister(name, n)
+        saveProfiles()
+        return n
     }
 
     /**
