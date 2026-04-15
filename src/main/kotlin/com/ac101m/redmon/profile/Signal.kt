@@ -9,7 +9,6 @@ import net.minecraft.core.Vec3i
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.RepeaterBlock
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
-import java.io.StringWriter
 
 data class Signal(
     val name: String,
@@ -40,64 +39,28 @@ data class Signal(
     }
 
     fun updateState(world: Level, offset: Vec3i) {
-        missingBits = 0
-        blockLocations.forEachIndexed { i, position ->
-            val blockState = world.getBlockState(BlockPos(position.offset(offset)))
-            val mask = 1UL shl i
-            rawState = rawState and mask.inv()
-            if (blockState.block is RepeaterBlock) {
-                if (blockState.getValue(BlockStateProperties.POWERED)) {
-                    rawState = rawState or mask
-                }
+        var state = 0UL
+        val mask = computeMask(type.bitsPerBlock)
+        var shift = 0
+        var missing = 0
+
+        for (location in blockLocations) {
+            val position = location.offset(offset)
+            val blockState = world.getBlockState(position)
+
+            if (blockState.block == type.block) {
+                val blockBits = type.getBitsFromBlockState(blockState)
+                state = state and (mask shl shift).inv()
+                state = state or ((blockBits and mask) shl shift)
             } else {
-                missingBits++
+                missing++
             }
-        }
-    }
 
-    private fun formatSigned(): String {
-        val signBitMask = (1UL shl (bitCount - 1))
-
-        val signExtended = if ((state and signBitMask) != 0UL) {
-            state or ((1UL shl bitCount) - 1UL).inv()
-        } else {
-            state
+            shift += type.bitsPerBlock
         }
 
-        return "${signExtended.toLong()}"
-    }
-
-    private fun formatHex(): String {
-        val digitCount = when (bitCount % 4) {
-            0 -> bitCount / 4
-            else -> (bitCount / 4) + 1
-        }
-
-        val hex = state.toString(16).uppercase()
-        val sw = StringWriter()
-
-        for (i in hex.length until digitCount) {
-            sw.append("0")
-        }
-
-        sw.append(hex)
-
-        return "0x$sw"
-    }
-
-    private fun formatBinary(): String {
-        val digitCount = bitCount
-
-        val bin = state.toString(2).uppercase()
-        val sw = StringWriter()
-
-        for (i in bin.length until digitCount) {
-            sw.append("0")
-        }
-
-        sw.append(bin)
-
-        return "0b$sw"
+        rawState = state
+        missingBits = missing
     }
 
     fun getRepresentation(): String {
@@ -113,12 +76,7 @@ data class Signal(
             return "MISSING $missingBits/$bitCount".red()
         }
 
-        return when (format) {
-            SignalFormat.UNSIGNED -> "$state"
-            SignalFormat.SIGNED -> formatSigned()
-            SignalFormat.HEX -> formatHex()
-            SignalFormat.BINARY -> formatBinary()
-        }
+        return format.getRepresentation(state, bitCount)
     }
 
     fun invert() {

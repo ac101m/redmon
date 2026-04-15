@@ -57,8 +57,8 @@ class CommandManager(
                     .executes { c -> profileRenameCommand(c) })))
             )
             .then(literal("signal")
-                .then(literal("add").then(str("name").then(int("block-count")
-                    .executes { c -> signalAddCommand(c) })))
+                .then(literal("add").then(str("name").then(str("type").then(int("block-count")
+                    .executes { c -> signalAddCommand(c) }))))
                 .then(literal("delete").then(str("name")
                     .executes { c -> signalDeleteCommand(c) }))
                 .then(literal("invert").then(str("name")
@@ -226,9 +226,10 @@ class CommandManager(
 
     private fun signalAddCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val initialBlockCount = getInteger(ctx, "block-count")
+        val signalTypeString = getString(ctx, "type")
 
         val signalName = getString(ctx, "name")
-        val signalType = SignalType.REPEATER
+        val signalType = SignalType.fromCommandString(signalTypeString)
         val inverted = false
         val format = SignalFormat.HEX
         val blockLocations = when (initialBlockCount) {
@@ -295,20 +296,14 @@ class CommandManager(
     private fun signalFormatCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val signalName = getString(ctx, "name")
         val newFormatString = getString(ctx, "format")
-
-        val newFormat = try {
-            SignalFormat.valueOf(newFormatString.uppercase())
-        } catch (e: IllegalArgumentException) {
-            val validFormatString = SignalFormat.entries.joinToString(", ") { it.name.lowercase() }
-            throw IllegalArgumentException("Invalid format. Valid formats are $validFormatString", e)
-        }
+        val newFormat = SignalFormat.fromCommandString(newFormatString)
 
         if (signalName == "all") {
             redmon.setAllSignalFormats(newFormat)
-            ctx.sendFeedback("Set format of all signals in active profile to '$newFormat'")
+            ctx.sendFeedback("Set format of all signals in active profile to $newFormat")
         } else {
             redmon.setSignalFormat(signalName, newFormat)
-            ctx.sendFeedback("Set format of signal '${signalName}' in active profile to '$newFormat'")
+            ctx.sendFeedback("Set format of signal '${signalName}' in active profile to $newFormat")
         }
     }
 
