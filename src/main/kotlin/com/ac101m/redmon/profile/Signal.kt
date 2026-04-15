@@ -7,8 +7,6 @@ import com.ac101m.redmon.utils.red
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Vec3i
 import net.minecraft.world.level.Level
-import net.minecraft.world.level.block.RepeaterBlock
-import net.minecraft.world.level.block.state.properties.BlockStateProperties
 
 data class Signal(
     val name: String,
@@ -53,7 +51,7 @@ data class Signal(
                 state = state and (mask shl shift).inv()
                 state = state or ((blockBits and mask) shl shift)
             } else {
-                missing++
+                missing += type.bitsPerBlock
             }
 
             shift += type.bitsPerBlock
