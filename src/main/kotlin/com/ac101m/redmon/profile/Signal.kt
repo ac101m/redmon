@@ -36,7 +36,7 @@ data class Signal(
         }
     }
 
-    fun updateState(world: Level, offset: Vec3i) {
+    fun updateState(level: Level, offset: Vec3i) {
         var state = 0UL
         val mask = computeMask(type.bitsPerBlock)
         var shift = 0
@@ -44,10 +44,9 @@ data class Signal(
 
         for (location in blockLocations) {
             val position = location.offset(offset)
-            val blockState = world.getBlockState(position)
+            val blockBits = type.getBitsFromBlockLocation(level, position)
 
-            if (blockState.block == type.block) {
-                val blockBits = type.getBitsFromBlockState(blockState)
+            if (blockBits != null) {
                 state = state and (mask shl shift).inv()
                 state = state or ((blockBits and mask) shl shift)
             } else {

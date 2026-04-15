@@ -78,7 +78,7 @@ enum class SignalFormat {
                 SignalFormat.valueOf(str.uppercase())
             } catch (e: IllegalArgumentException) {
                 val validFormatsString = SignalFormat.entries.joinToString(", ") { it.name.lowercase() }
-                throw RedmonException("Invalid signal format. Valid formats are $validFormatsString", e)
+                throw RedmonException("Invalid signal format. Valid formats are: $validFormatsString", e)
             }
         }
     }
