@@ -1,7 +1,6 @@
 package com.ac101m.redmon
 
 import com.ac101m.redmon.profile.Profile
-import com.ac101m.redmon.profile.Register
 import com.ac101m.redmon.profile.RegisterFormat
 import com.ac101m.redmon.profile.RegisterType
 import com.ac101m.redmon.utils.CardinalDirection
@@ -19,8 +18,6 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
-import net.minecraft.core.Vec3i
-import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.HitResult
 
@@ -80,25 +77,21 @@ class CommandManager(
     }
 
     private fun profileListCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val profiles = redmon.getAllProfiles()
+        val names = redmon.getProfileNames()
 
-        if (profiles.isEmpty()) {
+        if (names.isEmpty()) {
             ctx.sendFeedback("No profiles available")
+        } else {
+            val list = names.joinToString(separator = "\n") { "- $it" }
+            ctx.sendFeedback("Available profiles:\n$list")
         }
-
-        val list = profiles.joinToString(
-            separator = "\n"
-        ) { profile ->
-            "- ${profile.name} (${profile.registers.size} registers)"
-        }
-
-        ctx.sendFeedback("Available profiles:\n$list")
     }
 
     private fun profileCreateCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val profileName = getString(ctx, "name")
-        redmon.addProfile(Profile(profileName))
-        redmon.setActiveProfile(ctx.source.player, profileName)
+        val offset = ctx.source.player.position()
+        redmon.addProfile(Profile(profileName, emptyList()))
+        redmon.setActiveProfile(profileName, offset)
         ctx.sendFeedback("Created new profile '$profileName', and set as active profile")
     }
 
@@ -110,17 +103,17 @@ class CommandManager(
 
     private fun profileSelectCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val profileName = getString(ctx,"name")
-        redmon.setActiveProfile(ctx.source.player, profileName)
+        val offset = ctx.source.player.position()
+        redmon.setActiveProfile(profileName, offset)
         ctx.sendFeedback("Set profile '$profileName' as active profile")
     }
 
     private fun profileDeselectCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        if (redmon.activeProfile == null) {
-            ctx.sendFeedback("No active profile")
-        } else {
-            val profileName = redmon.activeProfile!!.name
+        if (redmon.hasActiveProfile()) {
             redmon.clearActiveProfile()
-            ctx.sendFeedback("Deactivated profile '$profileName'")
+            ctx.sendFeedback("Deactivated current profile")
+        } else {
+            ctx.sendFeedback("No active profile")
         }
     }
 
@@ -131,11 +124,11 @@ class CommandManager(
         ctx.sendFeedback("Renamed profile '$name' to '$newName'")
     }
 
-    private fun getProbeBitsFromCrosshairTarget(
+    private fun getBitsFromCrosshairTarget(
         ctx: CommandContext<FabricClientCommandSource>,
         requestedBits: Int,
-        type: RegisterType
-    ): List<Vec3i> {
+        registerType: RegisterType
+    ): List<BlockPos> {
         val player = ctx.source.player
         val step = CardinalDirection.fromLook(player.lookAngle).vector
 
@@ -152,13 +145,14 @@ class CommandManager(
         var currentPos = initialPos
         var bitsFound = 0
 
-        val bitPositions = ArrayList<Vec3i>()
+        val bitPositions = ArrayList<BlockPos>()
+        val blockType = registerType.getBlock()
 
         while (bitsFound < requestedBits && (initialPos.subtract(currentPos).length() < 256.0)) {
             val blockPos = BlockPos(currentPos.x, currentPos.y, currentPos.z)
             val blockState = player.level().getBlockState(blockPos)
 
-            if (blockState.block == Blocks.REPEATER) {
+            if (blockState.block == blockType) {
                 bitsFound++
                 bitPositions.add(blockPos)
             }
@@ -167,7 +161,7 @@ class CommandManager(
         }
 
         check(bitsFound == requestedBits) {
-            "Failed to find register bits, requested $requestedBits but found $bitsFound"
+            "Failed to find register bits of type $registerType, requested $requestedBits but found $bitsFound"
         }
 
         bitPositions.reverse()
@@ -175,149 +169,77 @@ class CommandManager(
     }
 
     private fun registerAddCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val profile = checkNotNull(redmon.activeProfile) {
-            "You must select a profile before adding a register"
-        }
+        val initialBitCount = getInteger(ctx, "bit-count")
 
         val registerName = getString(ctx, "name")
         val registerType = RegisterType.REPEATER
-        val initialBitCount = getInteger(ctx, "bit-count")
+        val inverted = false
+        val format = RegisterFormat.UNSIGNED
+        val bitLocations = getBitsFromCrosshairTarget(ctx, initialBitCount, registerType)
 
-        require(profile.getRegister(registerName) == null) {
-            "Register with name '$registerName' already exists"
-        }
-
-        val bitLocations = getProbeBitsFromCrosshairTarget(ctx, initialBitCount, registerType)
-
-        val newRegister = Register(
-            registerName,
-            registerType,
-            false,
-            RegisterFormat.UNSIGNED,
-            bitLocations.map { it.subtract(redmon.profileOffset!!) }
-        )
-
-        profile.addRegister(newRegister)
-        redmon.saveProfiles()
+        redmon.addRegister(registerName, registerType, inverted, format, bitLocations)
 
         ctx.sendFeedback("Added register '$registerName' with $initialBitCount bits")
     }
 
     private fun registerDeleteCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val profile = checkNotNull(redmon.activeProfile) {
-            "You must select a profile before deleting a register"
-        }
-
         val registerName = getString(ctx, "name")
-
-        require(profile.registers.containsKey(registerName)) {
-            "No register with name '$registerName' in profile '${profile.name}'"
-        }
-
-        profile.removeRegister(registerName)
-        redmon.saveProfiles()
-
-        ctx.sendFeedback("Removed register '$registerName' from profile '${profile.name}'")
+        redmon.deleteRegister(registerName)
+        ctx.sendFeedback("Removed register '$registerName' from active profile")
     }
 
     private fun registerInvertCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val profile = checkNotNull(redmon.activeProfile) {
-            "You must select a profile before deleting a register"
-        }
-
         val registerName = getString(ctx, "name")
-
-        val register = requireNotNull(profile.getRegister(registerName)) {
-            "No register with name '$registerName' in profile '${profile.name}'"
-        }
-
-        register.invert()
-        redmon.saveProfiles()
-
-        when (register.invert) {
+        val newState = redmon.invertRegister(registerName)
+        when (newState) {
             true -> ctx.sendFeedback("Register '$registerName' now in inverting mode")
             false -> ctx.sendFeedback("Register '$registerName' now in non-inverting mode")
         }
     }
 
     private fun registerFlipCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val profile = checkNotNull(redmon.activeProfile) {
-            "You must select a profile before flipping a register"
-        }
-
         val registerName = getString(ctx, "name")
-
-        val register = requireNotNull(profile.getRegister(registerName)) {
-            "No register with name '$registerName' in profile '${profile.name}'"
-        }
-
-        register.flipBits()
-        redmon.saveProfiles()
-
-        ctx.sendFeedback("Flipped register '${register.name}'")
+        redmon.flipRegisterBits(registerName)
+        ctx.sendFeedback("Flipped register '$registerName'")
     }
 
     private fun registerAppendBitsCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val profile = checkNotNull(redmon.activeProfile) {
-            "You must select a profile before appending bits to a register"
-        }
-
         val registerName = getString(ctx,"name")
         val bitCount = getInteger(ctx,"bit-count")
-        val registerType = RegisterType.REPEATER
+        val registerType = redmon.getRegisterType(registerName)
 
-        val register = requireNotNull(profile.getRegister(registerName)) {
-            "No register with name '$registerName' in profile '${profile.name}'"
-        }
+        val bitPositions = getBitsFromCrosshairTarget(ctx, bitCount, registerType)
+        redmon.appendBitsToRegister(registerName, bitPositions)
 
-        val bitPositions = getProbeBitsFromCrosshairTarget(ctx, bitCount, registerType)
-
-        register.appendBits(bitPositions.map { position -> position.subtract(redmon.profileOffset!!) })
-        redmon.saveProfiles()
-
-        ctx.sendFeedback("Appended $bitCount bits to register '${register.name}' in profile '${profile.name}'")
+        ctx.sendFeedback("Appended $bitCount bits to register '$registerName' in the active profile")
     }
 
     private fun registerRenameCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val profile = checkNotNull(redmon.activeProfile) {
-            "You must select a profile before renaming a register"
-        }
+        val registerName = getString(ctx,"name")
+        val newRegisterName = getString(ctx,"new-name")
 
-        val name = getString(ctx,"name")
-        val newName = getString(ctx,"new-name")
+        redmon.renameRegister(registerName, newRegisterName)
 
-        redmon.renameRegister(name, newName)
-
-        ctx.sendFeedback("Renamed register '$name' in profile ${profile.name} to '$newName'")
+        ctx.sendFeedback("Renamed register '$registerName' in the active profile to '$newRegisterName'")
     }
 
     private fun registerFormatCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val profile = checkNotNull(redmon.activeProfile) {
-            "You must select a profile before setting register format"
-        }
-
         val registerName = getString(ctx, "name")
         val newFormatArg = getString(ctx, "format")
 
         val newFormat = try {
             RegisterFormat.valueOf(newFormatArg.uppercase())
         } catch (e: IllegalArgumentException) {
-            throw IllegalArgumentException(
-                "'$newFormatArg' is not a valid format. " +
-                        "Valid formats are ${RegisterFormat.entries.joinToString(", ") { it.name.lowercase() }}", e)
+            val validFormatString = RegisterFormat.entries.joinToString(", ") { it.name.lowercase() }
+            throw IllegalArgumentException("Invalid format. Valid formats are $validFormatString", e)
         }
 
         if (registerName == "all") {
-            profile.registers.forEach { it.value.format = newFormat }
-            ctx.sendFeedback("Set format of all registers in profile ${profile.name} to '$newFormat'")
+            redmon.setAllRegisterFormats(newFormat)
+            ctx.sendFeedback("Set format of all registers in active profile to '$newFormat'")
         } else {
-            val register = requireNotNull(profile.getRegister(registerName)) {
-                "No register with name '$registerName' in profile '${profile.name}'"
-            }
-            register.format = newFormat
-            ctx.sendFeedback("Set format of register '${register.name}' in profile '${profile.name}' to '$newFormat'")
-        }.also {
-            redmon.saveProfiles()
+            redmon.setRegisterFormat(registerName, newFormat)
+            ctx.sendFeedback("Set format of register '${registerName}' in active profile to '$newFormat'")
         }
     }
 

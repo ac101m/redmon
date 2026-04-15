@@ -4,61 +4,67 @@ import com.ac101m.redmon.persistence.v1.PersistentProfileV1
 import net.minecraft.core.Vec3i
 import net.minecraft.world.level.Level
 
-data class Profile(
-    var name: String,
-    val registers: HashMap<String, Register> = LinkedHashMap()
+class Profile(
+    internal var name: String,
+    initRegisters: List<Register>
 ) {
-    companion object {
-        fun fromPersistent(data: PersistentProfileV1): Profile {
-            val registers = LinkedHashMap<String, Register>()
-            data.registers.forEach {
-                registers[it.name] = Register.fromPersistent(it)
-            }
-            return Profile(
-                data.name,
-                registers
-            )
+    private val registerIndex = LinkedHashMap<String, Register>()
+
+    val registers get () = registerIndex.values.toList()
+
+    init {
+        initRegisters.forEach { register ->
+            registerIndex[register.name] = register
         }
     }
 
-    fun toPersistent(): PersistentProfileV1 {
-        return PersistentProfileV1(
-            name,
-            registers.keys.map { registers[it]!!.toPersistent() }
-        )
+    private fun requireRegisterExists(name: String): Register {
+        return requireNotNull(registerIndex[name]) {
+            "Profile '${this.name}' does not contain a register with name '$name'"
+        }
     }
 
     private fun requireRegisterDoesNotExist(name: String) {
-        require(registers[name] == null) {
-            "A register already exists with name '$name' in profile '${this.name}'."
+        require(registerIndex[name] == null) {
+            "Profile '${this.name}' already contains a register with name '$name'"
         }
     }
 
     fun addRegister(register: Register) {
         requireRegisterDoesNotExist(register.name)
-        registers[register.name] = register
+        registerIndex[register.name] = register
     }
 
     fun getRegister(name: String): Register {
-        return requireNotNull(registers[name]) {
-            "No register with name '$name' in profile '${this.name}."
-        }
+        return requireRegisterExists(name)
     }
 
     fun renameRegister(name: String, newName: String) {
         val register = getRegister(name)
         register.name = newName
-        registers.remove(name)
-        registers[newName] = register
+        registerIndex.remove(name)
+        registerIndex[newName] = register
     }
 
-    fun removeRegister(name: String) {
-        registers.remove(name)
+    fun deleteRegister(name: String) {
+        requireRegisterExists(name)
+        registerIndex.remove(name)
     }
 
     fun updateState(world: Level, offset: Vec3i) {
-        registers.values.forEach { register ->
+        registerIndex.values.forEach { register ->
             register.updateState(world, offset)
+        }
+    }
+
+    fun toPersistentV1(): PersistentProfileV1 {
+        return PersistentProfileV1(name, registerIndex.keys.map { registerIndex[it]!!.toPersistentV1() })
+    }
+
+    companion object {
+        fun fromPersistentV1(data: PersistentProfileV1): Profile {
+            val registers = data.registers.map { Register.fromPersistentV1(it) }
+            return Profile(data.name, registers)
         }
     }
 }

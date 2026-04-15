@@ -1,6 +1,6 @@
 package com.ac101m.redmon
 
-import com.ac101m.redmon.utils.Config.Companion.PROFILE_SAVE_PATH
+import com.ac101m.redmon.utils.Config.Companion.PROFILE_STORAGE_PATH
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry
@@ -18,10 +18,8 @@ class ClientInitializer : ClientModInitializer {
     private lateinit var commandManager: CommandManager
 
     override fun onInitializeClient() {
-        redmon = RedmonState(PROFILE_SAVE_PATH)
+        redmon = RedmonState(PROFILE_STORAGE_PATH)
         commandManager = CommandManager(redmon)
-
-        redmon.loadProfiles()
 
         ClientCommandRegistrationCallback.EVENT.register { dispatcher, _ ->
             commandManager.registerCommands(dispatcher)

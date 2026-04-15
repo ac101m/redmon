@@ -9,7 +9,6 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.RepeaterBlock
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import java.io.StringWriter
-import kotlin.and
 
 data class Register(
     var name: String,
@@ -32,28 +31,6 @@ data class Register(
 
     val size get() = watchPoints.size
     var missingBits = 0
-
-    companion object {
-        fun fromPersistent(data: PersistentRegisterV1): Register {
-            return Register(
-                data.name,
-                data.type,
-                data.invert,
-                data.format,
-                data.bitLocations.map { Vec3i(it.x, it.y, it.z) }
-            )
-        }
-    }
-
-    fun toPersistent(): PersistentRegisterV1 {
-        return PersistentRegisterV1(
-            name,
-            type,
-            invert,
-            format,
-            watchPoints.map { PersistentRegisterBitV1(it.x, it.y, it.z) }
-        )
-    }
 
     fun updateState(world: Level, offset: Vec3i) {
         missingBits = 0
@@ -141,7 +118,19 @@ data class Register(
         watchPoints = watchPoints.reversed()
     }
 
-    fun appendBits(positionsToAppend: List<Vec3i>) {
-        watchPoints = watchPoints.plus(positionsToAppend)
+    fun appendBits(bitPositions: List<Vec3i>) {
+        watchPoints = watchPoints.plus(bitPositions)
+    }
+
+    fun toPersistentV1(): PersistentRegisterV1 {
+        val bitLocations = watchPoints.map { PersistentRegisterBitV1(it.x, it.y, it.z) }
+        return PersistentRegisterV1(name, type, invert, format, bitLocations)
+    }
+
+    companion object {
+        fun fromPersistentV1(data: PersistentRegisterV1): Register {
+            val watchPoints = data.bitLocations.map { Vec3i(it.x, it.y, it.z) }
+            return Register(data.name, data.type, data.invert, data.format, watchPoints)
+        }
     }
 }

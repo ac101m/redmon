@@ -39,9 +39,9 @@ class ProfileOverlay : Drawable2D {
         registerNameText.lines.clear()
         registerValueText.lines.clear()
 
-        profile.registers.forEach { entry ->
-            registerNameText.lines.add("${entry.value.name}: ")
-            registerValueText.lines.add(entry.value.getRepresentation())
+        profile.registers.forEach { register ->
+            registerNameText.lines.add("${register.name}: ")
+            registerValueText.lines.add(register.getRepresentation())
         }
     }
 }
