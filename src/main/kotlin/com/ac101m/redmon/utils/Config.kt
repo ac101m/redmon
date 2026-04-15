@@ -21,5 +21,6 @@ class Config {
 
         // UI Constants
         val OVERLAY_POSITION = Vec3i(1, 1, 0)
+        const val PROFILES_PER_PAGE = 10
     }
 }

@@ -2,15 +2,13 @@ package com.ac101m.redmon.utils
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
-import com.mojang.brigadier.arguments.IntegerArgumentType.integer
-import com.mojang.brigadier.arguments.StringArgumentType.string
-import com.mojang.brigadier.builder.RequiredArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
 import net.minecraft.core.Vec3i
 import net.minecraft.network.chat.MutableComponent
 import net.minecraft.network.chat.contents.PlainTextContents
+import kotlin.math.absoluteValue
+import kotlin.math.sign
 import kotlin.math.sqrt
 
 val mapper = ObjectMapper().registerKotlinModule()
@@ -30,10 +28,6 @@ fun Vec3i.length(): Double {
     return sqrt(lengthSquared.toDouble())
 }
 
-fun str(name: String): RequiredArgumentBuilder<FabricClientCommandSource, String> {
-    return argument(name, string())
-}
-
-fun int(name: String): RequiredArgumentBuilder<FabricClientCommandSource, Int> {
-    return argument(name, integer())
+fun Int.ceilDiv(other: Int): Int {
+    return this.floorDiv(other) + this.rem(other).sign.absoluteValue
 }

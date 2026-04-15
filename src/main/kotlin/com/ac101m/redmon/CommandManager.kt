@@ -4,23 +4,28 @@ import com.ac101m.redmon.profile.Profile
 import com.ac101m.redmon.profile.SignalFormat
 import com.ac101m.redmon.profile.SignalType
 import com.ac101m.redmon.utils.CardinalDirection
+import com.ac101m.redmon.utils.Config.Companion.PROFILES_PER_PAGE
 import com.ac101m.redmon.utils.RedmonException
-import com.ac101m.redmon.utils.int
+import com.ac101m.redmon.utils.ceilDiv
 import com.ac101m.redmon.utils.length
 import com.ac101m.redmon.utils.sendError
 import com.ac101m.redmon.utils.sendFeedback
-import com.ac101m.redmon.utils.str
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.IntegerArgumentType.getInteger
+import com.mojang.brigadier.arguments.IntegerArgumentType.integer
 import com.mojang.brigadier.arguments.StringArgumentType.getString
+import com.mojang.brigadier.arguments.StringArgumentType.string
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
+import com.mojang.brigadier.builder.RequiredArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.HitResult
+import kotlin.math.min
 
 /**
  * Manages the redmon command interface.
@@ -35,7 +40,8 @@ class CommandManager(
         return this.then(literal("hide").executes { _ -> hideCommand() })
             .then(literal("show").executes { _ -> showCommand() })
             .then(literal("profile")
-                .then(literal("list").executes { c -> profileListCommand(c) })
+                .then(literal("list").then(int("page", 1)
+                    .executes { c -> profileListCommand(c) }))
                 .then(literal("create").then(str("name")
                     .executes { c -> profileCreateCommand(c) }))
                 .then(literal("delete").then(str("name")
@@ -56,16 +62,16 @@ class CommandManager(
                     .executes { c -> signalInvertCommand(c) }))
                 .then(literal("flip").then(str("name")
                     .executes { c -> signalFlipCommand(c) }))
-                .then(literal("append-bits").then(str("name").then(int("bit-count")
+                .then(literal("append-bits").then(str("name").then(int("bit-count", 0)
                     .executes { c -> signalAppendBitsCommand(c) })))
                 .then(literal("rename").then(str("name").then(str("new-name")
                     .executes { c -> signalRenameCommand(c) })))
                 .then(literal("format").then(str("name").then(str("format")
                     .executes { c -> signalFormatCommand(c) })))
                 .then(literal("move").then(str("name")
-                    .then(literal("up").then(int("count")
+                    .then(literal("up").then(int("count", 0)
                         .executes { c -> signalMoveUpCommand(c) }))
-                    .then(literal("down").then(int("count")
+                    .then(literal("down").then(int("count", 0)
                         .executes { c -> signalMoveDownCommand(c) })))
                 )
             )
@@ -87,14 +93,28 @@ class CommandManager(
     }
 
     private fun profileListCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val names = redmon.getProfileNames()
+        val names = redmon.getProfileNames().sorted()
 
         if (names.isEmpty()) {
-            ctx.sendFeedback("No profiles available")
-        } else {
-            val list = names.joinToString(separator = "\n") { "- $it" }
-            ctx.sendFeedback("Available profiles:\n$list")
+            ctx.sendFeedback("No profiles found")
+            return@commandWrapper
         }
+
+        val pageNumber = getInteger(ctx, "page")
+        val pageIndex = pageNumber - 1
+
+        val pageCount = names.size.ceilDiv(PROFILES_PER_PAGE)
+
+        require(pageIndex < pageCount) {
+            "Requested page does not exist"
+        }
+
+        val start = pageIndex * PROFILES_PER_PAGE
+        val end = min(start + PROFILES_PER_PAGE, pageCount)
+        val pageNames = names.slice((start until end))
+
+        val list = pageNames.joinToString(separator = "\n") { "- $it" }
+        ctx.sendFeedback("Available profiles (page $pageNumber/$pageCount):\n$list")
     }
 
     private fun profileCreateCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
@@ -274,6 +294,18 @@ class CommandManager(
     companion object {
         private const val COMMAND_ERROR = -1
         private const val COMMAND_SUCCESS = 1
+
+        private fun str(name: String): RequiredArgumentBuilder<FabricClientCommandSource, String> {
+            return argument(name, string())
+        }
+
+        private fun int(
+            name: String,
+            min: Int = Int.MIN_VALUE,
+            max: Int = Int.MAX_VALUE
+        ): RequiredArgumentBuilder<FabricClientCommandSource, Int> {
+            return argument(name, integer(min, max))
+        }
 
         private fun commandWrapper(
             ctx: CommandContext<FabricClientCommandSource>,
