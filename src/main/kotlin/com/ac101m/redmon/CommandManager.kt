@@ -23,6 +23,7 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
+import net.minecraft.world.entity.player.Player
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.HitResult
 import kotlin.math.min
@@ -64,7 +65,9 @@ class CommandManager(
                     .executes { c -> signalInvertCommand(c) }))
                 .then(literal("flip").then(str("name")
                     .executes { c -> signalFlipCommand(c) }))
-                .then(literal("append-blocks").then(str("name").then(int("block-count", 0)
+                .then(literal("add-block").then(str("name")
+                    .executes { c -> signalAppendBlockCommand(c) }))
+                .then(literal("add-blocks").then(str("name").then(int("count", 0)
                     .executes { c -> signalAppendBlocksCommand(c) })))
                 .then(literal("rename").then(str("name").then(str("new-name")
                     .executes { c -> signalRenameCommand(c) })))
@@ -166,24 +169,35 @@ class CommandManager(
         ctx.sendFeedback("Renamed profile '$name' to '$newName'")
     }
 
-    private fun getBlocksFromCrosshairTarget(
+    private fun getBlockFromCrosshairTarget(player: Player, signalType: SignalType): BlockPos {
+        val hitResult = Minecraft.getInstance().hitResult ?:
+            throw RedmonException("No target block found")
+
+        val blockHitResult = if (hitResult.type != HitResult.Type.BLOCK) {
+            throw RedmonException("Target is not a block")
+        } else {
+            hitResult as BlockHitResult
+        }
+
+        val position = blockHitResult.blockPos
+        val expectedBlock = signalType.getBlock()
+        val block = player.level().getBlockState(position).block
+
+        require(block == signalType.getBlock()) {
+            "Signal expects blocks of type '$expectedBlock', but target block is '$block'"
+        }
+
+        return position
+    }
+
+    private fun getBlocksFromCrosshairTargetAndLookDirection(
         ctx: CommandContext<FabricClientCommandSource>,
         requestedBlocks: Int,
         signalType: SignalType
     ): List<BlockPos> {
         val player = ctx.source.player
         val step = CardinalDirection.fromLook(player.lookAngle).vector
-
-        val hitResult = Minecraft.getInstance().hitResult ?:
-        throw RedmonException("Crosshair is not pointing at anything.")
-
-        val blockHitResult = if (hitResult.type != HitResult.Type.BLOCK) {
-            throw RedmonException("Crosshair is not pointing at a block.")
-        } else {
-            hitResult as BlockHitResult
-        }
-
-        val initialPos = blockHitResult.blockPos
+        val initialPos = getBlockFromCrosshairTarget(player, signalType)
         var currentPos = initialPos
         var bitsFound = 0
 
@@ -217,7 +231,7 @@ class CommandManager(
         val signalType = SignalType.REPEATER
         val inverted = false
         val format = SignalFormat.UNSIGNED
-        val blockLocations = getBlocksFromCrosshairTarget(ctx, initialBlockCount, signalType)
+        val blockLocations = getBlocksFromCrosshairTargetAndLookDirection(ctx, initialBlockCount, signalType)
 
         redmon.addSignal(signalName, signalType, inverted, format, blockLocations)
 
@@ -245,11 +259,21 @@ class CommandManager(
         ctx.sendFeedback("Flipped signal '$signalName'")
     }
 
+    private fun signalAppendBlockCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val signalName = getString(ctx, "name")
+        val signalType = redmon.getSignalType(signalName)
+        val blockLocation = getBlockFromCrosshairTarget(ctx.source.player, signalType)
+
+        redmon.appendBlocksToSignal(signalName, listOf(blockLocation))
+
+        ctx.sendFeedback("Added block to signal '$signalName' in the active profile")
+    }
+
     private fun signalAppendBlocksCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val signalName = getString(ctx,"name")
-        val blockCount = getInteger(ctx,"block-count")
+        val blockCount = getInteger(ctx,"count")
         val signalType = redmon.getSignalType(signalName)
-        val blockLocations = getBlocksFromCrosshairTarget(ctx, blockCount, signalType)
+        val blockLocations = getBlocksFromCrosshairTargetAndLookDirection(ctx, blockCount, signalType)
 
         redmon.appendBlocksToSignal(signalName, blockLocations)
 
