@@ -96,21 +96,21 @@ class RedmonState(profileStoragePath: Path) {
      * @param type The type of the signal.
      * @param inverted Whether the signal should be inverting or not.
      * @param format The format to display the new signal in.
-     * @param bitLocations The bit locations for new signal elements.
+     * @param blockLocations Absolute positions of blocks to include in the signal.
      */
     fun addSignal(
         name: String,
         type: SignalType,
         inverted: Boolean,
         format: SignalFormat,
-        bitLocations: List<BlockPos>
+        blockLocations: List<BlockPos>
     ) {
         val profileInfo = requireActiveProfile {
             "Cannot add signal, no profile is selected"
         }
 
-        val watchPoints = bitLocations.map { it.subtract(profileInfo.offset) }
-        val newSignal = Signal(name, type, inverted, format, watchPoints)
+        val blockLocationsRelative = blockLocations.map { it.subtract(profileInfo.offset) }
+        val newSignal = Signal(name, type, inverted, format, blockLocationsRelative)
 
         profileInfo.profile.addSignal(newSignal)
         saveProfiles()
@@ -192,17 +192,23 @@ class RedmonState(profileStoragePath: Path) {
      * Append bits to an existing signal.
      *
      * @param name The name of the signal to which bits should be appended.
-     * @param bitPositions The bit locations to add to the signal.
+     * @param blockLocations Absolute positions of blocks to add to the signal.
      */
-    fun appendBitsToSignal(name: String, bitPositions: List<BlockPos>) {
+    fun appendBlocksToSignal(name: String, blockLocations: List<BlockPos>) {
         val profileInfo = requireActiveProfile {
             "Cannot append bits to signal, no profile is selected"
         }
 
-        val watchPoints = bitPositions.map { it.subtract(profileInfo.offset) }
+        val relativeBlockLocations = blockLocations.map { it.subtract(profileInfo.offset) }
         val signal = profileInfo.profile.getSignal(name)
 
-        signal.appendBits(watchPoints)
+        for (location in relativeBlockLocations) {
+            require(!signal.blockLocations.contains(location)) {
+                "Unable to append blocks. One or more blocks are already part of the signal."
+            }
+        }
+
+        signal.appendBlocks(relativeBlockLocations)
         saveProfiles()
     }
 

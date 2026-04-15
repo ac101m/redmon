@@ -14,5 +14,5 @@ data class PersistentSignalV1(
     @param:JsonProperty("format", required = false)
     val format: SignalFormat = SignalFormat.UNSIGNED,
     @param:JsonProperty("bitLocations", required = true)
-    val bitLocations: List<PersistentSignalBitV1>
+    val blockLocations: List<PersistentSignalBitV1>
 )

@@ -56,7 +56,7 @@ class CommandManager(
                     .executes { c -> profileRenameCommand(c) })))
             )
             .then(literal("signal")
-                .then(literal("add").then(str("name").then(int("bit-count")
+                .then(literal("add").then(str("name").then(int("block-count")
                     .executes { c -> signalAddCommand(c) })))
                 .then(literal("delete").then(str("name")
                     .executes { c -> signalDeleteCommand(c) }))
@@ -64,8 +64,8 @@ class CommandManager(
                     .executes { c -> signalInvertCommand(c) }))
                 .then(literal("flip").then(str("name")
                     .executes { c -> signalFlipCommand(c) }))
-                .then(literal("append-bits").then(str("name").then(int("bit-count", 0)
-                    .executes { c -> signalAppendBitsCommand(c) })))
+                .then(literal("append-blocks").then(str("name").then(int("block-count", 0)
+                    .executes { c -> signalAppendBlocksCommand(c) })))
                 .then(literal("rename").then(str("name").then(str("new-name")
                     .executes { c -> signalRenameCommand(c) })))
                 .then(literal("format").then(str("name").then(str("format")
@@ -166,9 +166,9 @@ class CommandManager(
         ctx.sendFeedback("Renamed profile '$name' to '$newName'")
     }
 
-    private fun getBitsFromCrosshairTarget(
+    private fun getBlocksFromCrosshairTarget(
         ctx: CommandContext<FabricClientCommandSource>,
-        requestedBits: Int,
+        requestedBlocks: Int,
         signalType: SignalType
     ): List<BlockPos> {
         val player = ctx.source.player
@@ -190,7 +190,7 @@ class CommandManager(
         val bitPositions = ArrayList<BlockPos>()
         val blockType = signalType.getBlock()
 
-        while (bitsFound < requestedBits && (initialPos.subtract(currentPos).length() < 256.0)) {
+        while (bitsFound < requestedBlocks && (initialPos.subtract(currentPos).length() < 256.0)) {
             val blockPos = BlockPos(currentPos.x, currentPos.y, currentPos.z)
             val blockState = player.level().getBlockState(blockPos)
 
@@ -202,8 +202,8 @@ class CommandManager(
             currentPos = currentPos.offset(step)
         }
 
-        check(bitsFound == requestedBits) {
-            "Failed to find signal bits of type $signalType, requested $requestedBits but found $bitsFound"
+        check(bitsFound == requestedBlocks) {
+            "Failed to find signal bits of type $signalType, requested $requestedBlocks but found $bitsFound"
         }
 
         bitPositions.reverse()
@@ -211,17 +211,17 @@ class CommandManager(
     }
 
     private fun signalAddCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val initialBitCount = getInteger(ctx, "bit-count")
+        val initialBlockCount = getInteger(ctx, "block-count")
 
         val signalName = getString(ctx, "name")
         val signalType = SignalType.REPEATER
         val inverted = false
         val format = SignalFormat.UNSIGNED
-        val bitLocations = getBitsFromCrosshairTarget(ctx, initialBitCount, signalType)
+        val blockLocations = getBlocksFromCrosshairTarget(ctx, initialBlockCount, signalType)
 
-        redmon.addSignal(signalName, signalType, inverted, format, bitLocations)
+        redmon.addSignal(signalName, signalType, inverted, format, blockLocations)
 
-        ctx.sendFeedback("Added signal '$signalName' with $initialBitCount bits")
+        ctx.sendFeedback("Added signal '$signalName' with $initialBlockCount bits")
     }
 
     private fun signalDeleteCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
@@ -245,15 +245,15 @@ class CommandManager(
         ctx.sendFeedback("Flipped signal '$signalName'")
     }
 
-    private fun signalAppendBitsCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+    private fun signalAppendBlocksCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val signalName = getString(ctx,"name")
-        val bitCount = getInteger(ctx,"bit-count")
+        val blockCount = getInteger(ctx,"block-count")
         val signalType = redmon.getSignalType(signalName)
+        val blockLocations = getBlocksFromCrosshairTarget(ctx, blockCount, signalType)
 
-        val bitPositions = getBitsFromCrosshairTarget(ctx, bitCount, signalType)
-        redmon.appendBitsToSignal(signalName, bitPositions)
+        redmon.appendBlocksToSignal(signalName, blockLocations)
 
-        ctx.sendFeedback("Appended $bitCount bits to signal '$signalName' in the active profile")
+        ctx.sendFeedback("Appended $blockCount blocks to signal '$signalName' in the active profile")
     }
 
     private fun signalRenameCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {

@@ -15,7 +15,7 @@ data class Signal(
     val type: SignalType,
     var invert: Boolean,
     var format: SignalFormat,
-    var watchPoints: List<Vec3i> = listOf()
+    var blockLocations: List<BlockPos> = listOf()
 ) {
     // Raw state of the signal bits
     private var rawState: ULong = 0UL
@@ -29,12 +29,12 @@ data class Signal(
         }
     }
 
-    val size get() = watchPoints.size
+    val size get() = blockLocations.size
     var missingBits = 0
 
     fun updateState(world: Level, offset: Vec3i) {
         missingBits = 0
-        watchPoints.forEachIndexed { i, position ->
+        blockLocations.forEachIndexed { i, position ->
             val blockState = world.getBlockState(BlockPos(position.offset(offset)))
             val mask = 1UL shl i
             rawState = rawState and mask.inv()
@@ -115,22 +115,22 @@ data class Signal(
     }
 
     fun flipBits() {
-        watchPoints = watchPoints.reversed()
+        blockLocations = blockLocations.reversed()
     }
 
-    fun appendBits(bitPositions: List<Vec3i>) {
-        watchPoints = watchPoints.plus(bitPositions)
+    fun appendBlocks(newBlockLocations: List<BlockPos>) {
+        blockLocations = blockLocations.plus(newBlockLocations)
     }
 
     fun toPersistentV1(): PersistentSignalV1 {
-        val bitLocations = watchPoints.map { PersistentSignalBitV1(it.x, it.y, it.z) }
-        return PersistentSignalV1(name, type, invert, format, bitLocations)
+        val b = blockLocations.map { PersistentSignalBitV1(it.x, it.y, it.z) }
+        return PersistentSignalV1(name, type, invert, format, b)
     }
 
     companion object {
         fun fromPersistentV1(data: PersistentSignalV1): Signal {
-            val watchPoints = data.bitLocations.map { Vec3i(it.x, it.y, it.z) }
-            return Signal(data.name, data.type, data.invert, data.format, watchPoints)
+            val blockLocations = data.blockLocations.map { BlockPos(it.x, it.y, it.z) }
+            return Signal(data.name, data.type, data.invert, data.format, blockLocations)
         }
     }
 }

@@ -14,7 +14,7 @@ class PersistentSignalV1Tests {
             name = "r1",
             type = SignalType.REPEATER,
             invert = false,
-            bitLocations = listOf(
+            blockLocations = listOf(
                 PersistentSignalBitV1(
                     x = 0,
                     y = 1,
