@@ -144,7 +144,7 @@ data class Signal(
 
         fun computeMask(bitCount: Int): ULong {
             return if (bitCount < 64) {
-                1UL shl bitCount
+                (1UL shl bitCount) - 1UL
             } else {
                 ULong.MAX_VALUE
             }
