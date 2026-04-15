@@ -230,7 +230,7 @@ class CommandManager(
         val signalName = getString(ctx, "name")
         val signalType = SignalType.REPEATER
         val inverted = false
-        val format = SignalFormat.UNSIGNED
+        val format = SignalFormat.HEX
         val blockLocations = when (initialBlockCount) {
             0 -> emptyList()
             else -> getBlocksFromCrosshairTargetAndLookDirection(ctx, initialBlockCount, signalType)
