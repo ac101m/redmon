@@ -42,6 +42,8 @@ class CommandManager(
             .then(literal("profile")
                 .then(literal("list").then(int("page", 1)
                     .executes { c -> profileListCommand(c) }))
+                .then(literal("search").then(str("query").then(int("page", 1)
+                    .executes { c -> profileSearchCommand(c) } )))
                 .then(literal("create").then(str("name")
                     .executes { c -> profileCreateCommand(c) }))
                 .then(literal("delete").then(str("name")
@@ -92,12 +94,10 @@ class CommandManager(
         return COMMAND_SUCCESS
     }
 
-    private fun profileListCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val names = redmon.getProfileNames().sorted()
-
+    private fun paginateProfileList(ctx: CommandContext<FabricClientCommandSource>, names: List<String>) {
         if (names.isEmpty()) {
             ctx.sendFeedback("No profiles found")
-            return@commandWrapper
+            return
         }
 
         val pageNumber = getInteger(ctx, "page")
@@ -110,11 +110,23 @@ class CommandManager(
         }
 
         val start = pageIndex * PROFILES_PER_PAGE
-        val end = min(start + PROFILES_PER_PAGE, pageCount)
-        val pageNames = names.slice((start until end))
+        val end = min(start + PROFILES_PER_PAGE, names.size)
+        val pageNames = names.slice(start until end)
 
         val list = pageNames.joinToString(separator = "\n") { "- $it" }
-        ctx.sendFeedback("Available profiles (page $pageNumber/$pageCount):\n$list")
+        ctx.sendFeedback("Found ${names.size} profiles (page $pageNumber/$pageCount):\n$list")
+    }
+
+    private fun profileListCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val names = redmon.getProfileNames().sorted()
+        paginateProfileList(ctx, names)
+    }
+
+    private fun profileSearchCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val names = redmon.getProfileNames()
+        val queryString = getString(ctx, "query")
+        val filteredNames = names.filter { it.contains(queryString, ignoreCase = true) }
+        paginateProfileList(ctx, filteredNames)
     }
 
     private fun profileCreateCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
