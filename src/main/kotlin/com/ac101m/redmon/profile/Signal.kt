@@ -22,15 +22,21 @@ data class Signal(
 
     // State taking into account inversion
     private val state: ULong get() {
-        val mask = (1UL shl size) - 1UL
+        val mask = computeMask(bitCount)
         return when (invert) {
             false -> rawState and mask
             true -> rawState.inv() and mask
         }
     }
 
-    val size get() = blockLocations.size
+    private val bitCount get() = blockLocations.size * type.bitsPerBlock
     var missingBits = 0
+
+    init {
+        require(blockLocations.size <= type.maxBlocks) {
+            "Too many blocks. Signals of type $type may contain at most ${type.maxBlocks} blocks"
+        }
+    }
 
     fun updateState(world: Level, offset: Vec3i) {
         missingBits = 0
@@ -49,10 +55,10 @@ data class Signal(
     }
 
     private fun formatSigned(): String {
-        val signBitMask = (1UL shl (size - 1))
+        val signBitMask = (1UL shl (bitCount - 1))
 
         val signExtended = if ((state and signBitMask) != 0UL) {
-            state or ((1UL shl size) - 1UL).inv()
+            state or ((1UL shl bitCount) - 1UL).inv()
         } else {
             state
         }
@@ -61,9 +67,9 @@ data class Signal(
     }
 
     private fun formatHex(): String {
-        val digitCount = when (size % 4) {
-            0 -> size / 4
-            else -> (size / 4) + 1
+        val digitCount = when (bitCount % 4) {
+            0 -> bitCount / 4
+            else -> (bitCount / 4) + 1
         }
 
         val hex = state.toString(16).uppercase()
@@ -79,7 +85,7 @@ data class Signal(
     }
 
     private fun formatBinary(): String {
-        val digitCount = size
+        val digitCount = bitCount
 
         val bin = state.toString(2).uppercase()
         val sw = StringWriter()
@@ -94,12 +100,12 @@ data class Signal(
     }
 
     fun getRepresentation(): String {
-        if (missingBits == size) {
+        if (missingBits == bitCount) {
             return "MISSING ALL".red()
         }
 
         if (missingBits > 0) {
-            return "MISSING $missingBits/$size".red()
+            return "MISSING $missingBits/$bitCount".red()
         }
 
         return when (format) {
@@ -119,6 +125,9 @@ data class Signal(
     }
 
     fun appendBlocks(newBlockLocations: List<BlockPos>) {
+        require(newBlockLocations.size + blockLocations.size <= type.maxBlocks) {
+            "Too many blocks. Signals of type $type may contain at most ${type.maxBlocks} blocks"
+        }
         blockLocations = blockLocations.plus(newBlockLocations)
     }
 
@@ -131,6 +140,14 @@ data class Signal(
         fun fromPersistentV1(data: PersistentSignalV1): Signal {
             val blockLocations = data.blockLocations.map { BlockPos(it.x, it.y, it.z) }
             return Signal(data.name, data.type, data.invert, data.format, blockLocations)
+        }
+
+        fun computeMask(bitCount: Int): ULong {
+            return if (bitCount < 64) {
+                1UL shl bitCount
+            } else {
+                ULong.MAX_VALUE
+            }
         }
     }
 }
