@@ -1,7 +1,7 @@
 package com.ac101m.redmon.persistence.v1
 
 import com.ac101m.redmon.persistence.PersistentProfileList
-import com.ac101m.redmon.profile.RegisterType
+import com.ac101m.redmon.profile.SignalType
 import com.ac101m.redmon.utils.mapper
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -14,13 +14,13 @@ class PersistentProfileListV1Tests {
             listOf(
                 PersistentProfileV1(
                     name = "a_profile",
-                    registers = listOf(
-                        PersistentRegisterV1(
+                    signals = listOf(
+                        PersistentSignalV1(
                             name = "r1",
-                            type = RegisterType.REPEATER,
+                            type = SignalType.REPEATER,
                             invert = false,
                             bitLocations = listOf(
-                                PersistentRegisterBitV1(
+                                PersistentSignalBitV1(
                                     x = 0,
                                     y = 1,
                                     z = 2

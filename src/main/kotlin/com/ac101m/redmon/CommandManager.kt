@@ -1,8 +1,8 @@
 package com.ac101m.redmon
 
 import com.ac101m.redmon.profile.Profile
-import com.ac101m.redmon.profile.RegisterFormat
-import com.ac101m.redmon.profile.RegisterType
+import com.ac101m.redmon.profile.SignalFormat
+import com.ac101m.redmon.profile.SignalType
 import com.ac101m.redmon.utils.CardinalDirection
 import com.ac101m.redmon.utils.RedmonException
 import com.ac101m.redmon.utils.int
@@ -47,26 +47,26 @@ class CommandManager(
                 .then(literal("rename").then(str("name").then(str("new-name")
                     .executes { c -> profileRenameCommand(c) })))
             )
-            .then(literal("register")
+            .then(literal("signal")
                 .then(literal("add").then(str("name").then(int("bit-count")
-                    .executes { c -> registerAddCommand(c) })))
+                    .executes { c -> signalAddCommand(c) })))
                 .then(literal("delete").then(str("name")
-                    .executes { c -> registerDeleteCommand(c) }))
+                    .executes { c -> signalDeleteCommand(c) }))
                 .then(literal("invert").then(str("name")
-                    .executes { c -> registerInvertCommand(c) }))
+                    .executes { c -> signalInvertCommand(c) }))
                 .then(literal("flip").then(str("name")
-                    .executes { c -> registerFlipCommand(c) }))
+                    .executes { c -> signalFlipCommand(c) }))
                 .then(literal("append-bits").then(str("name").then(int("bit-count")
-                    .executes { c -> registerAppendBitsCommand(c) })))
+                    .executes { c -> signalAppendBitsCommand(c) })))
                 .then(literal("rename").then(str("name").then(str("new-name")
-                    .executes { c -> registerRenameCommand(c) })))
+                    .executes { c -> signalRenameCommand(c) })))
                 .then(literal("format").then(str("name").then(str("format")
-                    .executes { c -> registerFormatCommand(c) })))
+                    .executes { c -> signalFormatCommand(c) })))
                 .then(literal("move").then(str("name")
                     .then(literal("up").then(int("count")
-                        .executes { c -> registerMoveUpCommand(c) }))
+                        .executes { c -> signalMoveUpCommand(c) }))
                     .then(literal("down").then(int("count")
-                        .executes { c -> registerMoveDownCommand(c) })))
+                        .executes { c -> signalMoveDownCommand(c) })))
                 )
             )
     }
@@ -137,7 +137,7 @@ class CommandManager(
     private fun getBitsFromCrosshairTarget(
         ctx: CommandContext<FabricClientCommandSource>,
         requestedBits: Int,
-        registerType: RegisterType
+        signalType: SignalType
     ): List<BlockPos> {
         val player = ctx.source.player
         val step = CardinalDirection.fromLook(player.lookAngle).vector
@@ -156,7 +156,7 @@ class CommandManager(
         var bitsFound = 0
 
         val bitPositions = ArrayList<BlockPos>()
-        val blockType = registerType.getBlock()
+        val blockType = signalType.getBlock()
 
         while (bitsFound < requestedBits && (initialPos.subtract(currentPos).length() < 256.0)) {
             val blockPos = BlockPos(currentPos.x, currentPos.y, currentPos.z)
@@ -171,103 +171,103 @@ class CommandManager(
         }
 
         check(bitsFound == requestedBits) {
-            "Failed to find register bits of type $registerType, requested $requestedBits but found $bitsFound"
+            "Failed to find signal bits of type $signalType, requested $requestedBits but found $bitsFound"
         }
 
         bitPositions.reverse()
         return bitPositions
     }
 
-    private fun registerAddCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+    private fun signalAddCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val initialBitCount = getInteger(ctx, "bit-count")
 
-        val registerName = getString(ctx, "name")
-        val registerType = RegisterType.REPEATER
+        val signalName = getString(ctx, "name")
+        val signalType = SignalType.REPEATER
         val inverted = false
-        val format = RegisterFormat.UNSIGNED
-        val bitLocations = getBitsFromCrosshairTarget(ctx, initialBitCount, registerType)
+        val format = SignalFormat.UNSIGNED
+        val bitLocations = getBitsFromCrosshairTarget(ctx, initialBitCount, signalType)
 
-        redmon.addRegister(registerName, registerType, inverted, format, bitLocations)
+        redmon.addSignal(signalName, signalType, inverted, format, bitLocations)
 
-        ctx.sendFeedback("Added register '$registerName' with $initialBitCount bits")
+        ctx.sendFeedback("Added signal '$signalName' with $initialBitCount bits")
     }
 
-    private fun registerDeleteCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val registerName = getString(ctx, "name")
-        redmon.deleteRegister(registerName)
-        ctx.sendFeedback("Removed register '$registerName' from active profile")
+    private fun signalDeleteCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val signalName = getString(ctx, "name")
+        redmon.deleteSignal(signalName)
+        ctx.sendFeedback("Removed signal '$signalName' from active profile")
     }
 
-    private fun registerInvertCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val registerName = getString(ctx, "name")
-        val newState = redmon.invertRegister(registerName)
+    private fun signalInvertCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val signalName = getString(ctx, "name")
+        val newState = redmon.invertSignal(signalName)
         when (newState) {
-            true -> ctx.sendFeedback("Register '$registerName' now in inverting mode")
-            false -> ctx.sendFeedback("Register '$registerName' now in non-inverting mode")
+            true -> ctx.sendFeedback("Signal '$signalName' now in inverting mode")
+            false -> ctx.sendFeedback("Signal '$signalName' now in non-inverting mode")
         }
     }
 
-    private fun registerFlipCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val registerName = getString(ctx, "name")
-        redmon.flipRegisterBits(registerName)
-        ctx.sendFeedback("Flipped register '$registerName'")
+    private fun signalFlipCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val signalName = getString(ctx, "name")
+        redmon.flipSignalBits(signalName)
+        ctx.sendFeedback("Flipped signal '$signalName'")
     }
 
-    private fun registerAppendBitsCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val registerName = getString(ctx,"name")
+    private fun signalAppendBitsCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val signalName = getString(ctx,"name")
         val bitCount = getInteger(ctx,"bit-count")
-        val registerType = redmon.getRegisterType(registerName)
+        val signalType = redmon.getSignalType(signalName)
 
-        val bitPositions = getBitsFromCrosshairTarget(ctx, bitCount, registerType)
-        redmon.appendBitsToRegister(registerName, bitPositions)
+        val bitPositions = getBitsFromCrosshairTarget(ctx, bitCount, signalType)
+        redmon.appendBitsToSignal(signalName, bitPositions)
 
-        ctx.sendFeedback("Appended $bitCount bits to register '$registerName' in the active profile")
+        ctx.sendFeedback("Appended $bitCount bits to signal '$signalName' in the active profile")
     }
 
-    private fun registerRenameCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val registerName = getString(ctx,"name")
-        val newRegisterName = getString(ctx,"new-name")
+    private fun signalRenameCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val signalName = getString(ctx,"name")
+        val newSignalName = getString(ctx,"new-name")
 
-        redmon.renameRegister(registerName, newRegisterName)
+        redmon.renameSignal(signalName, newSignalName)
 
-        ctx.sendFeedback("Renamed register '$registerName' in the active profile to '$newRegisterName'")
+        ctx.sendFeedback("Renamed signal '$signalName' in the active profile to '$newSignalName'")
     }
 
-    private fun registerFormatCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val registerName = getString(ctx, "name")
-        val newFormatArg = getString(ctx, "format")
+    private fun signalFormatCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val signalName = getString(ctx, "name")
+        val newFormatString = getString(ctx, "format")
 
         val newFormat = try {
-            RegisterFormat.valueOf(newFormatArg.uppercase())
+            SignalFormat.valueOf(newFormatString.uppercase())
         } catch (e: IllegalArgumentException) {
-            val validFormatString = RegisterFormat.entries.joinToString(", ") { it.name.lowercase() }
+            val validFormatString = SignalFormat.entries.joinToString(", ") { it.name.lowercase() }
             throw IllegalArgumentException("Invalid format. Valid formats are $validFormatString", e)
         }
 
-        if (registerName == "all") {
-            redmon.setAllRegisterFormats(newFormat)
-            ctx.sendFeedback("Set format of all registers in active profile to '$newFormat'")
+        if (signalName == "all") {
+            redmon.setAllSignalFormats(newFormat)
+            ctx.sendFeedback("Set format of all signals in active profile to '$newFormat'")
         } else {
-            redmon.setRegisterFormat(registerName, newFormat)
-            ctx.sendFeedback("Set format of register '${registerName}' in active profile to '$newFormat'")
+            redmon.setSignalFormat(signalName, newFormat)
+            ctx.sendFeedback("Set format of signal '${signalName}' in active profile to '$newFormat'")
         }
     }
 
-    private fun registerMoveUpCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val registerName = getString(ctx, "name")
+    private fun signalMoveUpCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val signalName = getString(ctx, "name")
         val count = 0 - getInteger(ctx, "count")
-        when (val n = redmon.moveRegister(registerName, count)) {
-            0 -> ctx.sendFeedback("Register '$registerName' is already at the top.")
-            else -> ctx.sendFeedback("Moved register '$registerName' in active profile up ${0 - n} places")
+        when (val n = redmon.moveSignal(signalName, count)) {
+            0 -> ctx.sendFeedback("Signal '$signalName' is already at the top.")
+            else -> ctx.sendFeedback("Moved signal '$signalName' in active profile up ${0 - n} places")
         }
     }
 
-    private fun registerMoveDownCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val registerName = getString(ctx, "name")
+    private fun signalMoveDownCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val signalName = getString(ctx, "name")
         val count = getInteger(ctx, "count")
-        when (val n = redmon.moveRegister(registerName, count)) {
-            0 -> ctx.sendFeedback("Register '$registerName' is already at the bottom.")
-            else -> ctx.sendFeedback("Moved register '$registerName' in active profile down $n places")
+        when (val n = redmon.moveSignal(signalName, count)) {
+            0 -> ctx.sendFeedback("Signal '$signalName' is already at the bottom.")
+            else -> ctx.sendFeedback("Moved signal '$signalName' in active profile down $n places")
         }
     }
 

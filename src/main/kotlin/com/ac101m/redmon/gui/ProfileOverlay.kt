@@ -8,8 +8,8 @@ import net.minecraft.core.Vec3i
 class ProfileOverlay : Drawable2D {
     private val titleText = SingleLineTextBox()
     private val offsetText = SingleLineTextBox()
-    private val registerNameText = MultiLineTextBox()
-    private val registerValueText = MultiLineTextBox()
+    private val signalNameText = MultiLineTextBox()
+    private val signalValueText = MultiLineTextBox()
 
     private val layout = VerticalDivider(
         listOf(
@@ -17,8 +17,8 @@ class ProfileOverlay : Drawable2D {
             offsetText,
             HorizontalDivider(
                 listOf(
-                    registerNameText,
-                    registerValueText
+                    signalNameText,
+                    signalValueText
                 )
             )
         )
@@ -36,12 +36,12 @@ class ProfileOverlay : Drawable2D {
         titleText.text = "Profile: ${profile.name}"
         offsetText.text = "Offset: (${offset.x}, ${offset.y}, ${offset.z})"
 
-        registerNameText.lines.clear()
-        registerValueText.lines.clear()
+        signalNameText.lines.clear()
+        signalValueText.lines.clear()
 
-        profile.registers.forEach { register ->
-            registerNameText.lines.add("${register.name}: ")
-            registerValueText.lines.add(register.getRepresentation())
+        profile.signals.forEach { signal ->
+            signalNameText.lines.add("${signal.name}: ")
+            signalValueText.lines.add(signal.getRepresentation())
         }
     }
 }

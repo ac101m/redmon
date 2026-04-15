@@ -1,7 +1,7 @@
 package com.ac101m.redmon.profile
 
-import com.ac101m.redmon.persistence.v1.PersistentRegisterV1
-import com.ac101m.redmon.persistence.v1.PersistentRegisterBitV1
+import com.ac101m.redmon.persistence.v1.PersistentSignalV1
+import com.ac101m.redmon.persistence.v1.PersistentSignalBitV1
 import com.ac101m.redmon.utils.red
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Vec3i
@@ -10,14 +10,14 @@ import net.minecraft.world.level.block.RepeaterBlock
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import java.io.StringWriter
 
-data class Register(
+data class Signal(
     val name: String,
-    val type: RegisterType,
+    val type: SignalType,
     var invert: Boolean,
-    var format: RegisterFormat,
+    var format: SignalFormat,
     var watchPoints: List<Vec3i> = listOf()
 ) {
-    // Raw state of the register bits
+    // Raw state of the signal bits
     private var rawState: ULong = 0UL
 
     // State taking into account inversion
@@ -103,10 +103,10 @@ data class Register(
         }
 
         return when (format) {
-            RegisterFormat.UNSIGNED -> "$state"
-            RegisterFormat.SIGNED -> formatSigned()
-            RegisterFormat.HEX -> formatHex()
-            RegisterFormat.BINARY -> formatBinary()
+            SignalFormat.UNSIGNED -> "$state"
+            SignalFormat.SIGNED -> formatSigned()
+            SignalFormat.HEX -> formatHex()
+            SignalFormat.BINARY -> formatBinary()
         }
     }
 
@@ -122,15 +122,15 @@ data class Register(
         watchPoints = watchPoints.plus(bitPositions)
     }
 
-    fun toPersistentV1(): PersistentRegisterV1 {
-        val bitLocations = watchPoints.map { PersistentRegisterBitV1(it.x, it.y, it.z) }
-        return PersistentRegisterV1(name, type, invert, format, bitLocations)
+    fun toPersistentV1(): PersistentSignalV1 {
+        val bitLocations = watchPoints.map { PersistentSignalBitV1(it.x, it.y, it.z) }
+        return PersistentSignalV1(name, type, invert, format, bitLocations)
     }
 
     companion object {
-        fun fromPersistentV1(data: PersistentRegisterV1): Register {
+        fun fromPersistentV1(data: PersistentSignalV1): Signal {
             val watchPoints = data.bitLocations.map { Vec3i(it.x, it.y, it.z) }
-            return Register(data.name, data.type, data.invert, data.format, watchPoints)
+            return Signal(data.name, data.type, data.invert, data.format, watchPoints)
         }
     }
 }

@@ -4,9 +4,9 @@ import com.ac101m.redmon.gui.ProfileOverlay
 import com.ac101m.redmon.gui.TextOverlay
 import com.ac101m.redmon.profile.Profile
 import com.ac101m.redmon.profile.ProfileRegistry
-import com.ac101m.redmon.profile.Register
-import com.ac101m.redmon.profile.RegisterFormat
-import com.ac101m.redmon.profile.RegisterType
+import com.ac101m.redmon.profile.Signal
+import com.ac101m.redmon.profile.SignalFormat
+import com.ac101m.redmon.profile.SignalType
 import com.ac101m.redmon.utils.ActiveProfileInfo
 import com.ac101m.redmon.utils.Config.Companion.OVERLAY_POSITION
 import net.minecraft.client.Minecraft
@@ -90,160 +90,162 @@ class RedmonState(profileStoragePath: Path) {
     }
 
     /**
-     * Add a register to the active profile.
+     * Add a signal to the active profile.
      *
-     * @param name Name for the new register.
-     * @param type The type of the register.
-     * @param inverted Whether the register should be inverting or not.
+     * @param name Name for the new signal.
+     * @param type The type of the signal.
+     * @param inverted Whether the signal should be inverting or not.
+     * @param format The format to display the new signal in.
+     * @param bitLocations The bit locations for new signal elements.
      */
-    fun addRegister(
+    fun addSignal(
         name: String,
-        type: RegisterType,
+        type: SignalType,
         inverted: Boolean,
-        format: RegisterFormat,
+        format: SignalFormat,
         bitLocations: List<BlockPos>
     ) {
         val profileInfo = requireActiveProfile {
-            "Cannot add register, no profile is selected"
+            "Cannot add signal, no profile is selected"
         }
 
         val watchPoints = bitLocations.map { it.subtract(profileInfo.offset) }
-        val newRegister = Register(name, type, inverted, format, watchPoints)
+        val newSignal = Signal(name, type, inverted, format, watchPoints)
 
-        profileInfo.profile.addRegister(newRegister)
+        profileInfo.profile.addSignal(newSignal)
         saveProfiles()
     }
 
     /**
-     * Rename a register in the active profile.
+     * Rename a signal in the active profile.
      *
-     * @param name The name of the register to rename.
-     * @param newName The new name for the register.
+     * @param name The name of the signal to rename.
+     * @param newName The new name for the signal.
      */
-    fun renameRegister(name: String, newName: String) {
+    fun renameSignal(name: String, newName: String) {
         val profileInfo = requireActiveProfile {
-            "Cannot rename register, no profile is selected"
+            "Cannot rename signal, no profile is selected"
         }
-        profileInfo.profile.renameRegister(name, newName)
+        profileInfo.profile.renameSignal(name, newName)
         saveProfiles()
     }
 
     /**
-     * Delete a register from the active profile.
+     * Delete a signal from the active profile.
      *
-     * @param name The name of the register to delete.
+     * @param name The name of the signal to delete.
      */
-    fun deleteRegister(name: String) {
+    fun deleteSignal(name: String) {
         val profileInfo = requireActiveProfile {
-            "Cannot delete register, no profile is selected"
+            "Cannot delete signal, no profile is selected"
         }
-        profileInfo.profile.deleteRegister(name)
+        profileInfo.profile.deleteSignal(name)
         saveProfiles()
     }
 
     /**
-     * Invert a register in the active profile.
-     * Also returns the new inversion state of the register.
+     * Invert a signal in the active profile.
+     * Also returns the new inversion state of the signal.
      *
-     * @param name The name of the register to invert.
-     * @return The new inversion state of the register.
+     * @param name The name of the signal to invert.
+     * @return The new inversion state of the signal.
      */
-    fun invertRegister(name: String): Boolean {
+    fun invertSignal(name: String): Boolean {
         val profileInfo = requireActiveProfile {
-            "Cannot invert register, no profile is selected"
+            "Cannot invert signal, no profile is selected"
         }
-        val register = profileInfo.profile.getRegister(name)
-        register.invert()
+        val signal = profileInfo.profile.getSignal(name)
+        signal.invert()
         saveProfiles()
-        return register.invert
+        return signal.invert
     }
 
     /**
-     * Flip bits of a register in the active profile.
+     * Flip bits of a signal in the active profile.
      * By flip, we mean MSB becomes LSB and vice versa.
      *
-     * @param name The name of the register to flip bits in.
+     * @param name The name of the signal to flip bits in.
      */
-    fun flipRegisterBits(name: String) {
+    fun flipSignalBits(name: String) {
         val profileInfo = requireActiveProfile {
-            "Cannot flip register bits, no profile is selected"
+            "Cannot flip signal bits, no profile is selected"
         }
-        val register = profileInfo.profile.getRegister(name)
-        register.flipBits()
+        val signal = profileInfo.profile.getSignal(name)
+        signal.flipBits()
         saveProfiles()
     }
 
     /**
-     * Get register type for a register in the active profile.
+     * Get signal type for a signal in the active profile.
      *
-     * @param name The name of the register to get the type for.
+     * @param name The name of the signal to get the type for.
      */
-    fun getRegisterType(name: String): RegisterType {
+    fun getSignalType(name: String): SignalType {
         val profileInfo = requireActiveProfile {
-            "Cannot get register type, no profile is selected"
+            "Cannot get signal type, no profile is selected"
         }
-        val register = profileInfo.profile.getRegister(name)
-        return register.type
+        val signal = profileInfo.profile.getSignal(name)
+        return signal.type
     }
 
     /**
-     * Append bits to an existing register.
+     * Append bits to an existing signal.
      *
-     * @param name The name of the register to which bits should be appended.
-     * @param bitPositions The bit locations to add to the register.
+     * @param name The name of the signal to which bits should be appended.
+     * @param bitPositions The bit locations to add to the signal.
      */
-    fun appendBitsToRegister(name: String, bitPositions: List<BlockPos>) {
+    fun appendBitsToSignal(name: String, bitPositions: List<BlockPos>) {
         val profileInfo = requireActiveProfile {
-            "Cannot append bits to register, no profile is selected"
+            "Cannot append bits to signal, no profile is selected"
         }
 
         val watchPoints = bitPositions.map { it.subtract(profileInfo.offset) }
-        val register = profileInfo.profile.getRegister(name)
+        val signal = profileInfo.profile.getSignal(name)
 
-        register.appendBits(watchPoints)
+        signal.appendBits(watchPoints)
         saveProfiles()
     }
 
     /**
-     * Set the format of a single register in the active profile.
+     * Set the format of a single signal in the active profile.
      *
-     * @param name The name of the register to change the format for.
-     * @param format The new format for the specified register.
+     * @param name The name of the signal to change the format for.
+     * @param format The new format for the specified signal.
      */
-    fun setRegisterFormat(name: String, format: RegisterFormat) {
+    fun setSignalFormat(name: String, format: SignalFormat) {
         val profileInfo = requireActiveProfile {
-            "Cannot set register format, no profile is selected"
+            "Cannot set signal format, no profile is selected"
         }
-        val register = profileInfo.profile.getRegister(name)
-        register.format = format
+        val signal = profileInfo.profile.getSignal(name)
+        signal.format = format
         saveProfiles()
     }
 
     /**
-     * Set the format of all registers in the active profile.
+     * Set the format of all signals in the active profile.
      *
-     * @param format The name of the register to change the format for.
+     * @param format The name of the signal to change the format for.
      */
-    fun setAllRegisterFormats(format: RegisterFormat) {
+    fun setAllSignalFormats(format: SignalFormat) {
         val profileInfo = requireActiveProfile {
-            "Cannot set register formats, no profile is selected"
+            "Cannot set signal formats, no profile is selected"
         }
-        profileInfo.profile.registers.forEach { it.format = format }
+        profileInfo.profile.signals.forEach { it.format = format }
         saveProfiles()
     }
 
     /**
-     * Move a register up or down within a profile.
-     * Returns true if the register moved, false if it's already at the top.
+     * Move a signal up or down within a profile.
+     * Returns the number of places the signal moved. Negative for up, positive for down.
      *
-     * @param name The name of the register to move.
-     * @param n The number of spaces to move the register. Negative for up, positive for down.
+     * @param name The name of the signal to move.
+     * @param n The number of spaces to move the signal. Negative for up, positive for down.
      */
-    fun moveRegister(name: String, n: Int): Int {
+    fun moveSignal(name: String, n: Int): Int {
         val profileInfo = requireActiveProfile {
-            "Cannot set register formats, no profile is selected"
+            "Cannot set signal formats, no profile is selected"
         }
-        val n = profileInfo.profile.moveRegister(name, n)
+        val n = profileInfo.profile.moveSignal(name, n)
         saveProfiles()
         return n
     }

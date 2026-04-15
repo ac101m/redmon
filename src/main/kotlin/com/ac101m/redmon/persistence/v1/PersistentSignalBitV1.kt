@@ -2,7 +2,7 @@ package com.ac101m.redmon.persistence.v1
 
 import com.fasterxml.jackson.annotation.JsonProperty
 
-data class PersistentRegisterBitV1(
+data class PersistentSignalBitV1(
     @param:JsonProperty("x", required = true)
     val x: Int,
     @param:JsonProperty("y", required = true)

@@ -2,7 +2,7 @@ package com.ac101m.redmon.profile
 
 import com.fasterxml.jackson.annotation.JsonProperty
 
-enum class RegisterFormat {
+enum class SignalFormat {
     @JsonProperty("UNSIGNED")
     UNSIGNED,
     @JsonProperty("SIGNED")

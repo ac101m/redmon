@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 
-enum class RegisterType {
+enum class SignalType {
     @JsonProperty("REPEATER")
     REPEATER;
 

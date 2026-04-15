@@ -1,18 +1,18 @@
 package com.ac101m.redmon.persistence.v1
 
-import com.ac101m.redmon.profile.RegisterFormat
-import com.ac101m.redmon.profile.RegisterType
+import com.ac101m.redmon.profile.SignalFormat
+import com.ac101m.redmon.profile.SignalType
 import com.fasterxml.jackson.annotation.JsonProperty
 
-data class PersistentRegisterV1(
+data class PersistentSignalV1(
     @param:JsonProperty("name", required = true)
     val name: String,
     @param:JsonProperty("type", required = true)
-    val type: RegisterType,
+    val type: SignalType,
     @param:JsonProperty("invert", required = false)
     val invert: Boolean = false,
     @param:JsonProperty("format", required = false)
-    val format: RegisterFormat = RegisterFormat.UNSIGNED,
+    val format: SignalFormat = SignalFormat.UNSIGNED,
     @param:JsonProperty("bitLocations", required = true)
-    val bitLocations: List<PersistentRegisterBitV1>
+    val bitLocations: List<PersistentSignalBitV1>
 )

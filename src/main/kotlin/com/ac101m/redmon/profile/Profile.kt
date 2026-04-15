@@ -6,73 +6,73 @@ import net.minecraft.world.level.Level
 
 class Profile(
     internal var name: String,
-    initRegisters: List<Register>
+    initSignals: List<Signal>
 ) {
-    val registers = initRegisters.toMutableList()
+    val signals = initSignals.toMutableList()
 
-    private fun getRegisterIndex(name: String): Int? {
-        registers.forEachIndexed { i, register ->
-            if (register.name == name) {
+    private fun getSignalIndex(name: String): Int? {
+        signals.forEachIndexed { i, signal ->
+            if (signal.name == name) {
                 return i
             }
         }
         return null
     }
 
-    private fun requireRegisterExists(name: String): Int {
-        return requireNotNull(getRegisterIndex(name)) {
-            "Profile '${this.name}' does not contain a register with name '$name'"
+    private fun requireSignalExists(name: String): Int {
+        return requireNotNull(getSignalIndex(name)) {
+            "Profile '${this.name}' does not contain a signal with name '$name'"
         }
     }
 
-    private fun requireRegisterDoesNotExist(name: String) {
-        require(getRegisterIndex(name) == null) {
-            "Profile '${this.name}' already contains a register with name '$name'"
+    private fun requireSignalDoesNotExist(name: String) {
+        require(getSignalIndex(name) == null) {
+            "Profile '${this.name}' already contains a signal with name '$name'"
         }
     }
 
-    fun addRegister(register: Register) {
-        requireRegisterDoesNotExist(register.name)
-        registers.add(register)
+    fun addSignal(signal: Signal) {
+        requireSignalDoesNotExist(signal.name)
+        signals.add(signal)
     }
 
-    fun getRegister(name: String): Register {
-        return registers[requireRegisterExists(name)]
+    fun getSignal(name: String): Signal {
+        return signals[requireSignalExists(name)]
     }
 
-    fun renameRegister(name: String, newName: String) {
-        val index = requireRegisterExists(name)
-        val renamedRegister = registers[index].copy(name = newName)
-        registers[index] = renamedRegister
+    fun renameSignal(name: String, newName: String) {
+        val index = requireSignalExists(name)
+        val renamedSignal = signals[index].copy(name = newName)
+        signals[index] = renamedSignal
     }
 
-    fun deleteRegister(name: String) {
-        val index = requireRegisterExists(name)
-        registers.removeAt(index)
+    fun deleteSignal(name: String) {
+        val index = requireSignalExists(name)
+        signals.removeAt(index)
     }
 
     fun updateState(world: Level, offset: Vec3i) {
-        registers.forEach { register ->
-            register.updateState(world, offset)
+        signals.forEach { signal ->
+            signal.updateState(world, offset)
         }
     }
 
     fun toPersistentV1(): PersistentProfileV1 {
-        return PersistentProfileV1(name, registers.map { it.toPersistentV1() })
+        return PersistentProfileV1(name, signals.map { it.toPersistentV1() })
     }
 
-    fun moveRegister(name: String, n: Int): Int {
-        var index = requireRegisterExists(name)
+    fun moveSignal(name: String, n: Int): Int {
+        var index = requireSignalExists(name)
         var moved = 0
         if (n < 0) {        // Up
             while (index > 0 && moved > n) {
-                swapRegisters(index, index - 1)
+                swapSignals(index, index - 1)
                 moved--
                 index--
             }
         } else if (n > 0) { // Down
-            while (index < registers.size - 1 && moved < n) {
-                swapRegisters(index, index + 1)
+            while (index < signals.size - 1 && moved < n) {
+                swapSignals(index, index + 1)
                 moved++
                 index++
             }
@@ -80,18 +80,18 @@ class Profile(
         return moved
     }
 
-    private fun swapRegisters(a: Int, b: Int) {
-        check(a in registers.indices)
-        check(b in registers.indices)
-        val tmp = registers[a]
-        registers[a] = registers[b]
-        registers[b] = tmp
+    private fun swapSignals(a: Int, b: Int) {
+        check(a in signals.indices)
+        check(b in signals.indices)
+        val tmp = signals[a]
+        signals[a] = signals[b]
+        signals[b] = tmp
     }
 
     companion object {
         fun fromPersistentV1(data: PersistentProfileV1): Profile {
-            val registers = data.registers.map { Register.fromPersistentV1(it) }
-            return Profile(data.name, registers)
+            val signals = data.signals.map { Signal.fromPersistentV1(it) }
+            return Profile(data.name, signals)
         }
     }
 }
