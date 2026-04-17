@@ -181,11 +181,12 @@ class CommandManager(
         }
 
         val position = blockHitResult.blockPos
-        val expectedBlock = signalType.block
+        val expectedBlocks = signalType.getValidBlocks()
         val block = player.level().getBlockState(position).block
 
-        require(block == signalType.block) {
-            "Signal expects blocks of type '$expectedBlock', but target block is '$block'"
+        require(block in expectedBlocks) {
+            val blocksString = expectedBlocks.joinToString(" or ") { "'$it'" }
+            "Signal expects blocks of type $blocksString, but target block is '$block'"
         }
 
         return position
@@ -203,13 +204,13 @@ class CommandManager(
         var bitsFound = 0
 
         val bitPositions = ArrayList<BlockPos>()
-        val blockType = signalType.block
+        val blockTypes = signalType.getValidBlocks()
 
         while (bitsFound < requestedBlocks && (initialPos.subtract(currentPos).length() < 256.0)) {
             val blockPos = BlockPos(currentPos.x, currentPos.y, currentPos.z)
             val blockState = player.level().getBlockState(blockPos)
 
-            if (blockState.block == blockType) {
+            if (blockState.block in blockTypes) {
                 bitsFound++
                 bitPositions.add(blockPos)
             }

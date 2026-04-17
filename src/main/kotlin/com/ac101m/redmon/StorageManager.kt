@@ -78,8 +78,8 @@ class StorageManager(private val profileStoragePath: Path) {
 
     companion object {
         const val MIN_SUPPORTED_VERSION = 1
-        const val MAX_SUPPORTED_VERSION = 1
-        const val CURRENT_STORAGE_VERSION = 1
+        const val MAX_SUPPORTED_VERSION = 2
+        const val CURRENT_STORAGE_VERSION = 2
 
         val mapper = ObjectMapper().registerKotlinModule()
 
@@ -121,6 +121,12 @@ class StorageManager(private val profileStoragePath: Path) {
              * Frozen. Do not change.
              */
             1 -> PersistentProfileListV1::class.java
+
+            /**
+             * - Support for torches (new signal type)
+             * Unreleased. May change.
+             */
+            2 -> PersistentProfileListV1::class.java
 
             else -> error("Storage $version does not correspond to a known subtype")
         }
