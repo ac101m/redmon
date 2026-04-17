@@ -1,7 +1,5 @@
 package com.ac101m.redmon.utils
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.mojang.brigadier.context.CommandContext
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
 import net.minecraft.core.Vec3i
@@ -10,8 +8,6 @@ import net.minecraft.network.chat.contents.PlainTextContents
 import kotlin.math.absoluteValue
 import kotlin.math.sign
 import kotlin.math.sqrt
-
-val mapper = ObjectMapper().registerKotlinModule()
 
 fun CommandContext<FabricClientCommandSource>.sendError(message: String) {
     val componentContents = PlainTextContents.create("[redmon] $message")

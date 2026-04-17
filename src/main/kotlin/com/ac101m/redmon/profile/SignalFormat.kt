@@ -1,17 +1,13 @@
 package com.ac101m.redmon.profile
 
+import com.ac101m.redmon.utils.Config.Companion.DEFAULT_SIGNAL_FORMAT
 import com.ac101m.redmon.utils.RedmonException
-import com.fasterxml.jackson.annotation.JsonProperty
 import java.io.StringWriter
 
 enum class SignalFormat {
-    @JsonProperty("UNSIGNED")
     UNSIGNED,
-    @JsonProperty("SIGNED")
     SIGNED,
-    @JsonProperty("HEX")
     HEX,
-    @JsonProperty("BINARY")
     BINARY;
 
     /**
@@ -79,6 +75,14 @@ enum class SignalFormat {
             } catch (e: IllegalArgumentException) {
                 val validFormatsString = SignalFormat.entries.joinToString(", ") { it.name.lowercase() }
                 throw RedmonException("Invalid signal format. Valid formats are: $validFormatsString", e)
+            }
+        }
+
+        fun fromStringOrDefault(str: String): SignalFormat {
+            return try {
+                SignalFormat.valueOf(str)
+            } catch (_: IllegalArgumentException) {
+                return DEFAULT_SIGNAL_FORMAT
             }
         }
     }

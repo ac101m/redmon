@@ -1,8 +1,8 @@
 package com.ac101m.redmon.persistence.v1
 
+import com.ac101m.redmon.StorageManager
 import com.ac101m.redmon.profile.SignalFormat
 import com.ac101m.redmon.profile.SignalType
-import com.ac101m.redmon.utils.mapper
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
@@ -23,8 +23,8 @@ class PersistentSignalV1Tests {
             )
         )
 
-        val serialized = mapper.writeValueAsString(original)
-        val deserialized = mapper.readValue(serialized, PersistentSignalV1::class.java)
+        val serialized = StorageManager.mapper.writeValueAsString(original)
+        val deserialized = StorageManager.mapper.readValue(serialized, PersistentSignalV1::class.java)
 
         assertThat(deserialized).isEqualTo(original)
     }
@@ -46,7 +46,7 @@ class PersistentSignalV1Tests {
             }
         """.trimIndent()
 
-        val signal = mapper.readValue(jsonWithoutNegate, PersistentSignalV1::class.java)
+        val signal = StorageManager.mapper.readValue(jsonWithoutNegate, PersistentSignalV1::class.java)
 
         assertThat(signal.invert).isFalse
     }
@@ -68,8 +68,8 @@ class PersistentSignalV1Tests {
             }
         """.trimIndent()
 
-        val signal = mapper.readValue(jsonWithoutFormat, PersistentSignalV1::class.java)
+        val signal = StorageManager.mapper.readValue(jsonWithoutFormat, PersistentSignalV1::class.java)
 
-        assertThat(signal.format).isEqualTo(SignalFormat.UNSIGNED)
+        assertThat(signal.format).isEqualTo(SignalFormat.UNSIGNED.name)
     }
 }

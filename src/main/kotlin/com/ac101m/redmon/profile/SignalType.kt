@@ -19,16 +19,9 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties
  * @property block The Minecraft block type associated with this signal type.
  */
 enum class SignalType(val maxBlocks: Int, val bitsPerBlock: Int) {
-    @JsonProperty("REPEATER")
     REPEATER(maxBlocks = 64, bitsPerBlock = 1),
-
-    @JsonProperty("DUST_BINARY")
     DUST_BINARY(maxBlocks = 64, bitsPerBlock = 1),
-
-    @JsonProperty("DUST_SS")
     DUST_SS(maxBlocks = 16, bitsPerBlock = 4),
-
-    @JsonProperty("COMPARATOR_BINARY")
     COMPARATOR_BINARY(maxBlocks = 64, bitsPerBlock = 1);
 
     val block: Block get() {

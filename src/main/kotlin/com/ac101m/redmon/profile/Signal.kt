@@ -93,13 +93,14 @@ data class Signal(
 
     fun toPersistentV1(): PersistentSignalV1 {
         val b = blockLocations.map { PersistentSignalBitV1(it.x, it.y, it.z) }
-        return PersistentSignalV1(name, type, invert, format, b)
+        return PersistentSignalV1(name, type, invert, format.name, b)
     }
 
     companion object {
         fun fromPersistentV1(data: PersistentSignalV1): Signal {
             val blockLocations = data.blockLocations.map { BlockPos(it.x, it.y, it.z) }
-            return Signal(data.name, data.type, data.invert, data.format, blockLocations)
+            val format = SignalFormat.fromStringOrDefault(data.format)
+            return Signal(data.name, data.type, data.invert, format, blockLocations)
         }
 
         fun computeMask(bitCount: Int): ULong {

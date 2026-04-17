@@ -1,5 +1,6 @@
 package com.ac101m.redmon.utils
 
+import com.ac101m.redmon.profile.SignalFormat
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.core.Vec3i
 import java.nio.file.Path
@@ -13,14 +14,17 @@ class Config {
             load(Companion::class.java.classLoader.getResource("build.properties")!!.openStream())
         }
 
-        val REDMON_VERSION = buildProperties["mod_version"]!!.toString()
+        val REDMON_VERSION = buildProperties["mod_version"]!!.toString().split("+").first()
 
-        // Save files related constants
+        // Save file related constants
         private const val PROFILE_SAVE_FILE = "redmon_profiles.json"
         val PROFILE_STORAGE_PATH: Path = FabricLoader.getInstance().configDir.resolve(PROFILE_SAVE_FILE)
 
         // UI Constants
         val OVERLAY_POSITION = Vec3i(1, 1, 0)
         const val PROFILES_PER_PAGE = 10
+
+        // Misc constants
+        val DEFAULT_SIGNAL_FORMAT = SignalFormat.HEX
     }
 }

@@ -1,8 +1,7 @@
 package com.ac101m.redmon.persistence.v1
 
-import com.ac101m.redmon.persistence.PersistentProfileList
+import com.ac101m.redmon.StorageManager
 import com.ac101m.redmon.profile.SignalType
-import com.ac101m.redmon.utils.mapper
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
@@ -11,6 +10,8 @@ class PersistentProfileListV1Tests {
     @Test
     fun `Round trip test`() {
         val original = PersistentProfileListV1(
+            1,
+            "test-no-version",
             listOf(
                 PersistentProfileV1(
                     name = "a_profile",
@@ -32,8 +33,8 @@ class PersistentProfileListV1Tests {
             )
         )
 
-        val serialized = mapper.writeValueAsString(original)
-        val deserialized = mapper.readValue(serialized, PersistentProfileListV1::class.java)
+        val serialized = StorageManager.mapper.writeValueAsString(original)
+        val deserialized = StorageManager.mapper.readValue(serialized, PersistentProfileListV1::class.java)
 
         assertThat(deserialized).isEqualTo(original)
     }
@@ -41,12 +42,10 @@ class PersistentProfileListV1Tests {
     @Test
     fun `Round trip test with real data`() {
         val stream = this::class.java.classLoader.getResourceAsStream("profiles/test-profiles-v1.json")!!
-        val original = PersistentProfileList.load(stream)
+        val original = StorageManager.readPersistentProfileList<PersistentProfileListV1>(stream)
 
-        assertThat(original).isInstanceOf(PersistentProfileListV1::class.java)
-
-        val serialized = mapper.writeValueAsString(original)
-        val deserialized = mapper.readValue(serialized, PersistentProfileListV1::class.java)
+        val serialized = StorageManager.mapper.writeValueAsString(original)
+        val deserialized = StorageManager.mapper.readValue(serialized, PersistentProfileListV1::class.java)
 
         assertThat(deserialized).isEqualTo(original)
     }

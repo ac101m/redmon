@@ -4,6 +4,7 @@ import com.ac101m.redmon.profile.Profile
 import com.ac101m.redmon.profile.SignalFormat
 import com.ac101m.redmon.profile.SignalType
 import com.ac101m.redmon.utils.CardinalDirection
+import com.ac101m.redmon.utils.Config.Companion.DEFAULT_SIGNAL_FORMAT
 import com.ac101m.redmon.utils.Config.Companion.PROFILES_PER_PAGE
 import com.ac101m.redmon.utils.RedmonException
 import com.ac101m.redmon.utils.ceilDiv
@@ -231,7 +232,7 @@ class CommandManager(
         val signalName = getString(ctx, "name")
         val signalType = SignalType.fromCommandString(signalTypeString)
         val inverted = false
-        val format = SignalFormat.HEX
+        val format = DEFAULT_SIGNAL_FORMAT
         val blockLocations = when (initialBlockCount) {
             0 -> emptyList()
             else -> getBlocksFromCrosshairTargetAndLookDirection(ctx, initialBlockCount, signalType)

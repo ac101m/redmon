@@ -1,7 +1,7 @@
 package com.ac101m.redmon.persistence.v1
 
+import com.ac101m.redmon.StorageManager
 import com.ac101m.redmon.profile.SignalType
-import com.ac101m.redmon.utils.mapper
 import org.junit.jupiter.api.Test
 
 class PersistentProfileV1Tests {
@@ -26,8 +26,8 @@ class PersistentProfileV1Tests {
             )
         )
 
-        val serialized = mapper.writeValueAsString(original)
-        val deserialized = mapper.readValue(serialized, PersistentProfileV1::class.java)
+        val serialized = StorageManager.mapper.writeValueAsString(original)
+        val deserialized = StorageManager.mapper.readValue(serialized, PersistentProfileV1::class.java)
 
         check(deserialized == original)
     }

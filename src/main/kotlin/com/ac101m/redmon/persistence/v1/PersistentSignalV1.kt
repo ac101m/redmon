@@ -12,7 +12,7 @@ data class PersistentSignalV1(
     @param:JsonProperty("invert", required = false)
     val invert: Boolean = false,
     @param:JsonProperty("format", required = false)
-    val format: SignalFormat = SignalFormat.UNSIGNED,
+    val format: String = SignalFormat.UNSIGNED.name,
     @param:JsonProperty("bitLocations", required = true)
     val blockLocations: List<PersistentSignalBitV1>
 )
