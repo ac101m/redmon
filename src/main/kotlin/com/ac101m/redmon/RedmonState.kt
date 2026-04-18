@@ -9,6 +9,8 @@ import com.ac101m.redmon.profile.SignalFormat
 import com.ac101m.redmon.profile.SignalType
 import com.ac101m.redmon.utils.ActiveProfileInfo
 import com.ac101m.redmon.utils.Config.Companion.OVERLAY_POSITION
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.core.BlockPos
@@ -22,7 +24,8 @@ import java.nio.file.Path
  * @param profileStoragePath The path to the profile storage location.
  */
 class RedmonState(profileStoragePath: Path) {
-    private val profileStorageManager = StorageManager(profileStoragePath)
+    private val mapper = ObjectMapper().registerKotlinModule()
+    private val profileStorageManager = StorageManager(mapper, profileStoragePath)
     private var profileRegistry = ProfileRegistry(profileStorageManager.loadProfiles())
 
     // Internal variables

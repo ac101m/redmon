@@ -1,10 +1,12 @@
 package com.ac101m.redmon.persistence.v1
 
-import com.ac101m.redmon.StorageManager
 import com.ac101m.redmon.profile.SignalType
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import org.junit.jupiter.api.Test
 
 class PersistentProfileV1Tests {
+    val mapper = ObjectMapper().registerKotlinModule()
 
     @Test
     fun `round trip test`() {
@@ -26,8 +28,8 @@ class PersistentProfileV1Tests {
             )
         )
 
-        val serialized = StorageManager.mapper.writeValueAsString(original)
-        val deserialized = StorageManager.mapper.readValue(serialized, PersistentProfileV1::class.java)
+        val serialized = mapper.writeValueAsString(original)
+        val deserialized = mapper.readValue(serialized, PersistentProfileV1::class.java)
 
         check(deserialized == original)
     }

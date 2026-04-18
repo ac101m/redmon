@@ -3,12 +3,10 @@ package com.ac101m.redmon
 import com.ac101m.redmon.persistence.PersistentProfileList
 import com.ac101m.redmon.persistence.StorageVersionInfo
 import com.ac101m.redmon.persistence.v1.PersistentProfileListV1
-import com.ac101m.redmon.persistence.v1.PersistentProfileV1
 import com.ac101m.redmon.profile.Profile
 import com.ac101m.redmon.utils.Config.Companion.REDMON_VERSION
 import com.ac101m.redmon.utils.RedmonException
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import java.io.InputStream
 import java.nio.file.Path
 import kotlin.io.path.exists
@@ -21,7 +19,11 @@ import kotlin.io.path.outputStream
  *
  * @param profileStoragePath Path to profile storage file.
  */
-class StorageManager(private val profileStoragePath: Path) {
+class StorageManager(
+    private val mapper: ObjectMapper,
+    private val profileStoragePath: Path,
+) {
+
     init {
         if (!profileStoragePath.exists()) {
             saveProfiles(emptyList())
@@ -72,37 +74,28 @@ class StorageManager(private val profileStoragePath: Path) {
     }
 
     private fun loadProfilesV1(): List<Profile> {
-        val profileList = readPersistentProfileList<PersistentProfileListV1>(profileStoragePath)
+        val profileList = mapper.readPersistentProfileList<PersistentProfileListV1>(profileStoragePath)
         return profileList.profiles.map { Profile.fromPersistentV1(it) }
+    }
+
+    fun readVersionInfo(path: Path): StorageVersionInfo {
+        return readVersionInfo(getInputStream(path))
+    }
+
+    fun readVersionInfo(inputStream: InputStream): StorageVersionInfo {
+        return StorageVersionInfo.fromJsonNode(mapper.readTree(inputStream))
+    }
+
+    fun save(profileList: PersistentProfileList, path: Path) {
+        path.outputStream().use { outputStream ->
+            mapper.writer().writeValue(outputStream, profileList)
+        }
     }
 
     companion object {
         const val MIN_SUPPORTED_VERSION = 1
         const val MAX_SUPPORTED_VERSION = 2
         const val CURRENT_STORAGE_VERSION = 2
-
-        val mapper = ObjectMapper().registerKotlinModule()
-
-        fun readVersionInfo(path: Path): StorageVersionInfo {
-            return readVersionInfo(getInputStream(path))
-        }
-
-        fun readVersionInfo(inputStream: InputStream): StorageVersionInfo {
-            return mapper.readValue(inputStream, StorageVersionInfo::class.java)
-        }
-
-        inline fun <reified T: PersistentProfileList> readPersistentProfileList(path: Path): T {
-            return readPersistentProfileList<T>(getInputStream(path))
-        }
-
-        inline fun <reified T: PersistentProfileList> readPersistentProfileList(inputStream: InputStream): T {
-            val profileList = try {
-                mapper.readValue(inputStream, T::class.java)
-            } catch (e: Exception) {
-                throw RedmonException("Failed to load profile information, error parsing storage file.", e)
-            }
-            return profileList
-        }
 
         fun getInputStream(path: Path): InputStream {
             if (!path.exists()) {
@@ -112,6 +105,19 @@ class StorageManager(private val profileStoragePath: Path) {
                 throw RedmonException("File '$path' is not a regular file.")
             }
             return path.inputStream()
+        }
+
+        inline fun <reified T: PersistentProfileList> ObjectMapper.readPersistentProfileList(path: Path): T {
+            return readPersistentProfileList<T>(getInputStream(path))
+        }
+
+        inline fun <reified T: PersistentProfileList> ObjectMapper.readPersistentProfileList(inputStream: InputStream): T {
+            val profileList = try {
+                readValue(inputStream, T::class.java)
+            } catch (e: Exception) {
+                throw RedmonException("Failed to load profile information, error parsing storage file.", e)
+            }
+            return profileList
         }
 
         fun getStorageSubtype(version: Int) = when (version) {
@@ -129,12 +135,6 @@ class StorageManager(private val profileStoragePath: Path) {
             2 -> PersistentProfileListV1::class.java
 
             else -> error("Storage $version does not correspond to a known subtype")
-        }
-
-        fun save(profileList: PersistentProfileList, path: Path) {
-            path.outputStream().use { outputStream ->
-                mapper.writer().writeValue(outputStream, profileList)
-            }
         }
     }
 }
