@@ -8,7 +8,7 @@ class Profile(internal var name: String, initPages: List<ProfilePage>) {
 
     init {
         if (pages.isEmpty()) {
-            pages.add(ProfilePage("Page 1", emptyList()))
+            pages.add(ProfilePage("new_page", emptyList()))
         }
         currentPageIndex = 0
     }
