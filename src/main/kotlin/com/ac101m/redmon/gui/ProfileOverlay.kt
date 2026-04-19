@@ -32,14 +32,16 @@ class ProfileOverlay : Drawable2D {
         layout.draw(context, position)
     }
 
-    fun update(profile: Profile, offset: Vec3i) {
-        titleText.text = "Profile: ${profile.name}"
-        offsetText.text = "Offset: (${offset.x}, ${offset.y}, ${offset.z})"
+    fun update(profile: Profile) {
+        val currentPage = profile.getCurrentPage()
+
+        titleText.text = "${profile.name} (Page ${profile.getCurrentPageIndex()} of ${profile.getPageCount()})"
+        offsetText.text = currentPage.name
 
         signalNameText.lines.clear()
         signalValueText.lines.clear()
 
-        profile.signals.forEach { signal ->
+        currentPage.signals.forEach { signal ->
             signalNameText.lines.add("${signal.name}: ")
             signalValueText.lines.add(signal.getRepresentation())
         }

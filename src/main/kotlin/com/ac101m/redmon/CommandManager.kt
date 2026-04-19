@@ -42,6 +42,7 @@ class CommandManager(
         return this
             .miscCommands()
             .profileCommands()
+            .pageCommands()
             .signalCommands()
     }
 
@@ -71,6 +72,19 @@ class CommandManager(
                 .executes { c -> profileDeselectCommand(c) }))
             .then(literal("rename").then(str("name").then(str("new-name")
                 .executes { c -> profileRenameCommand(c) })))
+        )
+    }
+
+    private fun LiteralArgumentBuilder<FabricClientCommandSource>.pageCommands(): LiteralArgumentBuilder<FabricClientCommandSource> {
+        return this.then(literal("page")
+            .then(literal("next")
+                .executes { c -> nextPageCommand(c) })
+            .then(literal("previous")
+                .executes { c -> previousPageCommand(c) })
+            .then(literal("rename").then(str("new-name")
+                .executes { c -> pageRenameCommand(c) }))
+            .then(literal("add").then(str("name")
+                .executes { c -> pageAddCommand(c) } ))
         )
     }
 
@@ -200,6 +214,24 @@ class CommandManager(
         val newName = getString(ctx,"new-name")
         redmon.renameProfile(name, newName)
         ctx.sendFeedback("Renamed profile '$name' to '$newName'")
+    }
+
+    private fun nextPageCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        redmon.nextPage()
+    }
+
+    private fun previousPageCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        redmon.previousPage()
+    }
+
+    private fun pageAddCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val name = getString(ctx, "name")
+        redmon.addPageToActiveProfile(name)
+    }
+
+    private fun pageRenameCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val newName = getString(ctx, "new-name")
+        redmon.renameCurrentPage(newName)
     }
 
     private fun getBlockFromCrosshairTarget(player: Player, signalType: SignalType): BlockPos {

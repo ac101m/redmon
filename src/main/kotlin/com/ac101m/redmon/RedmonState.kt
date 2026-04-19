@@ -10,6 +10,7 @@ import com.ac101m.redmon.profile.SignalFormat
 import com.ac101m.redmon.profile.SignalType
 import com.ac101m.redmon.utils.ActiveProfileInfo
 import com.ac101m.redmon.utils.Config.Companion.OVERLAY_POSITION
+import com.ac101m.redmon.utils.NoActiveProfileException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import net.minecraft.client.Minecraft
@@ -117,7 +118,7 @@ class RedmonState(profileStoragePath: Path) {
         val blockLocationsRelative = blockLocations.map { it.subtract(profileInfo.offset) }
         val newSignal = Signal(name, type, inverted, format, blockLocationsRelative)
 
-        profileInfo.profile.addSignal(newSignal)
+        profileInfo.profile.getCurrentPage().addSignal(newSignal)
         saveProfiles()
     }
 
@@ -131,7 +132,7 @@ class RedmonState(profileStoragePath: Path) {
         val profileInfo = requireActiveProfile {
             "Cannot rename signal, no profile is selected"
         }
-        profileInfo.profile.renameSignal(name, newName)
+        profileInfo.profile.getCurrentPage().renameSignal(name, newName)
         saveProfiles()
     }
 
@@ -144,7 +145,7 @@ class RedmonState(profileStoragePath: Path) {
         val profileInfo = requireActiveProfile {
             "Cannot delete signal, no profile is selected"
         }
-        profileInfo.profile.deleteSignal(name)
+        profileInfo.profile.getCurrentPage().deleteSignal(name)
         saveProfiles()
     }
 
@@ -159,7 +160,7 @@ class RedmonState(profileStoragePath: Path) {
         val profileInfo = requireActiveProfile {
             "Cannot invert signal, no profile is selected"
         }
-        val signal = profileInfo.profile.getSignal(name)
+        val signal = profileInfo.profile.getCurrentPage().getSignal(name)
         signal.invert()
         saveProfiles()
         return signal.invert
@@ -175,7 +176,7 @@ class RedmonState(profileStoragePath: Path) {
         val profileInfo = requireActiveProfile {
             "Cannot flip signal bits, no profile is selected"
         }
-        val signal = profileInfo.profile.getSignal(name)
+        val signal = profileInfo.profile.getCurrentPage().getSignal(name)
         signal.flipBits()
         saveProfiles()
     }
@@ -189,7 +190,7 @@ class RedmonState(profileStoragePath: Path) {
         val profileInfo = requireActiveProfile {
             "Cannot get signal type, no profile is selected"
         }
-        val signal = profileInfo.profile.getSignal(name)
+        val signal = profileInfo.profile.getCurrentPage().getSignal(name)
         return signal.type
     }
 
@@ -205,7 +206,7 @@ class RedmonState(profileStoragePath: Path) {
         }
 
         val relativeBlockLocations = blockLocations.map { it.subtract(profileInfo.offset) }
-        val signal = profileInfo.profile.getSignal(name)
+        val signal = profileInfo.profile.getCurrentPage().getSignal(name)
 
         for (location in relativeBlockLocations) {
             require(!signal.blocks.contains(location)) {
@@ -227,7 +228,7 @@ class RedmonState(profileStoragePath: Path) {
         val profileInfo = requireActiveProfile {
             "Cannot set signal format, no profile is selected"
         }
-        val signal = profileInfo.profile.getSignal(name)
+        val signal = profileInfo.profile.getCurrentPage().getSignal(name)
         signal.format = format
         saveProfiles()
     }
@@ -241,7 +242,7 @@ class RedmonState(profileStoragePath: Path) {
         val profileInfo = requireActiveProfile {
             "Cannot set signal formats, no profile is selected"
         }
-        profileInfo.profile.signals.forEach { it.format = format }
+        profileInfo.profile.getCurrentPage().signals.forEach { it.format = format }
         saveProfiles()
     }
 
@@ -256,9 +257,51 @@ class RedmonState(profileStoragePath: Path) {
         val profileInfo = requireActiveProfile {
             "Cannot set signal formats, no profile is selected"
         }
-        val n = profileInfo.profile.moveSignal(name, n)
+        val n = profileInfo.profile.getCurrentPage().moveSignal(name, n)
         saveProfiles()
         return n
+    }
+
+    /**
+     * Switch to the next page in the current profile.
+     */
+    fun nextPage() {
+        val profileInfo = requireActiveProfile {
+            "Cannot switch to next page, no profile is selected"
+        }
+        profileInfo.profile.nextPage()
+    }
+
+    /**
+     * Switch to the previous page in the current profile.
+     */
+    fun previousPage() {
+        val profileInfo = requireActiveProfile {
+            "Cannot go to previous page, no profile is selected"
+        }
+        profileInfo.profile.previousPage()
+    }
+
+    /**
+     * Add a new page to the active profile.
+     */
+    fun addPageToActiveProfile(name: String) {
+        val profileInfo = requireActiveProfile {
+            "Cannot add new page, no profile is selected"
+        }
+        profileInfo.profile.addPage(name)
+        saveProfiles()
+    }
+
+    /**
+     * Rename the current page.
+     */
+    fun renameCurrentPage(newName: String) {
+        val profileInfo = requireActiveProfile {
+            "Cannot rename page, no profile is selected"
+        }
+        profileInfo.profile.getCurrentPage().name = newName
+        saveProfiles()
     }
 
     /**
@@ -279,9 +322,9 @@ class RedmonState(profileStoragePath: Path) {
         }
 
         val world = Minecraft.getInstance().player?.level() ?: return
-        profile.updateState(world, profileInfo.offset)
+        profile.getCurrentPage().updateState(world, profileInfo.offset)
 
-        profileUI.update(profile, profileInfo.offset)
+        profileUI.update(profile)
         profileUI.draw(context, OVERLAY_POSITION)
     }
 
@@ -317,6 +360,6 @@ class RedmonState(profileStoragePath: Path) {
     }
 
     private fun requireActiveProfile(lazyMessage: () -> String): ActiveProfileInfo {
-        return requireNotNull(activeProfileInfo, lazyMessage)
+        return activeProfileInfo ?: throw NoActiveProfileException(lazyMessage())
     }
 }
