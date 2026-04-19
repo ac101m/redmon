@@ -37,7 +37,7 @@ class RedmonState(profileStoragePath: Path) {
 
     // GUI elements
     private val profileUI = ProfileOverlay()
-    private val inactiveUI = TextOverlay("No active profiles")
+    private val inactiveUI = TextOverlay("Redmon: No active profile")
 
     /**
      * Hide the redmon UI/overlay.
