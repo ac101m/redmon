@@ -54,6 +54,13 @@ class RedmonState(profileStoragePath: Path) {
     }
 
     /**
+     * Toggle visibility.
+     */
+    fun toggleVisibility() {
+        show = !show
+    }
+
+    /**
      * Get profile names.
      */
     fun getProfileNames(): List<String> {

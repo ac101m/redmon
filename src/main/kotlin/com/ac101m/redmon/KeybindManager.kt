@@ -14,11 +14,12 @@ import net.minecraft.client.Minecraft
  */
 class KeybindManager(private val redmon: RedmonState) {
     fun processKeypresses(client: Minecraft) {
+        if (toggleVisibilityKey.consumeClick()) toggleVisibility()
         if (nextPageKey.consumeClick()) nextPageCommand()
         if (previousPageKey.consumeClick()) previousPageCommand()
     }
 
-    fun nextPageCommand() {
+    private fun nextPageCommand() {
         try {
             redmon.nextPage()
         } catch (_: NoActiveProfileException) {
@@ -26,7 +27,7 @@ class KeybindManager(private val redmon: RedmonState) {
         }
     }
 
-    fun previousPageCommand() {
+    private fun previousPageCommand() {
         try {
             redmon.previousPage()
         } catch (_: NoActiveProfileException) {
@@ -34,14 +35,28 @@ class KeybindManager(private val redmon: RedmonState) {
         }
     }
 
+    private fun toggleVisibility() {
+        redmon.toggleVisibility()
+    }
+
     companion object {
         private const val KEYBIND_CATEGORY_NAME = "Redmon"
-        private const val KEY_NEXT_PAGE = "Next page"
-        private const val KEY_PREVIOUS_PAGE = "Previous page"
+        private const val NEXT_PAGE_KEYBIND_NAME = "Next page"
+        private const val PREVIOUS_PAGE_KEYBIND_NAME = "Previous page"
+        private const val TOGGLE_UI_KEYBIND_NAME = "Toggle UI"
+
+        private val toggleVisibilityKey = KeyBindingHelper.registerKeyBinding(
+            KeyMapping(
+                TOGGLE_UI_KEYBIND_NAME,
+                InputConstants.Type.KEYSYM,
+                InputConstants.KEY_EQUALS,
+                KEYBIND_CATEGORY_NAME
+            )
+        )
 
         private val nextPageKey = KeyBindingHelper.registerKeyBinding(
             KeyMapping(
-                KEY_NEXT_PAGE,
+                NEXT_PAGE_KEYBIND_NAME,
                 InputConstants.Type.KEYSYM,
                 InputConstants.KEY_LBRACKET,
                 KEYBIND_CATEGORY_NAME
@@ -50,7 +65,7 @@ class KeybindManager(private val redmon: RedmonState) {
 
         private val previousPageKey = KeyBindingHelper.registerKeyBinding(
             KeyMapping(
-                KEY_PREVIOUS_PAGE,
+                PREVIOUS_PAGE_KEYBIND_NAME,
                 InputConstants.Type.KEYSYM,
                 InputConstants.KEY_RBRACKET,
                 KEYBIND_CATEGORY_NAME
