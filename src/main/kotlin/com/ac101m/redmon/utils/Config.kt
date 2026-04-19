@@ -21,7 +21,7 @@ class Config {
         val PROFILE_STORAGE_PATH: Path = FabricLoader.getInstance().configDir.resolve(PROFILE_SAVE_FILE)
 
         // UI Constants
-        val OVERLAY_POSITION = Vec3i(1, 1, 0)
+        val OVERLAY_POSITION = Vec3i(2, 2, 0)
         const val PROFILES_PER_PAGE = 10
 
         // Misc constants
