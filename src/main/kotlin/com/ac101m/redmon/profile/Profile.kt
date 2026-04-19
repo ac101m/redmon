@@ -21,7 +21,7 @@ class Profile(internal var name: String, initPages: List<ProfilePage>) {
         return pages.size
     }
 
-    fun getCurrentPageIndex(): Int {
+    fun getCurrentPageNumber(): Int {
         return currentPageIndex + 1
     }
 

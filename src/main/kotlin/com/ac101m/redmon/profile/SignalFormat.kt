@@ -1,6 +1,7 @@
 package com.ac101m.redmon.profile
 
 import com.ac101m.redmon.utils.Config.Companion.DEFAULT_SIGNAL_FORMAT
+import com.ac101m.redmon.utils.Colour
 import com.ac101m.redmon.utils.RedmonException
 import java.io.StringWriter
 
@@ -52,7 +53,7 @@ enum class SignalFormat {
 
         sw.append(hex)
 
-        return "0x$sw"
+        return "${Colour.GRAY.prefix}0x${Colour.WHITE.prefix}$sw"
     }
 
     private fun formatBinary(bits: ULong, bitCount: Int): String {
@@ -65,7 +66,7 @@ enum class SignalFormat {
 
         sw.append(bin)
 
-        return "0b$sw"
+        return "${Colour.GRAY.prefix}0b${Colour.WHITE.prefix}$sw"
     }
 
     companion object {

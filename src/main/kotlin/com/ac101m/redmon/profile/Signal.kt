@@ -1,11 +1,8 @@
 package com.ac101m.redmon.profile
 
-import com.ac101m.redmon.persistence.v1.PersistentSignalV1
-import com.ac101m.redmon.persistence.v1.PersistentSignalBitV1
 import com.ac101m.redmon.persistence.v2.PersistentBlockV2
 import com.ac101m.redmon.persistence.v2.PersistentSignalV2
-import com.ac101m.redmon.utils.gray
-import com.ac101m.redmon.utils.red
+import com.ac101m.redmon.utils.Colour
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Vec3i
 import net.minecraft.world.level.Level
@@ -64,15 +61,15 @@ data class Signal(
 
     fun getRepresentation(): String {
         if (bitCount == 0) {
-            return "EMPTY".gray()
+            return "${Colour.GRAY.prefix}EMPTY"
         }
 
         if (missingBits == bitCount) {
-            return "MISSING ALL".red()
+            return "${Colour.RED.prefix}MISSING ALL"
         }
 
         if (missingBits > 0) {
-            return "MISSING $missingBits/$bitCount".red()
+            return "${Colour.GOLD.prefix}MISSING $missingBits/$bitCount"
         }
 
         return format.getRepresentation(state, bitCount)
