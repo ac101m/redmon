@@ -12,6 +12,6 @@ class PersistentSignalV2(
     val invert: Boolean,
     @param:JsonProperty("format", required = true)
     val format: String,
-    @param:JsonProperty("blockLocations", required = true)
-    val blockLocations: List<PersistentSignalBlockV2>
+    @param:JsonProperty("blocks", required = true)
+    val blocks: List<PersistentBlockV2>
 )

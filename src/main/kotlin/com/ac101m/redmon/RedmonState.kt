@@ -2,6 +2,7 @@ package com.ac101m.redmon
 
 import com.ac101m.redmon.gui.ProfileOverlay
 import com.ac101m.redmon.gui.TextOverlay
+import com.ac101m.redmon.persistence.ProfileListReader
 import com.ac101m.redmon.profile.Profile
 import com.ac101m.redmon.profile.ProfileRegistry
 import com.ac101m.redmon.profile.Signal
@@ -25,7 +26,8 @@ import java.nio.file.Path
  */
 class RedmonState(profileStoragePath: Path) {
     private val mapper = ObjectMapper().registerKotlinModule()
-    private val profileStorageManager = StorageManager(mapper, profileStoragePath)
+    private val profileListReader = ProfileListReader(mapper)
+    private val profileStorageManager = StorageManager(profileStoragePath, mapper, profileListReader)
     private var profileRegistry = ProfileRegistry(profileStorageManager.loadProfiles())
 
     // Internal variables
@@ -206,7 +208,7 @@ class RedmonState(profileStoragePath: Path) {
         val signal = profileInfo.profile.getSignal(name)
 
         for (location in relativeBlockLocations) {
-            require(!signal.blockLocations.contains(location)) {
+            require(!signal.blocks.contains(location)) {
                 "Unable to append blocks. One or more blocks are already part of the signal."
             }
         }

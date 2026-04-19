@@ -1,6 +1,8 @@
 package com.ac101m.redmon.profile
 
-import com.ac101m.redmon.persistence.v1.PersistentProfileV1
+import com.ac101m.redmon.persistence.v2.PersistentColumnV2
+import com.ac101m.redmon.persistence.v2.PersistentPageV2
+import com.ac101m.redmon.persistence.v2.PersistentProfileV2
 import net.minecraft.core.Vec3i
 import net.minecraft.world.level.Level
 
@@ -57,10 +59,6 @@ class Profile(
         }
     }
 
-    fun toPersistentV1(): PersistentProfileV1 {
-        return PersistentProfileV1(name, signals.map { it.toPersistentV1() })
-    }
-
     fun moveSignal(name: String, n: Int): Int {
         var index = requireSignalExists(name)
         var moved = 0
@@ -88,10 +86,27 @@ class Profile(
         signals[b] = tmp
     }
 
+    fun toPersistentProfile(): PersistentProfileV2 {
+        // TODO: Implement pages and columns
+        val persistentSignals = signals.map { persistentSignal ->
+            persistentSignal.toPersistentSignal()
+        }
+        val persistentColumns = listOf(PersistentColumnV2(persistentSignals))
+        val persistentPages = listOf(PersistentPageV2("Page 1", persistentColumns))
+        return PersistentProfileV2(name, persistentPages)
+    }
+
     companion object {
-        fun fromPersistentV1(data: PersistentProfileV1): Profile {
-            val signals = data.signals.map { Signal.fromPersistentV1(it) }
-            return Profile(data.name, signals)
+        fun fromPersistentProfile(persistentProfile: PersistentProfileV2): Profile {
+            // TODO: Implement pages and columns
+            val singlePersistentPage = persistentProfile.pages.single()
+            val singlePersistentColumn = singlePersistentPage.columns.single()
+
+            val signals = singlePersistentColumn.signals.map { signal ->
+                Signal.fromPersistentSignal(signal)
+            }
+
+            return Profile(persistentProfile.name, signals)
         }
     }
 }

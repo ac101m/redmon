@@ -2,6 +2,8 @@ package com.ac101m.redmon.profile
 
 import com.ac101m.redmon.persistence.v1.PersistentSignalV1
 import com.ac101m.redmon.persistence.v1.PersistentSignalBitV1
+import com.ac101m.redmon.persistence.v2.PersistentBlockV2
+import com.ac101m.redmon.persistence.v2.PersistentSignalV2
 import com.ac101m.redmon.utils.gray
 import com.ac101m.redmon.utils.red
 import net.minecraft.core.BlockPos
@@ -13,7 +15,7 @@ data class Signal(
     val type: SignalType,
     var invert: Boolean,
     var format: SignalFormat,
-    var blockLocations: List<BlockPos> = listOf()
+    var blocks: List<BlockPos> = listOf()
 ) {
     // Raw state of the signal bits
     private var rawState: ULong = 0UL
@@ -27,11 +29,11 @@ data class Signal(
         }
     }
 
-    private val bitCount get() = blockLocations.size * type.bitsPerBlock
+    private val bitCount get() = blocks.size * type.bitsPerBlock
     var missingBits = 0
 
     init {
-        require(blockLocations.size <= type.maxBlocks) {
+        require(blocks.size <= type.maxBlocks) {
             "Too many blocks. Signals of type $type may contain at most ${type.maxBlocks} blocks"
         }
     }
@@ -42,7 +44,7 @@ data class Signal(
         var shift = 0
         var missing = 0
 
-        for (location in blockLocations) {
+        for (location in blocks) {
             val position = location.offset(offset)
             val blockBits = type.getBitsFromBlockLocation(level, position)
 
@@ -81,26 +83,28 @@ data class Signal(
     }
 
     fun flipBits() {
-        blockLocations = blockLocations.reversed()
+        blocks = blocks.reversed()
     }
 
-    fun appendBlocks(newBlockLocations: List<BlockPos>) {
-        require(newBlockLocations.size + blockLocations.size <= type.maxBlocks) {
+    fun appendBlocks(newBlocks: List<BlockPos>) {
+        require(newBlocks.size + blocks.size <= type.maxBlocks) {
             "Too many blocks. Signals of type $type may contain at most ${type.maxBlocks} blocks"
         }
-        blockLocations = blockLocations.plus(newBlockLocations)
+        blocks = blocks.plus(newBlocks)
     }
 
-    fun toPersistentV1(): PersistentSignalV1 {
-        val b = blockLocations.map { PersistentSignalBitV1(it.x, it.y, it.z) }
-        return PersistentSignalV1(name, type, invert, format.name, b)
+    fun toPersistentSignal(): PersistentSignalV2 {
+        val b = blocks.map { PersistentBlockV2(it.x, it.y, it.z) }
+        return PersistentSignalV2(name, type, invert, format.name, b)
     }
 
     companion object {
-        fun fromPersistentV1(data: PersistentSignalV1): Signal {
-            val blockLocations = data.blockLocations.map { BlockPos(it.x, it.y, it.z) }
-            val format = SignalFormat.fromStringOrDefault(data.format)
-            return Signal(data.name, data.type, data.invert, format, blockLocations)
+        fun fromPersistentSignal(persistentSignal: PersistentSignalV2): Signal {
+            val blockLocations = persistentSignal.blocks.map {
+                BlockPos(it.x, it.y, it.z)
+            }
+            val format = SignalFormat.fromStringOrDefault(persistentSignal.format)
+            return Signal(persistentSignal.name, persistentSignal.type, persistentSignal.invert, format, blockLocations)
         }
 
         fun computeMask(bitCount: Int): ULong {

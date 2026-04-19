@@ -9,7 +9,7 @@ import org.junit.jupiter.api.assertThrows
 import java.io.ByteArrayInputStream
 import java.util.UUID
 
-class StorageVersionInfoTests {
+class ProfileListVersionInfoTests {
     val mapper = ObjectMapper().registerKotlinModule()
 
     private fun getJsonObject(text: String): JsonNode {
@@ -23,7 +23,7 @@ class StorageVersionInfoTests {
         val json = getJsonObject(text)
 
         val e = assertThrows<IllegalStateException> {
-            StorageVersionInfo.fromJsonNode(json)
+            ProfileListVersionInfo.fromJsonNode(json)
         }
 
         assertThat(e).hasMessageContaining("version field is missing or null")
@@ -36,20 +36,20 @@ class StorageVersionInfoTests {
         val json = getJsonObject(text)
 
         val e = assertThrows<IllegalStateException> {
-            StorageVersionInfo.fromJsonNode(json)
+            ProfileListVersionInfo.fromJsonNode(json)
         }
 
         assertThat(e).hasMessageContaining("version field is missing or null")
     }
 
     @Test
-    fun `If the version field is not a string, an exception is thrown`() {
+    fun `If the version field is not a string or an int, an exception is thrown`() {
         val text = """{ "version": [ 42 ] }"""
 
         val json = getJsonObject(text)
 
         val e = assertThrows<IllegalStateException> {
-            StorageVersionInfo.fromJsonNode(json)
+            ProfileListVersionInfo.fromJsonNode(json)
         }
 
         assertThat(e).hasMessageContaining("version field is not text")
@@ -62,7 +62,7 @@ class StorageVersionInfoTests {
         val json = getJsonObject(text)
 
         val e = assertThrows<IllegalStateException> {
-            StorageVersionInfo.fromJsonNode(json)
+            ProfileListVersionInfo.fromJsonNode(json)
         }
 
         assertThat(e).hasMessageContaining("version field could not be converted to a number")
@@ -74,7 +74,18 @@ class StorageVersionInfoTests {
         val text = """{ "version": "$testValue" }"""
 
         val json = getJsonObject(text)
-        val versionInfo = StorageVersionInfo.fromJsonNode(json)
+        val versionInfo = ProfileListVersionInfo.fromJsonNode(json)
+
+        assertThat(versionInfo.version).isEqualTo(testValue)
+    }
+
+    @Test
+    fun `If the version field is an integer, it is returned correctly`() {
+        val testValue = (0 until Int.MAX_VALUE).random()
+        val text = """{ "version": $testValue }"""
+
+        val json = getJsonObject(text)
+        val versionInfo = ProfileListVersionInfo.fromJsonNode(json)
 
         assertThat(versionInfo.version).isEqualTo(testValue)
     }
@@ -84,7 +95,7 @@ class StorageVersionInfoTests {
         val text = """{ "version": "1" }"""
 
         val json = getJsonObject(text)
-        val versionInfo = StorageVersionInfo.fromJsonNode(json)
+        val versionInfo = ProfileListVersionInfo.fromJsonNode(json)
 
         assertThat(versionInfo.modVersion).isNull()
     }
@@ -94,7 +105,7 @@ class StorageVersionInfoTests {
         val text = """{ "version": "1", "mod_version": null }"""
 
         val json = getJsonObject(text)
-        val versionInfo = StorageVersionInfo.fromJsonNode(json)
+        val versionInfo = ProfileListVersionInfo.fromJsonNode(json)
 
         assertThat(versionInfo.modVersion).isNull()
     }
@@ -109,7 +120,7 @@ class StorageVersionInfoTests {
         val json = getJsonObject(text)
 
         val e = assertThrows<IllegalStateException> {
-            StorageVersionInfo.fromJsonNode(json)
+            ProfileListVersionInfo.fromJsonNode(json)
         }
 
         assertThat(e).hasMessageContaining("mod version field is not text")
@@ -121,7 +132,7 @@ class StorageVersionInfoTests {
         val text = """{ "version": "1", "mod_version": "$testValue" }"""
 
         val json = getJsonObject(text)
-        val versionInfo = StorageVersionInfo.fromJsonNode(json)
+        val versionInfo = ProfileListVersionInfo.fromJsonNode(json)
 
         assertThat(versionInfo.modVersion).isEqualTo(testValue)
     }

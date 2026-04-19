@@ -3,27 +3,27 @@ package com.ac101m.redmon.persistence
 import com.fasterxml.jackson.databind.JsonNode
 
 /**
- * This class is used for extracting the version from a stored profile list.
+ * This class is used for extracting version information from a stored or imported profile list.
  * Ignores all properties but the version number and mod version.
  */
-data class StorageVersionInfo(
+data class ProfileListVersionInfo(
     override val version: Int,
     override val modVersion: String? = null
 ) : PersistentProfileList {
     companion object {
         /**
-         * Extract from a JSON tree.
-         * Done this way so that we can determine the storage version without mapping the whole structure to a
-         * persistent object. Allows us to check the version of stored/serialized profile lists greater than what we
-         * even when we don't know the format (e.g. future versions).
+         * Extract profile list version information from a JSON tree.
+         * Done this way so that we don't have to map the whole structure to an object.
+         *  - Avoids the need for multiple passes when reading a stored profile.
+         *  - Allows us to check the version of stored/serialized profile lists written by later versions of the mod.
          */
-        fun fromJsonNode(json: JsonNode): StorageVersionInfo {
+        fun fromJsonNode(json: JsonNode): ProfileListVersionInfo {
             check(json.hasNonNull("version")) {
                 "Could not get storage version info, version field is missing or null."
             }
 
             val version = json.get("version").let {
-                check(it.isTextual) {
+                check(it.isTextual || it.isInt) {
                     "Could not get storage version info, version field is not text."
                 }
                 try {
@@ -33,7 +33,6 @@ data class StorageVersionInfo(
                         "Could not get storage version info, version field could not be converted to a number."
                     )
                 }
-                it.asInt()
             }
 
             val modVersion = if (json.hasNonNull("mod_version")) {
@@ -47,7 +46,7 @@ data class StorageVersionInfo(
                 null
             }
 
-            return StorageVersionInfo(version, modVersion)
+            return ProfileListVersionInfo(version, modVersion)
         }
     }
 }

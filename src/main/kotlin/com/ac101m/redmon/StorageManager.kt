@@ -1,11 +1,11 @@
 package com.ac101m.redmon
 
-import com.ac101m.redmon.persistence.PersistentProfileList
-import com.ac101m.redmon.persistence.StorageVersionInfo
-import com.ac101m.redmon.persistence.v1.PersistentProfileListV1
+import com.ac101m.redmon.persistence.ProfileListReader
+import com.ac101m.redmon.persistence.v2.PersistentProfileListV2
 import com.ac101m.redmon.profile.Profile
 import com.ac101m.redmon.utils.Config.Companion.REDMON_VERSION
 import com.ac101m.redmon.utils.RedmonException
+import com.ac101m.redmon.utils.UnsupportedProfileVersionException
 import com.fasterxml.jackson.databind.ObjectMapper
 import java.io.InputStream
 import java.nio.file.Path
@@ -18,12 +18,14 @@ import kotlin.io.path.outputStream
  * Class manages storage of profiles and versioning of profile storage files.
  *
  * @param profileStoragePath Path to profile storage file.
+ * @param jsonMapper Jackson object mapper for stored profile deserialisation.
+ * @param profileListReader Reader for reading profiles.
  */
 class StorageManager(
-    private val mapper: ObjectMapper,
     private val profileStoragePath: Path,
+    private val jsonMapper: ObjectMapper,
+    private val profileListReader: ProfileListReader
 ) {
-
     init {
         if (!profileStoragePath.exists()) {
             saveProfiles(emptyList())
@@ -38,23 +40,22 @@ class StorageManager(
      * @return A list of loaded [Profile] objects.
      */
     fun loadProfiles(): List<Profile> {
-        val storageVersionInfo = readVersionInfo(profileStoragePath)
+        val inputStream = getInputStream(profileStoragePath)
 
-        check(storageVersionInfo.version >= MIN_SUPPORTED_VERSION) {
-            "Redmon was unable to load stored profiles. Profiles were written by an older version of the mod " +
-                    "(${storageVersionInfo.modVersion}). Please remove or create backups of the profile storage " +
-                    "file at $profileStoragePath or revert to an earlier version of the mod."
+        val persistentProfileList = try {
+            profileListReader.readProfileListFromJsonStream(inputStream)
+        } catch (e: UnsupportedProfileVersionException) {
+            throw UnsupportedProfileVersionException(
+                cause = e,
+                message = "Failed to load stored profiles due to a profile versioning problem. Please remove or " +
+                        "backup the profiles at $profileStoragePath, or use the appropriate version of the mod"
+            )
+        } catch (e: Exception) {
+            throw IllegalStateException("Failed to load stored profiles.", e)
         }
 
-        check(storageVersionInfo.version <= MAX_SUPPORTED_VERSION) {
-            "Redmon was unable to load stored profiles. Profiles were written by a newer version of the mod " +
-                    "(${storageVersionInfo.modVersion}). Please remove or create backups of the profile storage " +
-                    "file at $profileStoragePath or update to a more recent version of the mod."
-        }
-
-        return when (val storageSubtype = getStorageSubtype(storageVersionInfo.version)) {
-            PersistentProfileListV1::class.java -> loadProfilesV1()
-            else -> error("Unrecognised profile storage subtype $storageSubtype")
+        return persistentProfileList.profiles.map { persistentProfile ->
+            Profile.fromPersistentProfile(persistentProfile)
         }
     }
 
@@ -64,40 +65,21 @@ class StorageManager(
      * @param profiles The profiles to store.
      */
     fun saveProfiles(profiles: List<Profile>) {
-        val persistentProfiles = profiles.map { it.toPersistentV1() }
-        val persistenceObject = PersistentProfileListV1(
+        val persistentProfiles = profiles.map { it.toPersistentProfile() }
+        val persistentProfileList = PersistentProfileListV2(
             version = CURRENT_STORAGE_VERSION,
             modVersion = REDMON_VERSION,
             profiles = persistentProfiles
         )
-        save(persistenceObject, profileStoragePath)
-    }
-
-    private fun loadProfilesV1(): List<Profile> {
-        val profileList = mapper.readPersistentProfileList<PersistentProfileListV1>(profileStoragePath)
-        return profileList.profiles.map { Profile.fromPersistentV1(it) }
-    }
-
-    fun readVersionInfo(path: Path): StorageVersionInfo {
-        return readVersionInfo(getInputStream(path))
-    }
-
-    fun readVersionInfo(inputStream: InputStream): StorageVersionInfo {
-        return StorageVersionInfo.fromJsonNode(mapper.readTree(inputStream))
-    }
-
-    fun save(profileList: PersistentProfileList, path: Path) {
-        path.outputStream().use { outputStream ->
-            mapper.writer().writeValue(outputStream, profileList)
+        profileStoragePath.outputStream().use { outputStream ->
+            jsonMapper.writer().writeValue(outputStream, persistentProfileList)
         }
     }
 
     companion object {
-        const val MIN_SUPPORTED_VERSION = 1
-        const val MAX_SUPPORTED_VERSION = 2
         const val CURRENT_STORAGE_VERSION = 2
 
-        fun getInputStream(path: Path): InputStream {
+        private fun getInputStream(path: Path): InputStream {
             if (!path.exists()) {
                 throw RedmonException("No such file '$path'.")
             }
@@ -105,36 +87,6 @@ class StorageManager(
                 throw RedmonException("File '$path' is not a regular file.")
             }
             return path.inputStream()
-        }
-
-        inline fun <reified T: PersistentProfileList> ObjectMapper.readPersistentProfileList(path: Path): T {
-            return readPersistentProfileList<T>(getInputStream(path))
-        }
-
-        inline fun <reified T: PersistentProfileList> ObjectMapper.readPersistentProfileList(inputStream: InputStream): T {
-            val profileList = try {
-                readValue(inputStream, T::class.java)
-            } catch (e: Exception) {
-                throw RedmonException("Failed to load profile information, error parsing storage file.", e)
-            }
-            return profileList
-        }
-
-        fun getStorageSubtype(version: Int) = when (version) {
-            /**
-             * Initial version (1.0.0-pre4 and earlier)
-             * Technically some incompatibility between other pre-releases but whatever.
-             * Frozen. Do not change.
-             */
-            1 -> PersistentProfileListV1::class.java
-
-            /**
-             * - Support for torches (new signal type)
-             * Unreleased. May change.
-             */
-            2 -> PersistentProfileListV1::class.java
-
-            else -> error("Storage $version does not correspond to a known subtype")
         }
     }
 }
