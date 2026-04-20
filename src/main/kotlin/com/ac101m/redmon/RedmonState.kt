@@ -357,10 +357,10 @@ class RedmonState(profileStoragePath: Path) {
      * @param profileName The name of the profile to activate.
      * @param offset The offset to enable the profile at.
      */
-    fun setActiveProfile(profileName: String, offset: Vec3) {
+    fun setActiveProfile(profileName: String, offset: Vec3i) {
         activeProfileInfo = ActiveProfileInfo(
             profileRegistry.getProfile(profileName),
-            Vec3i(offset.x.toInt(), offset.y.toInt(), offset.z.toInt())
+            offset
         )
     }
 

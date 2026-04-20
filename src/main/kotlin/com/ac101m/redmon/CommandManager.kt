@@ -189,7 +189,7 @@ class CommandManager(
 
     private fun profileCreateCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val profileName = getString(ctx, "name")
-        val offset = ctx.source.player.position()
+        val offset = ctx.source.player.blockPosition()
         redmon.addProfile(Profile(profileName, emptyList()))
         redmon.setActiveProfile(profileName, offset)
         ctx.sendFeedback("Created new profile '$profileName', and set as active profile")
@@ -203,7 +203,7 @@ class CommandManager(
 
     private fun profileSelectCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val profileName = getString(ctx,"name")
-        val offset = ctx.source.player.position()
+        val offset = ctx.source.player.blockPosition()
         redmon.setActiveProfile(profileName, offset)
         ctx.sendFeedback("Set profile '$profileName' as active profile")
     }
