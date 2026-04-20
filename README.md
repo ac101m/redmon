@@ -124,4 +124,4 @@ There are a number of considered/planned features which are not currently includ
 
 To the RDF, the community where I got my first taste of computer science.
 
-ORE is alright too I guess 😉
+ORE is also very very cool ;)
