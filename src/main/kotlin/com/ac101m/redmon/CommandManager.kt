@@ -109,10 +109,14 @@ class CommandManager(
             .then(literal("format").then(str("name").then(str("format")
                 .executes { c -> signalFormatCommand(c) })))
             .then(literal("move").then(str("name")
-                .then(literal("up").then(int("count", 0)
-                    .executes { c -> signalMoveUpCommand(c) }))
-                .then(literal("down").then(int("count", 0)
-                    .executes { c -> signalMoveDownCommand(c) }))
+                .then(literal("up")
+                    .then(int("count", 1)
+                        .executes { c -> signalMoveUpCommand(c) })
+                    .executes { c -> signalMoveUpOneCommand(c) })
+                .then(literal("down")
+                    .then(int("count", 1)
+                        .executes { c -> signalMoveDownCommand(c) })
+                    .executes { c -> signalMoveDownOneCommand(c) })
                 .then(literal("column").then(int("column-number", 1)
                     .executes { c -> signalMoveColumnCommand(c) })))
             )
@@ -386,22 +390,38 @@ class CommandManager(
         }
     }
 
-    private fun signalMoveUpCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+    private fun doSignalMoveUp(ctx: CommandContext<FabricClientCommandSource>, count: Int) {
         val signalName = getString(ctx, "name")
-        val count = 0 - getInteger(ctx, "count")
-        when (val n = redmon.moveSignalVertically(signalName, count)) {
-            0 -> ctx.sendFeedback("Signal '$signalName' is already at the top.")
+        when (val n = redmon.moveSignalVertically(signalName, 0 - count)) {
+            0 -> ctx.sendError("Signal '$signalName' is already at the top.")
             else -> ctx.sendFeedback("Moved signal '$signalName' in active profile up ${0 - n} places")
         }
     }
 
-    private fun signalMoveDownCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val signalName = getString(ctx, "name")
+    private fun signalMoveUpCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val count = getInteger(ctx, "count")
+        doSignalMoveUp(ctx, count)
+    }
+
+    private fun signalMoveUpOneCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        doSignalMoveUp(ctx, 1)
+    }
+
+    private fun doSignalMoveDown(ctx: CommandContext<FabricClientCommandSource>, count: Int) {
+        val signalName = getString(ctx, "name")
         when (val n = redmon.moveSignalVertically(signalName, count)) {
-            0 -> ctx.sendFeedback("Signal '$signalName' is already at the bottom.")
+            0 -> ctx.sendError("Signal '$signalName' is already at the bottom.")
             else -> ctx.sendFeedback("Moved signal '$signalName' in active profile down $n places")
         }
+    }
+
+    private fun signalMoveDownCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val count = getInteger(ctx, "count")
+        doSignalMoveDown(ctx, count)
+    }
+
+    private fun signalMoveDownOneCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        doSignalMoveDown(ctx, 1)
     }
 
     private fun signalMoveColumnCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
