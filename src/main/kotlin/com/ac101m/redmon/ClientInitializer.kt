@@ -4,6 +4,7 @@ import com.ac101m.redmon.utils.Config.Companion.PROFILE_STORAGE_PATH
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements
 import net.minecraft.client.Minecraft
@@ -37,6 +38,10 @@ class ClientInitializer : ClientModInitializer {
             if (client.player != null && !client.gui.debugOverlay.showDebugScreen()) {
                 redmon.drawOverlay(context)
             }
+        }
+
+        ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register { minecraft, level ->
+            redmon.clearActiveProfile()
         }
     }
 
