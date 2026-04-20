@@ -79,6 +79,8 @@ class CommandManager(
         return this.then(literal("page")
             .then(literal("add").then(str("name")
                 .executes { c -> pageAddCommand(c) }))
+            .then(literal("remove").then(str("name")
+                .executes { c -> pageRemoveCommand(c) } ))
             .then(literal("next")
                 .executes { c -> nextPageCommand(c) })
             .then(literal("previous")
@@ -243,6 +245,11 @@ class CommandManager(
     private fun pageAddCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val name = getString(ctx, "name")
         redmon.addPageToActiveProfile(name)
+    }
+
+    private fun pageRemoveCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val name = getString(ctx, "name")
+        redmon.removePageFromActiveProfile(name)
     }
 
     private fun pageRenameCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
