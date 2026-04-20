@@ -1,17 +1,14 @@
 package com.ac101m.redmon.profile
 
+import com.ac101m.redmon.utils.Config.Companion.DEFAULT_SIGNAL_FORMAT
+import com.ac101m.redmon.utils.Colour
 import com.ac101m.redmon.utils.RedmonException
-import com.fasterxml.jackson.annotation.JsonProperty
 import java.io.StringWriter
 
 enum class SignalFormat {
-    @JsonProperty("UNSIGNED")
     UNSIGNED,
-    @JsonProperty("SIGNED")
     SIGNED,
-    @JsonProperty("HEX")
     HEX,
-    @JsonProperty("BINARY")
     BINARY;
 
     /**
@@ -56,7 +53,7 @@ enum class SignalFormat {
 
         sw.append(hex)
 
-        return "0x$sw"
+        return "${Colour.GRAY.prefix}0x${Colour.WHITE.prefix}$sw"
     }
 
     private fun formatBinary(bits: ULong, bitCount: Int): String {
@@ -69,16 +66,15 @@ enum class SignalFormat {
 
         sw.append(bin)
 
-        return "0b$sw"
+        return "${Colour.GRAY.prefix}0b${Colour.WHITE.prefix}$sw"
     }
 
     companion object {
-        fun fromCommandString(str: String): SignalFormat {
+        fun fromStringOrDefault(str: String): SignalFormat {
             return try {
-                SignalFormat.valueOf(str.uppercase())
-            } catch (e: IllegalArgumentException) {
-                val validFormatsString = SignalFormat.entries.joinToString(", ") { it.name.lowercase() }
-                throw RedmonException("Invalid signal format. Valid formats are: $validFormatsString", e)
+                SignalFormat.valueOf(str)
+            } catch (_: IllegalArgumentException) {
+                return DEFAULT_SIGNAL_FORMAT
             }
         }
     }

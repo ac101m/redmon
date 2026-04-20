@@ -4,6 +4,7 @@ import com.ac101m.redmon.profile.Profile
 import com.ac101m.redmon.profile.SignalFormat
 import com.ac101m.redmon.profile.SignalType
 import com.ac101m.redmon.utils.CardinalDirection
+import com.ac101m.redmon.utils.Config.Companion.DEFAULT_SIGNAL_FORMAT
 import com.ac101m.redmon.utils.Config.Companion.PROFILES_PER_PAGE
 import com.ac101m.redmon.utils.RedmonException
 import com.ac101m.redmon.utils.ceilDiv
@@ -38,48 +39,96 @@ class CommandManager(
     val redmon: RedmonState
 ) {
     private fun LiteralArgumentBuilder<FabricClientCommandSource>.allCommands(): LiteralArgumentBuilder<FabricClientCommandSource> {
-        return this.then(literal("hide").executes { _ -> hideCommand() })
+        return this
+            .miscCommands()
+            .profileCommands()
+            .pageCommands()
+            .signalCommands()
+    }
+
+    private fun LiteralArgumentBuilder<FabricClientCommandSource>.miscCommands(): LiteralArgumentBuilder<FabricClientCommandSource> {
+        return this
+            .then(literal("hide").executes { _ -> hideCommand() })
             .then(literal("show").executes { _ -> showCommand() })
-            .then(literal("profile")
-                .then(literal("list").then(int("page", 1)
-                    .executes { c -> profileListCommand(c) }))
-                .then(literal("search").then(str("query").then(int("page", 1)
-                    .executes { c -> profileSearchCommand(c) } )))
-                .then(literal("create").then(str("name")
-                    .executes { c -> profileCreateCommand(c) }))
-                .then(literal("delete").then(str("name")
-                    .executes { c -> profileDeleteCommand(c) }))
-                .then(literal("select").then(str("name")
-                    .executes { c -> profileSelectCommand(c) }))
-                .then(literal("deselect").then(str("name")
-                    .executes { c -> profileDeselectCommand(c) }))
-                .then(literal("rename").then(str("name").then(str("new-name")
-                    .executes { c -> profileRenameCommand(c) })))
+    }
+
+    private fun LiteralArgumentBuilder<FabricClientCommandSource>.profileCommands(): LiteralArgumentBuilder<FabricClientCommandSource> {
+        return this.then(literal("profile")
+            .then(literal("list")
+                .executes { c -> profileListCommandSinglePage(c) })
+            .then(literal("list").then(int("page", 1)
+                .executes { c -> profileListCommand(c) }))
+            .then(literal("search").then(str("query")
+                .executes { c -> profileSearchCommandSinglePage(c) }))
+            .then(literal("search").then(str("query").then(int("page", 1)
+                .executes { c -> profileSearchCommand(c) })))
+            .then(literal("create").then(str("name")
+                .executes { c -> profileCreateCommand(c) }))
+            .then(literal("delete").then(str("name")
+                .executes { c -> profileDeleteCommand(c) }))
+            .then(literal("select").then(str("name")
+                .executes { c -> profileSelectCommand(c) }))
+            .then(literal("deselect")
+                .executes { c -> profileDeselectCommand(c) })
+            .then(literal("rename").then(str("name").then(str("new-name")
+                .executes { c -> profileRenameCommand(c) })))
+        )
+    }
+
+    private fun LiteralArgumentBuilder<FabricClientCommandSource>.pageCommands(): LiteralArgumentBuilder<FabricClientCommandSource> {
+        return this.then(literal("page")
+            .then(literal("add").then(str("name")
+                .executes { c -> pageAddCommand(c) }))
+            .then(literal("next")
+                .executes { c -> nextPageCommand(c) })
+            .then(literal("previous")
+                .executes { c -> previousPageCommand(c) })
+            .then(literal("rename").then(str("new-name")
+                .executes { c -> pageRenameCommand(c)}))
+        )
+    }
+
+    private fun LiteralArgumentBuilder<FabricClientCommandSource>.signalCommands(): LiteralArgumentBuilder<FabricClientCommandSource> {
+        return this.then(literal("signal")
+            .then(literal("add").then(str("name").apply {
+                for (signalType in SignalType.entries) {
+                    then(literal(signalType.name.lowercase()).then(int("block-count").then(int("column-number", 1)
+                        .executes { c -> signalAddWithColumnCommand(c, signalType) })
+                    .executes { c -> signalAddCommand(c, signalType) }))
+                }
+            }))
+            .then(literal("delete").then(str("name")
+                .executes { c -> signalDeleteCommand(c) }))
+            .then(literal("invert").then(str("name")
+                .executes { c -> signalInvertCommand(c) }))
+            .then(literal("flip").then(str("name")
+                .executes { c -> signalFlipCommand(c) }))
+            .then(literal("add-block").then(str("name")
+                .executes { c -> signalAppendBlockCommand(c) }))
+            .then(literal("add-blocks").then(str("name").then(int("count", 0)
+                .executes { c -> signalAppendBlocksCommand(c) })))
+            .then(literal("rename").then(str("name").then(str("new-name")
+                .executes { c -> signalRenameCommand(c) })))
+            .then(literal("format").then(str("name").apply {
+                for (format in SignalFormat.entries) {
+                    then(literal(format.name.lowercase()).executes { c ->
+                        signalFormatCommand(c, format)
+                    })
+                }
+            }))
+            .then(literal("move").then(str("name")
+                .then(literal("up")
+                    .then(int("count", 1)
+                        .executes { c -> signalMoveUpCommand(c) })
+                    .executes { c -> signalMoveUpOneCommand(c) })
+                .then(literal("down")
+                    .then(int("count", 1)
+                        .executes { c -> signalMoveDownCommand(c) })
+                    .executes { c -> signalMoveDownOneCommand(c) })
+                .then(literal("column").then(int("column-number", 1)
+                    .executes { c -> signalMoveColumnCommand(c) })))
             )
-            .then(literal("signal")
-                .then(literal("add").then(str("name").then(str("type").then(int("block-count")
-                    .executes { c -> signalAddCommand(c) }))))
-                .then(literal("delete").then(str("name")
-                    .executes { c -> signalDeleteCommand(c) }))
-                .then(literal("invert").then(str("name")
-                    .executes { c -> signalInvertCommand(c) }))
-                .then(literal("flip").then(str("name")
-                    .executes { c -> signalFlipCommand(c) }))
-                .then(literal("add-block").then(str("name")
-                    .executes { c -> signalAppendBlockCommand(c) }))
-                .then(literal("add-blocks").then(str("name").then(int("count", 0)
-                    .executes { c -> signalAppendBlocksCommand(c) })))
-                .then(literal("rename").then(str("name").then(str("new-name")
-                    .executes { c -> signalRenameCommand(c) })))
-                .then(literal("format").then(str("name").then(str("format")
-                    .executes { c -> signalFormatCommand(c) })))
-                .then(literal("move").then(str("name")
-                    .then(literal("up").then(int("count", 0)
-                        .executes { c -> signalMoveUpCommand(c) }))
-                    .then(literal("down").then(int("count", 0)
-                        .executes { c -> signalMoveDownCommand(c) })))
-                )
-            )
+        )
     }
 
     fun registerCommands(dispatcher: CommandDispatcher<FabricClientCommandSource>) {
@@ -97,15 +146,13 @@ class CommandManager(
         return COMMAND_SUCCESS
     }
 
-    private fun paginateProfileList(ctx: CommandContext<FabricClientCommandSource>, names: List<String>) {
+    private fun paginateProfileList(ctx: CommandContext<FabricClientCommandSource>, names: List<String>, pageNumber: Int) {
         if (names.isEmpty()) {
             ctx.sendFeedback("No profiles found")
             return
         }
 
-        val pageNumber = getInteger(ctx, "page")
         val pageIndex = pageNumber - 1
-
         val pageCount = names.size.ceilDiv(PROFILES_PER_PAGE)
 
         require(pageIndex < pageCount) {
@@ -120,21 +167,37 @@ class CommandManager(
         ctx.sendFeedback("Found ${names.size} profiles (page $pageNumber/$pageCount):\n$list")
     }
 
-    private fun profileListCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+    private fun doProfileList(ctx: CommandContext<FabricClientCommandSource>, pageNumber: Int) {
         val names = redmon.getProfileNames().sorted()
-        paginateProfileList(ctx, names)
+        paginateProfileList(ctx, names, pageNumber)
     }
 
-    private fun profileSearchCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+    private fun doProfileSearch(ctx: CommandContext<FabricClientCommandSource>, pageNumber: Int) {
         val names = redmon.getProfileNames()
         val queryString = getString(ctx, "query")
         val filteredNames = names.filter { it.contains(queryString, ignoreCase = true) }
-        paginateProfileList(ctx, filteredNames)
+        paginateProfileList(ctx, filteredNames, pageNumber)
+    }
+
+    private fun profileListCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        doProfileList(ctx, getInteger(ctx, "page"))
+    }
+
+    private fun profileListCommandSinglePage(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        doProfileList(ctx, 1)
+    }
+
+    private fun profileSearchCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        doProfileSearch(ctx, getInteger(ctx, "page"))
+    }
+
+    private fun profileSearchCommandSinglePage(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        doProfileSearch(ctx, 1)
     }
 
     private fun profileCreateCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val profileName = getString(ctx, "name")
-        val offset = ctx.source.player.position()
+        val offset = ctx.source.player.blockPosition()
         redmon.addProfile(Profile(profileName, emptyList()))
         redmon.setActiveProfile(profileName, offset)
         ctx.sendFeedback("Created new profile '$profileName', and set as active profile")
@@ -148,7 +211,7 @@ class CommandManager(
 
     private fun profileSelectCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val profileName = getString(ctx,"name")
-        val offset = ctx.source.player.position()
+        val offset = ctx.source.player.blockPosition()
         redmon.setActiveProfile(profileName, offset)
         ctx.sendFeedback("Set profile '$profileName' as active profile")
     }
@@ -169,6 +232,24 @@ class CommandManager(
         ctx.sendFeedback("Renamed profile '$name' to '$newName'")
     }
 
+    private fun nextPageCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        redmon.nextPage()
+    }
+
+    private fun previousPageCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        redmon.previousPage()
+    }
+
+    private fun pageAddCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val name = getString(ctx, "name")
+        redmon.addPageToActiveProfile(name)
+    }
+
+    private fun pageRenameCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val newName = getString(ctx, "new-name")
+        redmon.renameCurrentPage(newName)
+    }
+
     private fun getBlockFromCrosshairTarget(player: Player, signalType: SignalType): BlockPos {
         val hitResult = Minecraft.getInstance().hitResult ?:
             throw RedmonException("No target block found")
@@ -180,11 +261,12 @@ class CommandManager(
         }
 
         val position = blockHitResult.blockPos
-        val expectedBlock = signalType.block
+        val expectedBlocks = signalType.getValidBlocks()
         val block = player.level().getBlockState(position).block
 
-        require(block == signalType.block) {
-            "Signal expects blocks of type '$expectedBlock', but target block is '$block'"
+        require(block in expectedBlocks) {
+            val blocksString = expectedBlocks.joinToString(" or ") { "'$it'" }
+            "Signal expects blocks of type $blocksString, but target block is '$block'"
         }
 
         return position
@@ -202,13 +284,13 @@ class CommandManager(
         var bitsFound = 0
 
         val bitPositions = ArrayList<BlockPos>()
-        val blockType = signalType.block
+        val blockTypes = signalType.getValidBlocks()
 
         while (bitsFound < requestedBlocks && (initialPos.subtract(currentPos).length() < 256.0)) {
             val blockPos = BlockPos(currentPos.x, currentPos.y, currentPos.z)
             val blockState = player.level().getBlockState(blockPos)
 
-            if (blockState.block == blockType) {
+            if (blockState.block in blockTypes) {
                 bitsFound++
                 bitPositions.add(blockPos)
             }
@@ -224,22 +306,28 @@ class CommandManager(
         return bitPositions
     }
 
-    private fun signalAddCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+    private fun doSignalAdd(ctx: CommandContext<FabricClientCommandSource>, type: SignalType, columnIndex: Int) {
         val initialBlockCount = getInteger(ctx, "block-count")
-        val signalTypeString = getString(ctx, "type")
-
         val signalName = getString(ctx, "name")
-        val signalType = SignalType.fromCommandString(signalTypeString)
         val inverted = false
-        val format = SignalFormat.HEX
+        val format = DEFAULT_SIGNAL_FORMAT
         val blockLocations = when (initialBlockCount) {
             0 -> emptyList()
-            else -> getBlocksFromCrosshairTargetAndLookDirection(ctx, initialBlockCount, signalType)
+            else -> getBlocksFromCrosshairTargetAndLookDirection(ctx, initialBlockCount, type)
         }
 
-        redmon.addSignal(signalName, signalType, inverted, format, blockLocations)
+        redmon.addSignal(signalName, type, inverted, format, blockLocations, columnIndex)
 
         ctx.sendFeedback("Added signal '$signalName' with $initialBlockCount bits")
+    }
+
+    private fun signalAddCommand(ctx: CommandContext<FabricClientCommandSource>, type: SignalType) = commandWrapper(ctx) {
+        doSignalAdd(ctx, type, 0)
+    }
+
+    private fun signalAddWithColumnCommand(ctx: CommandContext<FabricClientCommandSource>, type: SignalType) = commandWrapper(ctx) {
+        val columnIndex = getInteger(ctx, "column-number") - 1
+        doSignalAdd(ctx, type, columnIndex)
     }
 
     private fun signalDeleteCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
@@ -293,11 +381,8 @@ class CommandManager(
         ctx.sendFeedback("Renamed signal '$signalName' in the active profile to '$newSignalName'")
     }
 
-    private fun signalFormatCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+    private fun signalFormatCommand(ctx: CommandContext<FabricClientCommandSource>, newFormat: SignalFormat) = commandWrapper(ctx) {
         val signalName = getString(ctx, "name")
-        val newFormatString = getString(ctx, "format")
-        val newFormat = SignalFormat.fromCommandString(newFormatString)
-
         if (signalName == "all") {
             redmon.setAllSignalFormats(newFormat)
             ctx.sendFeedback("Set format of all signals in active profile to $newFormat")
@@ -307,22 +392,44 @@ class CommandManager(
         }
     }
 
-    private fun signalMoveUpCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+    private fun doSignalMoveUp(ctx: CommandContext<FabricClientCommandSource>, count: Int) {
         val signalName = getString(ctx, "name")
-        val count = 0 - getInteger(ctx, "count")
-        when (val n = redmon.moveSignal(signalName, count)) {
-            0 -> ctx.sendFeedback("Signal '$signalName' is already at the top.")
+        when (val n = redmon.moveSignalVertically(signalName, 0 - count)) {
+            0 -> ctx.sendError("Signal '$signalName' is already at the top.")
             else -> ctx.sendFeedback("Moved signal '$signalName' in active profile up ${0 - n} places")
         }
     }
 
-    private fun signalMoveDownCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val signalName = getString(ctx, "name")
+    private fun signalMoveUpCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val count = getInteger(ctx, "count")
-        when (val n = redmon.moveSignal(signalName, count)) {
-            0 -> ctx.sendFeedback("Signal '$signalName' is already at the bottom.")
+        doSignalMoveUp(ctx, count)
+    }
+
+    private fun signalMoveUpOneCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        doSignalMoveUp(ctx, 1)
+    }
+
+    private fun doSignalMoveDown(ctx: CommandContext<FabricClientCommandSource>, count: Int) {
+        val signalName = getString(ctx, "name")
+        when (val n = redmon.moveSignalVertically(signalName, count)) {
+            0 -> ctx.sendError("Signal '$signalName' is already at the bottom.")
             else -> ctx.sendFeedback("Moved signal '$signalName' in active profile down $n places")
         }
+    }
+
+    private fun signalMoveDownCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val count = getInteger(ctx, "count")
+        doSignalMoveDown(ctx, count)
+    }
+
+    private fun signalMoveDownOneCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        doSignalMoveDown(ctx, 1)
+    }
+
+    private fun signalMoveColumnCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val signalName = getString(ctx, "name")
+        val columnIndex = getInteger(ctx, "column-number") - 1
+        redmon.changeSignalColumn(signalName, columnIndex)
     }
 
     companion object {

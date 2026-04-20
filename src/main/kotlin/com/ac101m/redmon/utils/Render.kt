@@ -9,10 +9,10 @@ data class Rectangle(
     val z: Int,
     val width: Int,
     val height: Int,
-    val color: Int
+    val colour: Int
 ) {
     fun draw(context: GuiGraphics) {
-        context.fill(x, y, x + width, y + height, color)
+        context.fill(x, y, x + width, y + height, colour)
     }
 }
 

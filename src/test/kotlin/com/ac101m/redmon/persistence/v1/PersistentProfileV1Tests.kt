@@ -1,10 +1,12 @@
 package com.ac101m.redmon.persistence.v1
 
 import com.ac101m.redmon.profile.SignalType
-import com.ac101m.redmon.utils.mapper
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import org.junit.jupiter.api.Test
 
 class PersistentProfileV1Tests {
+    val mapper = ObjectMapper().registerKotlinModule()
 
     @Test
     fun `round trip test`() {

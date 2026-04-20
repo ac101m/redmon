@@ -1,6 +1,6 @@
 package com.ac101m.redmon.utils
 
-enum class MinecraftColor(val prefix: String) {
+enum class Colour(val prefix: String) {
     BLACK("§0"),
     DARK_BLUE("§1"),
     DARK_GREEN("§2"),
@@ -18,10 +18,3 @@ enum class MinecraftColor(val prefix: String) {
     YELLOW("§e"),
     WHITE("§f");
 }
-
-fun String.color(color: MinecraftColor): String {
-    return "${color.prefix}$this"
-}
-
-fun String.red() = this.color(MinecraftColor.RED)
-fun String.gray() = this.color(MinecraftColor.GRAY)

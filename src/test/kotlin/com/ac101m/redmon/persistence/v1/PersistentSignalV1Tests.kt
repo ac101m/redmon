@@ -1,12 +1,15 @@
 package com.ac101m.redmon.persistence.v1
 
+import com.ac101m.redmon.StorageManager
 import com.ac101m.redmon.profile.SignalFormat
 import com.ac101m.redmon.profile.SignalType
-import com.ac101m.redmon.utils.mapper
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
 class PersistentSignalV1Tests {
+    val mapper = ObjectMapper().registerKotlinModule()
 
     @Test
     fun `round trip test`() {
@@ -70,6 +73,6 @@ class PersistentSignalV1Tests {
 
         val signal = mapper.readValue(jsonWithoutFormat, PersistentSignalV1::class.java)
 
-        assertThat(signal.format).isEqualTo(SignalFormat.UNSIGNED)
+        assertThat(signal.format).isEqualTo(SignalFormat.UNSIGNED.name)
     }
 }

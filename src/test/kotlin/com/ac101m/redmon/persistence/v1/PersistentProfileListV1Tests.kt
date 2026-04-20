@@ -1,16 +1,19 @@
 package com.ac101m.redmon.persistence.v1
 
-import com.ac101m.redmon.persistence.PersistentProfileList
 import com.ac101m.redmon.profile.SignalType
-import com.ac101m.redmon.utils.mapper
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
 class PersistentProfileListV1Tests {
+    val mapper = ObjectMapper().registerKotlinModule()
 
     @Test
     fun `Round trip test`() {
         val original = PersistentProfileListV1(
+            1,
+            "test-no-version",
             listOf(
                 PersistentProfileV1(
                     name = "a_profile",
@@ -41,9 +44,7 @@ class PersistentProfileListV1Tests {
     @Test
     fun `Round trip test with real data`() {
         val stream = this::class.java.classLoader.getResourceAsStream("profiles/test-profiles-v1.json")!!
-        val original = PersistentProfileList.load(stream)
-
-        assertThat(original).isInstanceOf(PersistentProfileListV1::class.java)
+        val original = mapper.readValue(stream, PersistentProfileListV1::class.java)
 
         val serialized = mapper.writeValueAsString(original)
         val deserialized = mapper.readValue(serialized, PersistentProfileListV1::class.java)

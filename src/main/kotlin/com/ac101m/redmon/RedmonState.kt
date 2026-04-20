@@ -2,6 +2,7 @@ package com.ac101m.redmon
 
 import com.ac101m.redmon.gui.ProfileOverlay
 import com.ac101m.redmon.gui.TextOverlay
+import com.ac101m.redmon.persistence.ProfileListReader
 import com.ac101m.redmon.profile.Profile
 import com.ac101m.redmon.profile.ProfileRegistry
 import com.ac101m.redmon.profile.Signal
@@ -9,6 +10,9 @@ import com.ac101m.redmon.profile.SignalFormat
 import com.ac101m.redmon.profile.SignalType
 import com.ac101m.redmon.utils.ActiveProfileInfo
 import com.ac101m.redmon.utils.Config.Companion.OVERLAY_POSITION
+import com.ac101m.redmon.utils.NoActiveProfileException
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.core.BlockPos
@@ -22,7 +26,9 @@ import java.nio.file.Path
  * @param profileStoragePath The path to the profile storage location.
  */
 class RedmonState(profileStoragePath: Path) {
-    private val profileStorageManager = StorageManager(profileStoragePath)
+    private val mapper = ObjectMapper().registerKotlinModule()
+    private val profileListReader = ProfileListReader(mapper)
+    private val profileStorageManager = StorageManager(profileStoragePath, mapper, profileListReader)
     private var profileRegistry = ProfileRegistry(profileStorageManager.loadProfiles())
 
     // Internal variables
@@ -31,7 +37,7 @@ class RedmonState(profileStoragePath: Path) {
 
     // GUI elements
     private val profileUI = ProfileOverlay()
-    private val inactiveUI = TextOverlay("No active profiles")
+    private val inactiveUI = TextOverlay("Redmon: No active profile")
 
     /**
      * Hide the redmon UI/overlay.
@@ -45,6 +51,13 @@ class RedmonState(profileStoragePath: Path) {
      */
     fun hide() {
         show = false
+    }
+
+    /**
+     * Toggle visibility.
+     */
+    fun toggleVisibility() {
+        show = !show
     }
 
     /**
@@ -97,13 +110,15 @@ class RedmonState(profileStoragePath: Path) {
      * @param inverted Whether the signal should be inverting or not.
      * @param format The format to display the new signal in.
      * @param blockLocations Absolute positions of blocks to include in the signal.
+     * @param columnIndex The index of the column to which the signal should be added.
      */
     fun addSignal(
         name: String,
         type: SignalType,
         inverted: Boolean,
         format: SignalFormat,
-        blockLocations: List<BlockPos>
+        blockLocations: List<BlockPos>,
+        columnIndex: Int
     ) {
         val profileInfo = requireActiveProfile {
             "Cannot add signal, no profile is selected"
@@ -112,7 +127,7 @@ class RedmonState(profileStoragePath: Path) {
         val blockLocationsRelative = blockLocations.map { it.subtract(profileInfo.offset) }
         val newSignal = Signal(name, type, inverted, format, blockLocationsRelative)
 
-        profileInfo.profile.addSignal(newSignal)
+        profileInfo.profile.getCurrentPage().addSignal(newSignal, columnIndex)
         saveProfiles()
     }
 
@@ -126,7 +141,7 @@ class RedmonState(profileStoragePath: Path) {
         val profileInfo = requireActiveProfile {
             "Cannot rename signal, no profile is selected"
         }
-        profileInfo.profile.renameSignal(name, newName)
+        profileInfo.profile.getCurrentPage().renameSignal(name, newName)
         saveProfiles()
     }
 
@@ -139,7 +154,7 @@ class RedmonState(profileStoragePath: Path) {
         val profileInfo = requireActiveProfile {
             "Cannot delete signal, no profile is selected"
         }
-        profileInfo.profile.deleteSignal(name)
+        profileInfo.profile.getCurrentPage().deleteSignal(name)
         saveProfiles()
     }
 
@@ -154,7 +169,7 @@ class RedmonState(profileStoragePath: Path) {
         val profileInfo = requireActiveProfile {
             "Cannot invert signal, no profile is selected"
         }
-        val signal = profileInfo.profile.getSignal(name)
+        val signal = profileInfo.profile.getCurrentPage().getSignal(name)
         signal.invert()
         saveProfiles()
         return signal.invert
@@ -170,7 +185,7 @@ class RedmonState(profileStoragePath: Path) {
         val profileInfo = requireActiveProfile {
             "Cannot flip signal bits, no profile is selected"
         }
-        val signal = profileInfo.profile.getSignal(name)
+        val signal = profileInfo.profile.getCurrentPage().getSignal(name)
         signal.flipBits()
         saveProfiles()
     }
@@ -184,7 +199,7 @@ class RedmonState(profileStoragePath: Path) {
         val profileInfo = requireActiveProfile {
             "Cannot get signal type, no profile is selected"
         }
-        val signal = profileInfo.profile.getSignal(name)
+        val signal = profileInfo.profile.getCurrentPage().getSignal(name)
         return signal.type
     }
 
@@ -200,10 +215,10 @@ class RedmonState(profileStoragePath: Path) {
         }
 
         val relativeBlockLocations = blockLocations.map { it.subtract(profileInfo.offset) }
-        val signal = profileInfo.profile.getSignal(name)
+        val signal = profileInfo.profile.getCurrentPage().getSignal(name)
 
         for (location in relativeBlockLocations) {
-            require(!signal.blockLocations.contains(location)) {
+            require(!signal.blocks.contains(location)) {
                 "Unable to append blocks. One or more blocks are already part of the signal."
             }
         }
@@ -222,7 +237,7 @@ class RedmonState(profileStoragePath: Path) {
         val profileInfo = requireActiveProfile {
             "Cannot set signal format, no profile is selected"
         }
-        val signal = profileInfo.profile.getSignal(name)
+        val signal = profileInfo.profile.getCurrentPage().getSignal(name)
         signal.format = format
         saveProfiles()
     }
@@ -236,24 +251,80 @@ class RedmonState(profileStoragePath: Path) {
         val profileInfo = requireActiveProfile {
             "Cannot set signal formats, no profile is selected"
         }
-        profileInfo.profile.signals.forEach { it.format = format }
+        profileInfo.profile.getCurrentPage().signalMap.values.forEach { it.signal.format = format }
         saveProfiles()
     }
 
     /**
-     * Move a signal up or down within a profile.
+     * Move a signal up or down within a profile page.
      * Returns the number of places the signal moved. Negative for up, positive for down.
      *
      * @param name The name of the signal to move.
      * @param n The number of spaces to move the signal. Negative for up, positive for down.
      */
-    fun moveSignal(name: String, n: Int): Int {
+    fun moveSignalVertically(name: String, n: Int): Int {
         val profileInfo = requireActiveProfile {
             "Cannot set signal formats, no profile is selected"
         }
-        val n = profileInfo.profile.moveSignal(name, n)
+        val n = profileInfo.profile.getCurrentPage().moveSignalVertically(name, n)
         saveProfiles()
         return n
+    }
+
+    /**
+     * Move a signal to a different column within a profile page.
+     *
+     * @param name The name of the signal to move.
+     * @param columnIndex The index of the column to move the signal to.
+     */
+    fun changeSignalColumn(name: String, columnIndex: Int) {
+        val profileInfo = requireActiveProfile {
+            "Cannot change signal column, no profile is selected"
+        }
+        profileInfo.profile.getCurrentPage().changeSignalColumn(name, columnIndex)
+        saveProfiles()
+    }
+
+    /**
+     * Switch to the next page in the current profile.
+     */
+    fun nextPage() {
+        val profileInfo = requireActiveProfile {
+            "Cannot switch to next page, no profile is selected"
+        }
+        profileInfo.profile.nextPage()
+    }
+
+    /**
+     * Switch to the previous page in the current profile.
+     */
+    fun previousPage() {
+        val profileInfo = requireActiveProfile {
+            "Cannot go to previous page, no profile is selected"
+        }
+        profileInfo.profile.previousPage()
+    }
+
+    /**
+     * Add a new page to the active profile.
+     */
+    fun addPageToActiveProfile(name: String) {
+        val profileInfo = requireActiveProfile {
+            "Cannot add new page, no profile is selected"
+        }
+        profileInfo.profile.addPage(name)
+        saveProfiles()
+    }
+
+    /**
+     * Rename the current page.
+     */
+    fun renameCurrentPage(newName: String) {
+        val profileInfo = requireActiveProfile {
+            "Cannot rename page, no profile is selected"
+        }
+        profileInfo.profile.getCurrentPage().name = newName
+        saveProfiles()
     }
 
     /**
@@ -274,9 +345,9 @@ class RedmonState(profileStoragePath: Path) {
         }
 
         val world = Minecraft.getInstance().player?.level() ?: return
-        profile.updateState(world, profileInfo.offset)
+        profile.getCurrentPage().updateState(world, profileInfo.offset)
 
-        profileUI.update(profile, profileInfo.offset)
+        profileUI.update(profile)
         profileUI.draw(context, OVERLAY_POSITION)
     }
 
@@ -286,10 +357,10 @@ class RedmonState(profileStoragePath: Path) {
      * @param profileName The name of the profile to activate.
      * @param offset The offset to enable the profile at.
      */
-    fun setActiveProfile(profileName: String, offset: Vec3) {
+    fun setActiveProfile(profileName: String, offset: Vec3i) {
         activeProfileInfo = ActiveProfileInfo(
             profileRegistry.getProfile(profileName),
-            Vec3i(offset.x.toInt(), offset.y.toInt(), offset.z.toInt())
+            offset
         )
     }
 
@@ -312,6 +383,6 @@ class RedmonState(profileStoragePath: Path) {
     }
 
     private fun requireActiveProfile(lazyMessage: () -> String): ActiveProfileInfo {
-        return requireNotNull(activeProfileInfo, lazyMessage)
+        return activeProfileInfo ?: throw NoActiveProfileException(lazyMessage())
     }
 }
