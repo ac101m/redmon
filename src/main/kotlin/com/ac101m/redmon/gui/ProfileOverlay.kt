@@ -9,15 +9,17 @@ import net.minecraft.core.Vec3i
 class ProfileOverlay : Drawable2D {
     private val pageText = SingleLineTextBox()
     private val profileText = SingleLineTextBox()
-    private val signalNameText = MultiLineTextBox()
-    private val signalValueText = MultiLineTextBox()
+    private val signalNameTextElements = ArrayList<MultiLineTextBox>()
+    private val signalValueTextElements = ArrayList<MultiLineTextBox>()
 
     private val titleSection = HorizontalDivider(pageText, profileText)
-    private val signalSection = VerticalDivider(signalNameText, signalValueText)
+    private var signalSection = VerticalDivider()
     private val layout = HorizontalDivider(titleSection, signalSection)
 
     override val height get() = layout.height
     override val width get() = layout.width
+
+    private var prevColumnCount: Int? = null
 
     override fun draw(context: GuiGraphics, position: Vec3i) {
         val titleSectionHeight = titleSection.height
@@ -42,17 +44,48 @@ class ProfileOverlay : Drawable2D {
 
     fun update(profile: Profile) {
         val currentPage = profile.getCurrentPage()
+        val columnCount = currentPage.columns.size
+
+        if (columnCount != prevColumnCount) {
+            updateLayout(columnCount)
+            prevColumnCount = columnCount
+        }
 
         pageText.text = "${Colour.GRAY.prefix}Page ${profile.getCurrentPageNumber()}/${profile.getPageCount()}"
-        profileText.text = "${Colour.DARK_AQUA.prefix}${profile.name} (${profile.getCurrentPage().name})"
+        profileText.text = "${Colour.DARK_AQUA.prefix}${profile.name} - ${profile.getCurrentPage().name}"
 
-        signalNameText.lines.clear()
-        signalValueText.lines.clear()
+        currentPage.columns.forEachIndexed { columnIndex, column ->
+            val signalNamesElement = signalNameTextElements[columnIndex].apply { lines.clear() }
+            val signalValuesElement = signalValueTextElements[columnIndex].apply { lines.clear() }
 
-        currentPage.signals.forEach { signal ->
-            signalNameText.lines.add("${Colour.GREEN.prefix}${signal.name}${Colour.WHITE.prefix}: ")
-            signalValueText.lines.add(signal.getRepresentation())
+            column.signals.forEach { signal ->
+                signalNamesElement.lines.add("${Colour.GREEN.prefix}${signal.name}${Colour.WHITE.prefix}: ")
+                signalValuesElement.lines.add(signal.getRepresentation())
+            }
         }
+    }
+
+    /**
+     * Updates the layout (must be recalculated when the column count changes)
+     */
+    private fun updateLayout(columnCount: Int) {
+        signalNameTextElements.clear()
+        signalValueTextElements.clear()
+
+        val combinedSignalTextArray = ArrayList<MultiLineTextBox>(columnCount * 2)
+
+        repeat(columnCount) {
+            val nameTextBox = MultiLineTextBox()
+            val valueTextBox = MultiLineTextBox()
+
+            signalNameTextElements.add(nameTextBox)
+            signalValueTextElements.add(valueTextBox)
+
+            combinedSignalTextArray.add(nameTextBox)
+            combinedSignalTextArray.add(valueTextBox)
+        }
+
+        signalSection.columns = combinedSignalTextArray
     }
 
     companion object {

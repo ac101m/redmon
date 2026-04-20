@@ -61,7 +61,7 @@ class CommandManager(
             .then(literal("search").then(str("query")
                 .executes { c -> profileSearchCommandSinglePage(c) }))
             .then(literal("search").then(str("query").then(int("page", 1)
-                .executes { c -> profileSearchCommand(c) } )))
+                .executes { c -> profileSearchCommand(c) })))
             .then(literal("create").then(str("name")
                 .executes { c -> profileCreateCommand(c) }))
             .then(literal("delete").then(str("name")
@@ -82,15 +82,17 @@ class CommandManager(
             .then(literal("previous")
                 .executes { c -> previousPageCommand(c) })
             .then(literal("rename").then(str("new-name")
-                .executes { c -> pageRenameCommand(c) }))
+                .executes { c -> pageRenameCommand(c)}))
             .then(literal("add").then(str("name")
-                .executes { c -> pageAddCommand(c) } ))
+                .executes { c -> pageAddCommand(c) }))
         )
     }
 
     private fun LiteralArgumentBuilder<FabricClientCommandSource>.signalCommands(): LiteralArgumentBuilder<FabricClientCommandSource> {
         return this.then(literal("signal")
             .then(literal("add").then(str("name").then(str("type").then(int("block-count")
+                .then(int("column-number", 1)
+                    .executes { c -> signalAddWithColumnCommand(c) })
                 .executes { c -> signalAddCommand(c) }))))
             .then(literal("delete").then(str("name")
                 .executes { c -> signalDeleteCommand(c) }))
@@ -110,7 +112,9 @@ class CommandManager(
                 .then(literal("up").then(int("count", 0)
                     .executes { c -> signalMoveUpCommand(c) }))
                 .then(literal("down").then(int("count", 0)
-                    .executes { c -> signalMoveDownCommand(c) })))
+                    .executes { c -> signalMoveDownCommand(c) }))
+                .then(literal("column").then(int("column-number", 1)
+                    .executes { c -> signalMoveColumnCommand(c) })))
             )
         )
     }
@@ -290,7 +294,7 @@ class CommandManager(
         return bitPositions
     }
 
-    private fun signalAddCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+    private fun doSignalAdd(ctx: CommandContext<FabricClientCommandSource>, columnIndex: Int) {
         val initialBlockCount = getInteger(ctx, "block-count")
         val signalTypeString = getString(ctx, "type")
 
@@ -303,9 +307,18 @@ class CommandManager(
             else -> getBlocksFromCrosshairTargetAndLookDirection(ctx, initialBlockCount, signalType)
         }
 
-        redmon.addSignal(signalName, signalType, inverted, format, blockLocations)
+        redmon.addSignal(signalName, signalType, inverted, format, blockLocations, columnIndex)
 
         ctx.sendFeedback("Added signal '$signalName' with $initialBlockCount bits")
+    }
+
+    private fun signalAddCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        doSignalAdd(ctx, 0)
+    }
+
+    private fun signalAddWithColumnCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val columnIndex = getInteger(ctx, "column-number") - 1
+        doSignalAdd(ctx, columnIndex)
     }
 
     private fun signalDeleteCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
@@ -376,7 +389,7 @@ class CommandManager(
     private fun signalMoveUpCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val signalName = getString(ctx, "name")
         val count = 0 - getInteger(ctx, "count")
-        when (val n = redmon.moveSignal(signalName, count)) {
+        when (val n = redmon.moveSignalVertically(signalName, count)) {
             0 -> ctx.sendFeedback("Signal '$signalName' is already at the top.")
             else -> ctx.sendFeedback("Moved signal '$signalName' in active profile up ${0 - n} places")
         }
@@ -385,10 +398,16 @@ class CommandManager(
     private fun signalMoveDownCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val signalName = getString(ctx, "name")
         val count = getInteger(ctx, "count")
-        when (val n = redmon.moveSignal(signalName, count)) {
+        when (val n = redmon.moveSignalVertically(signalName, count)) {
             0 -> ctx.sendFeedback("Signal '$signalName' is already at the bottom.")
             else -> ctx.sendFeedback("Moved signal '$signalName' in active profile down $n places")
         }
+    }
+
+    private fun signalMoveColumnCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val signalName = getString(ctx, "name")
+        val columnIndex = getInteger(ctx, "column-number") - 1
+        redmon.changeSignalColumn(signalName, columnIndex)
     }
 
     companion object {

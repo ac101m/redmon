@@ -25,12 +25,10 @@ class Profile(internal var name: String, initPages: List<ProfilePage>) {
         return currentPageIndex + 1
     }
 
-    // Function to go to next page
     fun nextPage() {
         currentPageIndex = (currentPageIndex + 1) % pages.size
     }
 
-    // Function to go to previous page
     fun previousPage() {
         currentPageIndex = when (currentPageIndex) {
             0 -> pages.size - 1
@@ -38,7 +36,6 @@ class Profile(internal var name: String, initPages: List<ProfilePage>) {
         }
     }
 
-    // Function to add new page
     fun addPage(name: String) {
         pages.add(ProfilePage(name, emptyList()))
     }

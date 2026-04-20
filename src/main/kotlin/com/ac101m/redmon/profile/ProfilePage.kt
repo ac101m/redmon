@@ -1,106 +1,111 @@
 package com.ac101m.redmon.profile
 
-import com.ac101m.redmon.persistence.v2.PersistentColumnV2
 import com.ac101m.redmon.persistence.v2.PersistentPageV2
 import net.minecraft.core.Vec3i
 import net.minecraft.world.level.Level
 
-class ProfilePage(var name: String, initSignals: List<Signal>) {
-    val signals = initSignals.toMutableList()
+class ProfilePage(var name: String, initColumns: List<ProfilePageColumn>) {
+    val columns = initColumns.toMutableList()
+    val signalMap = HashMap<String, SignalInfo>()
 
-    private fun getSignalIndex(name: String): Int? {
-        signals.forEachIndexed { i, signal ->
-            if (signal.name == name) {
-                return i
+    class SignalInfo(
+        var column: ProfilePageColumn,
+        val signal: Signal
+    )
+
+    init {
+        for (column in columns) {
+            for (signal in column.signals) {
+                require(!signalMap.containsKey(name)) {
+                    "Failed to initialize profile page. Multiple signals with name '$name'."
+                }
+                signalMap[signal.name] = SignalInfo(column, signal)
             }
         }
-        return null
     }
 
-    private fun requireSignalExists(name: String): Int {
-        return requireNotNull(getSignalIndex(name)) {
+    private fun requireSignalExists(name: String): SignalInfo {
+        return requireNotNull(signalMap[name]) {
             "Profile '${this.name}' does not contain a signal with name '$name'"
         }
     }
 
     private fun requireSignalDoesNotExist(name: String) {
-        require(getSignalIndex(name) == null) {
+        require(!signalMap.containsKey(name)) {
             "Profile '${this.name}' already contains a signal with name '$name'"
         }
     }
 
-    fun addSignal(signal: Signal) {
+    private fun getOrCreateColumn(columnIndex: Int): ProfilePageColumn {
+        return if (columnIndex < columns.size) {
+            columns[columnIndex]
+        } else if (columnIndex == columns.size) {
+            columns.add(ProfilePageColumn(emptyList()))
+            columns[columnIndex]
+        } else {
+            throw IllegalStateException("Column index out of range.")
+        }
+    }
+
+    fun addSignal(signal: Signal, columnIndex: Int) {
         requireSignalDoesNotExist(signal.name)
-        signals.add(signal)
+        val signalColumn = getOrCreateColumn(columnIndex)
+        signalMap[signal.name] = SignalInfo(signalColumn, signal)
+        signalColumn.addSignal(signal)
     }
 
     fun getSignal(name: String): Signal {
-        return signals[requireSignalExists(name)]
+        return requireSignalExists(name).signal
     }
 
     fun renameSignal(name: String, newName: String) {
-        val index = requireSignalExists(name)
-        val renamedSignal = signals[index].copy(name = newName)
-        signals[index] = renamedSignal
+        requireSignalDoesNotExist(newName)
+        val signalInfo = requireSignalExists(name)
+        signalInfo.signal.name = newName
+        signalMap.remove(name)
+        signalMap[newName] = signalInfo
     }
 
     fun deleteSignal(name: String) {
-        val index = requireSignalExists(name)
-        signals.removeAt(index)
+        val signalInfo = requireSignalExists(name)
+        signalInfo.column.deleteSignal(name)
+        signalMap.remove(name)
+        columns.removeIf { it.signals.isEmpty() }
     }
 
     fun updateState(world: Level, offset: Vec3i) {
-        signals.forEach { signal ->
-            signal.updateState(world, offset)
+        signalMap.values.forEach { signalInfo ->
+            signalInfo.signal.updateState(world, offset)
         }
     }
 
-    fun moveSignal(name: String, n: Int): Int {
-        var index = requireSignalExists(name)
-        var moved = 0
-        if (n < 0) {        // Up
-            while (index > 0 && moved > n) {
-                swapSignals(index, index - 1)
-                moved--
-                index--
-            }
-        } else if (n > 0) { // Down
-            while (index < signals.size - 1 && moved < n) {
-                swapSignals(index, index + 1)
-                moved++
-                index++
-            }
-        }
-        return moved
+    fun moveSignalVertically(name: String, n: Int): Int {
+        val signalInfo = requireSignalExists(name)
+        return signalInfo.column.moveSignalVertically(name, n)
     }
 
-    private fun swapSignals(a: Int, b: Int) {
-        check(a in signals.indices)
-        check(b in signals.indices)
-        val tmp = signals[a]
-        signals[a] = signals[b]
-        signals[b] = tmp
+    fun changeSignalColumn(name: String, columnIndex: Int) {
+        val signalInfo = requireSignalExists(name)
+        val oldColumn = signalInfo.column
+        val newColumn = getOrCreateColumn(columnIndex)
+        if (oldColumn === newColumn) {
+            return
+        } else {
+            oldColumn.deleteSignal(name)
+            newColumn.addSignal(signalInfo.signal)
+            signalInfo.column = newColumn
+        }
     }
 
     fun toPersistentProfilePage(): PersistentPageV2 {
-        // TODO: Implement columns
-        val persistentSignals = signals.map { persistentSignal ->
-            persistentSignal.toPersistentSignal()
-        }
-        val persistentColumns = listOf(PersistentColumnV2(persistentSignals))
+        val persistentColumns = columns.map { it.toPersistentColumn() }
         return PersistentPageV2(name, persistentColumns)
     }
 
     companion object {
         fun fromPersistentProfilePage(persistentPage: PersistentPageV2): ProfilePage {
-            // TODO: Implement columns
-            val singlePersistentColumn = persistentPage.columns.single()
-
-            val signals = singlePersistentColumn.signals.map { signal ->
-                Signal.fromPersistentSignal(signal)
-            }
-
-            return ProfilePage(persistentPage.name, signals)
+            val columns = persistentPage.columns.map { ProfilePageColumn.fromPersistentColumn(it) }
+            return ProfilePage(persistentPage.name, columns)
         }
     }
 }

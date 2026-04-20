@@ -110,13 +110,15 @@ class RedmonState(profileStoragePath: Path) {
      * @param inverted Whether the signal should be inverting or not.
      * @param format The format to display the new signal in.
      * @param blockLocations Absolute positions of blocks to include in the signal.
+     * @param columnIndex The index of the column to which the signal should be added.
      */
     fun addSignal(
         name: String,
         type: SignalType,
         inverted: Boolean,
         format: SignalFormat,
-        blockLocations: List<BlockPos>
+        blockLocations: List<BlockPos>,
+        columnIndex: Int
     ) {
         val profileInfo = requireActiveProfile {
             "Cannot add signal, no profile is selected"
@@ -125,7 +127,7 @@ class RedmonState(profileStoragePath: Path) {
         val blockLocationsRelative = blockLocations.map { it.subtract(profileInfo.offset) }
         val newSignal = Signal(name, type, inverted, format, blockLocationsRelative)
 
-        profileInfo.profile.getCurrentPage().addSignal(newSignal)
+        profileInfo.profile.getCurrentPage().addSignal(newSignal, columnIndex)
         saveProfiles()
     }
 
@@ -249,24 +251,38 @@ class RedmonState(profileStoragePath: Path) {
         val profileInfo = requireActiveProfile {
             "Cannot set signal formats, no profile is selected"
         }
-        profileInfo.profile.getCurrentPage().signals.forEach { it.format = format }
+        profileInfo.profile.getCurrentPage().signalMap.values.forEach { it.signal.format = format }
         saveProfiles()
     }
 
     /**
-     * Move a signal up or down within a profile.
+     * Move a signal up or down within a profile page.
      * Returns the number of places the signal moved. Negative for up, positive for down.
      *
      * @param name The name of the signal to move.
      * @param n The number of spaces to move the signal. Negative for up, positive for down.
      */
-    fun moveSignal(name: String, n: Int): Int {
+    fun moveSignalVertically(name: String, n: Int): Int {
         val profileInfo = requireActiveProfile {
             "Cannot set signal formats, no profile is selected"
         }
-        val n = profileInfo.profile.getCurrentPage().moveSignal(name, n)
+        val n = profileInfo.profile.getCurrentPage().moveSignalVertically(name, n)
         saveProfiles()
         return n
+    }
+
+    /**
+     * Move a signal to a different column within a profile page.
+     *
+     * @param name The name of the signal to move.
+     * @param columnIndex The index of the column to move the signal to.
+     */
+    fun changeSignalColumn(name: String, columnIndex: Int) {
+        val profileInfo = requireActiveProfile {
+            "Cannot change signal column, no profile is selected"
+        }
+        profileInfo.profile.getCurrentPage().changeSignalColumn(name, columnIndex)
+        saveProfiles()
     }
 
     /**

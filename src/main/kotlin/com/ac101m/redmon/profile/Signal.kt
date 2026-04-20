@@ -8,7 +8,7 @@ import net.minecraft.core.Vec3i
 import net.minecraft.world.level.Level
 
 data class Signal(
-    val name: String,
+    var name: String,
     val type: SignalType,
     var invert: Boolean,
     var format: SignalFormat,
