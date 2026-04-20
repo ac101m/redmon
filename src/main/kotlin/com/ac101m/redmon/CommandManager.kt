@@ -202,7 +202,7 @@ class CommandManager(
         val offset = ctx.source.player.blockPosition()
         redmon.addProfile(Profile(profileName, emptyList()))
         redmon.setActiveProfile(profileName, offset)
-        ctx.sendFeedback("Created new profile '$profileName', and set as active profile")
+        ctx.sendFeedback("Created new profile '$profileName', and set as the active profile")
     }
 
     private fun profileDeleteCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
