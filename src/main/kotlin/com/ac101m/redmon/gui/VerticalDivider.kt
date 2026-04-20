@@ -4,7 +4,7 @@ import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.core.Vec3i
 
 class VerticalDivider(var columns: List<Drawable2D> = ArrayList()) : Drawable2D {
-    override val height get() = columns.maxOf { it.height }
+    override val height get() = columns.maxOfOrNull { it.height } ?: 0
     override val width get() = columns.sumOf { it.width }
 
     override fun draw(context: GuiGraphics, position: Vec3i) {
