@@ -95,9 +95,9 @@ When creating a multi-block signal like this, the mod will search for additional
 direction which is closest to the player look angle. If the requested number of blocks aren't found, an error will be
 displayed in the console. Be sure to face in the right direction when using this command!
 
-Signals can also be renamed, moved, deleted or reformatted with the following commands:
+Signals can also be removed, moved, renamed or reformatted using the following commands:
 
-- `/redmon signal delete <signal-name>`
+- `/redmon signal remove <signal-name>`
 - `/redmon signal move <signal-name> (up|down) [<count>]`
 - `/redmon signal move <signal-name> column <column-number>`
 - `/redmon signal rename <signal-name> <new-signal-name>`
@@ -108,7 +108,7 @@ Signals can also be renamed, moved, deleted or reformatted with the following co
 - The mod is currently purely client-side, relying on block states to determine the state of components. This _works_
   but means that the mod can't see certain information (like the signal strength emitted by a comparator). For this to
   work, a server side component would be required.
-- The mod currently only supports the fabric runtime (not forge).
+- The mod currently only supports the fabric runtime (forge is not currently supported).
 
 ## Roadmap
 
