@@ -70,15 +70,6 @@ enum class SignalFormat {
     }
 
     companion object {
-        fun fromCommandString(str: String): SignalFormat {
-            return try {
-                SignalFormat.valueOf(str.uppercase())
-            } catch (e: IllegalArgumentException) {
-                val validFormatsString = SignalFormat.entries.joinToString(", ") { it.name.lowercase() }
-                throw RedmonException("Invalid signal format. Valid formats are: $validFormatsString", e)
-            }
-        }
-
         fun fromStringOrDefault(str: String): SignalFormat {
             return try {
                 SignalFormat.valueOf(str)
