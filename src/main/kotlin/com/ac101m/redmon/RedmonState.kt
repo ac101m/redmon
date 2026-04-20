@@ -17,7 +17,6 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Vec3i
-import net.minecraft.world.phys.Vec3
 import java.nio.file.Path
 
 /**
@@ -146,15 +145,15 @@ class RedmonState(profileStoragePath: Path) {
     }
 
     /**
-     * Delete a signal from the active profile.
+     * Remove a signal from the active profile.
      *
      * @param name The name of the signal to delete.
      */
-    fun deleteSignal(name: String) {
+    fun removeSignal(name: String) {
         val profileInfo = requireActiveProfile {
             "Cannot delete signal, no profile is selected"
         }
-        profileInfo.profile.getCurrentPage().deleteSignal(name)
+        profileInfo.profile.getCurrentPage().removeSignal(name)
         saveProfiles()
     }
 

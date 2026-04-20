@@ -99,8 +99,8 @@ class CommandManager(
                     .executes { c -> signalAddCommand(c, signalType) }))
                 }
             }))
-            .then(literal("delete").then(str("name")
-                .executes { c -> signalDeleteCommand(c) }))
+            .then(literal("remove").then(str("name")
+                .executes { c -> signalRemoveCommand(c) }))
             .then(literal("invert").then(str("name")
                 .executes { c -> signalInvertCommand(c) }))
             .then(literal("flip").then(str("name")
@@ -337,9 +337,9 @@ class CommandManager(
         doSignalAdd(ctx, type, columnIndex)
     }
 
-    private fun signalDeleteCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+    private fun signalRemoveCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val signalName = getString(ctx, "name")
-        redmon.deleteSignal(signalName)
+        redmon.removeSignal(signalName)
         ctx.sendFeedback("Removed signal '$signalName' from active profile")
     }
 
