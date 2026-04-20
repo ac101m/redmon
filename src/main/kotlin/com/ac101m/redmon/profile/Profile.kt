@@ -38,6 +38,7 @@ class Profile(internal var name: String, initPages: List<ProfilePage>) {
 
     fun addPage(name: String) {
         pages.add(ProfilePage(name, emptyList()))
+        currentPageIndex = pages.size - 1
     }
 
     fun toPersistentProfile(): PersistentProfileV2 {
