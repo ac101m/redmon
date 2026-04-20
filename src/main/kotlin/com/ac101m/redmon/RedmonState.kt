@@ -17,7 +17,6 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Vec3i
-import net.minecraft.world.phys.Vec3
 import java.nio.file.Path
 
 /**
@@ -146,15 +145,15 @@ class RedmonState(profileStoragePath: Path) {
     }
 
     /**
-     * Delete a signal from the active profile.
+     * Remove a signal from the active profile.
      *
      * @param name The name of the signal to delete.
      */
-    fun deleteSignal(name: String) {
+    fun removeSignal(name: String) {
         val profileInfo = requireActiveProfile {
             "Cannot delete signal, no profile is selected"
         }
-        profileInfo.profile.getCurrentPage().deleteSignal(name)
+        profileInfo.profile.getCurrentPage().removeSignal(name)
         saveProfiles()
     }
 
@@ -307,6 +306,8 @@ class RedmonState(profileStoragePath: Path) {
 
     /**
      * Add a new page to the active profile.
+     *
+     * @param name The name of the page to create and add to the active profile.
      */
     fun addPageToActiveProfile(name: String) {
         val profileInfo = requireActiveProfile {
@@ -317,7 +318,22 @@ class RedmonState(profileStoragePath: Path) {
     }
 
     /**
+     * Remove a page from the active profile.
+     *
+     * @param name The name of the page to remove from the active profile.
+     */
+    fun removePageFromActiveProfile(name: String) {
+        val profileInfo = requireActiveProfile {
+            "Cannot remove page, no profile is selected"
+        }
+        profileInfo.profile.removePage(name)
+        saveProfiles()
+    }
+
+    /**
      * Rename the current page.
+     *
+     * @param newName The new name of the page.
      */
     fun renameCurrentPage(newName: String) {
         val profileInfo = requireActiveProfile {

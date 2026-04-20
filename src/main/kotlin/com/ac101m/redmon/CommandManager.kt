@@ -79,6 +79,8 @@ class CommandManager(
         return this.then(literal("page")
             .then(literal("add").then(str("name")
                 .executes { c -> pageAddCommand(c) }))
+            .then(literal("remove").then(str("name")
+                .executes { c -> pageRemoveCommand(c) } ))
             .then(literal("next")
                 .executes { c -> nextPageCommand(c) })
             .then(literal("previous")
@@ -97,8 +99,8 @@ class CommandManager(
                     .executes { c -> signalAddCommand(c, signalType) }))
                 }
             }))
-            .then(literal("delete").then(str("name")
-                .executes { c -> signalDeleteCommand(c) }))
+            .then(literal("remove").then(str("name")
+                .executes { c -> signalRemoveCommand(c) }))
             .then(literal("invert").then(str("name")
                 .executes { c -> signalInvertCommand(c) }))
             .then(literal("flip").then(str("name")
@@ -245,6 +247,11 @@ class CommandManager(
         redmon.addPageToActiveProfile(name)
     }
 
+    private fun pageRemoveCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val name = getString(ctx, "name")
+        redmon.removePageFromActiveProfile(name)
+    }
+
     private fun pageRenameCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val newName = getString(ctx, "new-name")
         redmon.renameCurrentPage(newName)
@@ -330,9 +337,9 @@ class CommandManager(
         doSignalAdd(ctx, type, columnIndex)
     }
 
-    private fun signalDeleteCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+    private fun signalRemoveCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val signalName = getString(ctx, "name")
-        redmon.deleteSignal(signalName)
+        redmon.removeSignal(signalName)
         ctx.sendFeedback("Removed signal '$signalName' from active profile")
     }
 

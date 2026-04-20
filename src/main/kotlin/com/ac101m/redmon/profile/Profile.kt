@@ -41,6 +41,14 @@ class Profile(internal var name: String, initPages: List<ProfilePage>) {
         currentPageIndex = pages.size - 1
     }
 
+    fun removePage(pageName: String) {
+        requireNotNull(pages.find { it.name == pageName }) {
+            "Profile '$name' does not contain a page with name '$pageName'"
+        }
+        pages.removeIf { it.name == pageName }
+        currentPageIndex %= pages.size
+    }
+
     fun toPersistentProfile(): PersistentProfileV2 {
         val persistentPages = pages.map { page -> page.toPersistentProfilePage() }
         return PersistentProfileV2(name, persistentPages)

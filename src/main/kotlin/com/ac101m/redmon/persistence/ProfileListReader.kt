@@ -69,8 +69,9 @@ class ProfileListReader(val mapper: ObjectMapper) {
             1 -> PersistentProfileListV1::class.java
 
             /**
-             * - Support for torches (new signal type)
-             * Unreleased. May change.
+             * Support for torches (new signal type)
+             * Profile pagination and columns.
+             * Frozen. Do not change.
              */
             2 -> PersistentProfileListV2::class.java
 

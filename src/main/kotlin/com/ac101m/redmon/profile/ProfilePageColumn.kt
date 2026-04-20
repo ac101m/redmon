@@ -31,7 +31,7 @@ class ProfilePageColumn(initSignals: List<Signal>) {
         signals.add(signal)
     }
 
-    fun deleteSignal(name: String) {
+    fun removeSignal(name: String) {
         val index = requireSignalExists(name)
         signals.removeAt(index)
     }

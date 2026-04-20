@@ -66,9 +66,9 @@ class ProfilePage(var name: String, initColumns: List<ProfilePageColumn>) {
         signalMap[newName] = signalInfo
     }
 
-    fun deleteSignal(name: String) {
+    fun removeSignal(name: String) {
         val signalInfo = requireSignalExists(name)
-        signalInfo.column.deleteSignal(name)
+        signalInfo.column.removeSignal(name)
         signalMap.remove(name)
         columns.removeIf { it.signals.isEmpty() }
     }
@@ -91,7 +91,7 @@ class ProfilePage(var name: String, initColumns: List<ProfilePageColumn>) {
         if (oldColumn === newColumn) {
             return
         } else {
-            oldColumn.deleteSignal(name)
+            oldColumn.removeSignal(name)
             newColumn.addSignal(signalInfo.signal)
             signalInfo.column = newColumn
         }
