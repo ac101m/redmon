@@ -100,7 +100,8 @@ Signals can also be renamed, moved, deleted or reformatted with the following co
 - `/redmon signal delete <signal-name>`
 - `/redmon signal move <signal-name> (up|down) [<count>]`
 - `/redmon signal move <signal-name> column <column-number>`
-- `/redmin singal format <signal-name> <signal-format>`
+- `/redmon signal rename <signal-name> <new-signal-name>`
+- `/redmon singal format <signal-name> <signal-format>`
 
 ## Limitations
 
