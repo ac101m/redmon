@@ -5,7 +5,7 @@ import com.ac101m.redmon.profile.SignalFormat
 import com.ac101m.redmon.profile.SignalType
 import com.ac101m.redmon.utils.CardinalDirection
 import com.ac101m.redmon.utils.Config.Companion.DEFAULT_SIGNAL_FORMAT
-import com.ac101m.redmon.utils.Config.Companion.PROFILES_PER_PAGE
+import com.ac101m.redmon.utils.Config.Companion.PAGINATED_LIST_ENTRIES_PER_PAGE
 import com.ac101m.redmon.utils.RedmonException
 import com.ac101m.redmon.utils.ceilDiv
 import com.ac101m.redmon.utils.length
@@ -15,6 +15,7 @@ import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.IntegerArgumentType.getInteger
 import com.mojang.brigadier.arguments.IntegerArgumentType.integer
 import com.mojang.brigadier.arguments.StringArgumentType.getString
+import com.mojang.brigadier.arguments.StringArgumentType.greedyString
 import com.mojang.brigadier.arguments.StringArgumentType.string
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.builder.RequiredArgumentBuilder
@@ -44,6 +45,9 @@ class CommandManager(
             .profileCommands()
             .pageCommands()
             .signalCommands()
+            // TODO: Complete implementation
+            //.isaCommands()
+            //.instructionCommands()
     }
 
     private fun LiteralArgumentBuilder<FabricClientCommandSource>.miscCommands(): LiteralArgumentBuilder<FabricClientCommandSource> {
@@ -55,9 +59,9 @@ class CommandManager(
     private fun LiteralArgumentBuilder<FabricClientCommandSource>.profileCommands(): LiteralArgumentBuilder<FabricClientCommandSource> {
         return this.then(literal("profile")
             .then(literal("list")
-                .executes { c -> profileListCommandSinglePage(c) })
-            .then(literal("list").then(int("page", 1)
-                .executes { c -> profileListCommand(c) }))
+                .then(int("page", 1)
+                    .executes { c -> profileListCommand(c) })
+                .executes { c -> profileListCommandFirstPage(c) })
             .then(literal("search").then(str("query")
                 .executes { c -> profileSearchCommandSinglePage(c) }))
             .then(literal("search").then(str("query").then(int("page", 1)
@@ -133,6 +137,36 @@ class CommandManager(
         )
     }
 
+    private fun LiteralArgumentBuilder<FabricClientCommandSource>.isaCommands(): LiteralArgumentBuilder<FabricClientCommandSource> {
+        return this.then(literal("isa")
+            .then(literal("list")
+                .then(int("page")
+                    .executes { c -> isaListCommand(c) })
+                .executes { c -> isaListCommandFirstPage(c) })
+            .then(literal("create")
+                .then(str("isa-name").then(int("instruction-size")
+                    .executes { c -> isaCreateCommand(c) })))
+            .then(literal("delete")
+                .then(str("isa-name", redmon::getInstructionSetNames)
+                    .executes { c -> isaDeleteCommand(c) }))
+            .then(literal("rename")
+                .then(str("isa-name", redmon::getInstructionSetNames).then(str("new-isa-name")
+                    .executes { c -> isaRenameCommand(c) })))
+        )
+    }
+
+    private fun LiteralArgumentBuilder<FabricClientCommandSource>.instructionCommands(): LiteralArgumentBuilder<FabricClientCommandSource> {
+        return this.then(literal("instruction")
+            .then(literal("add")
+                .then(str("isa-name", redmon::getInstructionSetNames)
+                    .then(str("instruction-name").then(greedyStr("instruction-sections")
+                        .executes { c -> instructionAddCommand(c) }))))
+            .then(literal("remove")
+                .then(str("isa-name", redmon::getInstructionSetNames).then(str("name")
+                    .executes { c -> instructionRemoveCommand(c) })))
+        )
+    }
+
     fun registerCommands(dispatcher: CommandDispatcher<FabricClientCommandSource>) {
         dispatcher.register(literal("redmon").allCommands())
         dispatcher.register(literal("rm").allCommands())
@@ -148,44 +182,49 @@ class CommandManager(
         return COMMAND_SUCCESS
     }
 
-    private fun paginateProfileList(ctx: CommandContext<FabricClientCommandSource>, names: List<String>, pageNumber: Int) {
+    private fun paginateList(
+        ctx: CommandContext<FabricClientCommandSource>,
+        names: List<String>,
+        pageNumber: Int,
+        entryType: String
+    ) {
         if (names.isEmpty()) {
-            ctx.sendFeedback("No profiles found")
+            ctx.sendFeedback("No $entryType found")
             return
         }
 
         val pageIndex = pageNumber - 1
-        val pageCount = names.size.ceilDiv(PROFILES_PER_PAGE)
+        val pageCount = names.size.ceilDiv(PAGINATED_LIST_ENTRIES_PER_PAGE)
 
         require(pageIndex < pageCount) {
             "Requested page does not exist"
         }
 
-        val start = pageIndex * PROFILES_PER_PAGE
-        val end = min(start + PROFILES_PER_PAGE, names.size)
+        val start = pageIndex * PAGINATED_LIST_ENTRIES_PER_PAGE
+        val end = min(start + PAGINATED_LIST_ENTRIES_PER_PAGE, names.size)
         val pageNames = names.slice(start until end)
 
         val list = pageNames.joinToString(separator = "\n") { "- $it" }
-        ctx.sendFeedback("Found ${names.size} profiles (page $pageNumber/$pageCount):\n$list")
+        ctx.sendFeedback("Found ${names.size} $entryType (page $pageNumber/$pageCount):\n$list")
     }
 
     private fun doProfileList(ctx: CommandContext<FabricClientCommandSource>, pageNumber: Int) {
         val names = redmon.getProfileNames().sorted()
-        paginateProfileList(ctx, names, pageNumber)
+        paginateList(ctx, names, pageNumber, "profiles")
     }
 
     private fun doProfileSearch(ctx: CommandContext<FabricClientCommandSource>, pageNumber: Int) {
-        val names = redmon.getProfileNames()
+        val names = redmon.getProfileNames().sorted()
         val queryString = getString(ctx, "query")
         val filteredNames = names.filter { it.contains(queryString, ignoreCase = true) }
-        paginateProfileList(ctx, filteredNames, pageNumber)
+        paginateList(ctx, filteredNames, pageNumber, "profiles")
     }
 
     private fun profileListCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         doProfileList(ctx, getInteger(ctx, "page"))
     }
 
-    private fun profileListCommandSinglePage(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+    private fun profileListCommandFirstPage(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         doProfileList(ctx, 1)
     }
 
@@ -208,7 +247,7 @@ class CommandManager(
     private fun profileDeleteCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val profileName = getString(ctx, "name")
         redmon.deleteProfile(profileName)
-        ctx.sendFeedback("Removed profile '$profileName'")
+        ctx.sendFeedback("Deleted profile '$profileName'")
     }
 
     private fun profileSelectCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
@@ -439,12 +478,73 @@ class CommandManager(
         redmon.changeSignalColumn(signalName, columnIndex)
     }
 
+    private fun doIsaList(ctx: CommandContext<FabricClientCommandSource>, pageNumber: Int) {
+        val names = redmon.getInstructionSetNames().sorted()
+        paginateList(ctx, names, pageNumber, "instruction sets")
+    }
+
+    private fun isaListCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val pageNumber = getInteger(ctx, "page")
+        doIsaList(ctx, pageNumber)
+    }
+
+    private fun isaListCommandFirstPage(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        doIsaList(ctx, 1)
+    }
+
+    private fun isaCreateCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val name = getString(ctx, "isa-name")
+        val instructionSize = getInteger(ctx, "instruction-size")
+        redmon.createInstructionSet(name, instructionSize)
+        ctx.sendFeedback("Created new instruction set '$name' with an instruction size of $instructionSize bits")
+    }
+
+    private fun isaDeleteCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val name = getString(ctx, "isa-name")
+        redmon.deleteInstructionSet(name)
+        ctx.sendFeedback("Deleted instruction set '$name'")
+    }
+
+    private fun isaRenameCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val name = getString(ctx, "isa-name")
+        val newName = getString(ctx, "new-isa-name")
+        redmon.renameInstructionSet(name, newName)
+        ctx.sendFeedback("Renamed instruction set '$name' to '$newName'")
+    }
+
+    private fun instructionAddCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        TODO("Not yet implemented")
+    }
+
+    private fun instructionRemoveCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        TODO("Not yet implemented")
+    }
+
     companion object {
         private const val COMMAND_ERROR = -1
         private const val COMMAND_SUCCESS = 1
 
-        private fun str(name: String): RequiredArgumentBuilder<FabricClientCommandSource, String> {
-            return argument(name, string())
+        private fun str(
+            name: String,
+            suggestionProvider: () -> List<String> = { emptyList() }
+        ): RequiredArgumentBuilder<FabricClientCommandSource, String> {
+            return argument(name, string()).suggests { ctx, builder ->
+                val partialArg = try {
+                    getString(ctx, name)
+                } catch (_: Exception) {
+                    null
+                }
+                for (suggestion in suggestionProvider()) {
+                    if (partialArg == null || suggestion.contains(partialArg)) {
+                        builder.suggest(suggestion)
+                    }
+                }
+                builder.buildFuture()
+            }
+        }
+
+        private fun greedyStr(name: String): RequiredArgumentBuilder<FabricClientCommandSource, String> {
+            return argument(name, greedyString())
         }
 
         private fun int(

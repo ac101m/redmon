@@ -22,7 +22,7 @@ class Config {
 
         // UI Constants
         val OVERLAY_POSITION = Vec3i(2, 2, 0)
-        const val PROFILES_PER_PAGE = 10
+        const val PAGINATED_LIST_ENTRIES_PER_PAGE = 10
 
         // Misc constants
         val DEFAULT_SIGNAL_FORMAT = SignalFormat.HEX

@@ -2,6 +2,8 @@ package com.ac101m.redmon
 
 import com.ac101m.redmon.gui.ProfileOverlay
 import com.ac101m.redmon.gui.TextOverlay
+import com.ac101m.redmon.isa.InstructionSet
+import com.ac101m.redmon.isa.InstructionSetRegistry
 import com.ac101m.redmon.persistence.ProfileListReader
 import com.ac101m.redmon.profile.Profile
 import com.ac101m.redmon.profile.ProfileRegistry
@@ -28,7 +30,10 @@ class RedmonState(profileStoragePath: Path) {
     private val mapper = ObjectMapper().registerKotlinModule()
     private val profileListReader = ProfileListReader(mapper)
     private val profileStorageManager = StorageManager(profileStoragePath, mapper, profileListReader)
-    private var profileRegistry = ProfileRegistry(profileStorageManager.loadProfiles())
+    private val profileRegistry = ProfileRegistry(profileStorageManager.loadProfiles())
+
+    // TODO: Implement persistence for instruction sets
+    private val instructionSetRegistry = InstructionSetRegistry(emptyList())
 
     // Internal variables
     private var show = true
@@ -344,6 +349,46 @@ class RedmonState(profileStoragePath: Path) {
     }
 
     /**
+     * Get instruction set names as a list.
+     */
+    fun getInstructionSetNames(): List<String> {
+        return instructionSetRegistry.instructionSets.map { it.name }
+    }
+
+    /**
+     * Create a new instruction set.
+     *
+     * @param name The name of the new instruction set to create.
+     * @param instructionSize The size of instructions in the instruction set in bits.
+     */
+    fun createInstructionSet(name: String, instructionSize: Int) {
+        val newInstructionSet = InstructionSet(name, instructionSize)
+        instructionSetRegistry.addInstructionSet(newInstructionSet)
+        saveInstructionSets()
+    }
+
+    /**
+     * Delete an instruction set.
+     *
+     * @param name Name of the instruction set to delete.
+     */
+    fun deleteInstructionSet(name: String) {
+        instructionSetRegistry.removeInstructionSet(name)
+        saveInstructionSets()
+    }
+
+    /**
+     * Rename an instruction set.
+     *
+     * @param name The name of the instruction set to rename.
+     * @param newName The name to rename the instruction set to.
+     */
+    fun renameInstructionSet(name: String, newName: String) {
+        instructionSetRegistry.renameInstructionSet(name, newName)
+        saveInstructionSets()
+    }
+
+    /**
      * Draw the redmon overlay.
      *
      * @param context The GUI rendering context to use for drawing.
@@ -396,6 +441,10 @@ class RedmonState(profileStoragePath: Path) {
 
     private fun saveProfiles() {
         profileStorageManager.saveProfiles(profileRegistry.profiles)
+    }
+
+    private fun saveInstructionSets() {
+        // TODO: Implement instruction set persistence
     }
 
     private fun requireActiveProfile(lazyMessage: () -> String): ActiveProfileInfo {

@@ -3,6 +3,7 @@ package com.ac101m.redmon.profile
 import com.ac101m.redmon.persistence.v2.PersistentBlockV2
 import com.ac101m.redmon.persistence.v2.PersistentSignalV2
 import com.ac101m.redmon.utils.Colour
+import com.ac101m.redmon.utils.computeMask
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Vec3i
 import net.minecraft.world.level.Level
@@ -102,14 +103,6 @@ data class Signal(
             }
             val format = SignalFormat.fromStringOrDefault(persistentSignal.format)
             return Signal(persistentSignal.name, persistentSignal.type, persistentSignal.invert, format, blockLocations)
-        }
-
-        fun computeMask(bitCount: Int): ULong {
-            return if (bitCount < 64) {
-                (1UL shl bitCount) - 1UL
-            } else {
-                ULong.MAX_VALUE
-            }
         }
     }
 }

@@ -27,3 +27,11 @@ fun Vec3i.length(): Double {
 fun Int.ceilDiv(other: Int): Int {
     return this.floorDiv(other) + this.rem(other).sign.absoluteValue
 }
+
+fun computeMask(bitCount: Int): ULong {
+    return if (bitCount < 64) {
+        (1UL shl bitCount) - 1UL
+    } else {
+        ULong.MAX_VALUE
+    }
+}
