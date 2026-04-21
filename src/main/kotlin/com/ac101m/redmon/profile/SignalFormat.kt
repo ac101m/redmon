@@ -2,14 +2,16 @@ package com.ac101m.redmon.profile
 
 import com.ac101m.redmon.utils.Config.Companion.DEFAULT_SIGNAL_FORMAT
 import com.ac101m.redmon.utils.Colour
-import com.ac101m.redmon.utils.RedmonException
+import com.ac101m.redmon.utils.floatFromFp16Bits
 import java.io.StringWriter
 
 enum class SignalFormat {
     UNSIGNED,
     SIGNED,
     HEX,
-    BINARY;
+    BINARY,
+    FP16_IEEE,
+    FP32_IEEE;
 
     /**
      * Get the textual representation if a bit vector with fixed size.
@@ -23,6 +25,8 @@ enum class SignalFormat {
             SIGNED -> formatSigned(bits, bitCount)
             HEX -> formatHex(bits, bitCount)
             BINARY -> formatBinary(bits, bitCount)
+            FP16_IEEE -> formatIeeeFp16(bits, bitCount)
+            FP32_IEEE -> formatIeeeFp32(bits, bitCount)
         }
     }
 
@@ -67,6 +71,20 @@ enum class SignalFormat {
         sw.append(bin)
 
         return "${Colour.GRAY.prefix}0b${Colour.WHITE.prefix}$sw"
+    }
+
+    private fun formatIeeeFp16(bits: ULong, bitCount: Int): String {
+        if (bitCount != 16) {
+            return "${Colour.RED.prefix}WRONG_SIZE"
+        }
+        return floatFromFp16Bits(bits.toInt()).toString()
+    }
+
+    private fun formatIeeeFp32(bits: ULong, bitCount: Int): String {
+        if (bitCount != 32) {
+            return "${Colour.RED.prefix}WRONG_SIZE"
+        }
+        return Float.fromBits(bits.toInt()).toString()
     }
 
     companion object {
