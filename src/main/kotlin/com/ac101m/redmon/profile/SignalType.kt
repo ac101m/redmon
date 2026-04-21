@@ -19,7 +19,8 @@ enum class SignalType(val maxBlocks: Int, val bitsPerBlock: Int) {
     DUST_BINARY(maxBlocks = 64, bitsPerBlock = 1),
     DUST_SS(maxBlocks = 16, bitsPerBlock = 4),
     COMPARATOR_BINARY(maxBlocks = 64, bitsPerBlock = 1),
-    TORCH(maxBlocks = 64, bitsPerBlock = 1);
+    TORCH(maxBlocks = 64, bitsPerBlock = 1),
+    REDSTONE_LAMP(maxBlocks = 64, bitsPerBlock = 1);
 
     fun getValidBlocks(): Set<Block> {
         return when (this) {
@@ -28,6 +29,7 @@ enum class SignalType(val maxBlocks: Int, val bitsPerBlock: Int) {
             DUST_SS -> setOf(Blocks.REDSTONE_WIRE)
             COMPARATOR_BINARY -> setOf(Blocks.COMPARATOR)
             TORCH -> setOf(Blocks.REDSTONE_TORCH, Blocks.REDSTONE_WALL_TORCH)
+            REDSTONE_LAMP -> setOf(Blocks.REDSTONE_LAMP)
         }
     }
 
@@ -46,6 +48,7 @@ enum class SignalType(val maxBlocks: Int, val bitsPerBlock: Int) {
             DUST_SS -> getBitsDustSignalStrength(blockState)
             COMPARATOR_BINARY -> getBitsComparatorBinary(blockState)
             TORCH -> getBitsTorchBinary(blockState)
+            REDSTONE_LAMP -> getBitsRedstoneLampBinary(blockState)
         }
     }
 
@@ -72,6 +75,11 @@ enum class SignalType(val maxBlocks: Int, val bitsPerBlock: Int) {
 
         private fun getBitsTorchBinary(blockState: BlockState): ULong? {
             if (blockState.block != Blocks.REDSTONE_TORCH && blockState.block != Blocks.REDSTONE_WALL_TORCH) return null
+            return if (blockState.getValue(BlockStateProperties.LIT)) 1UL else 0UL
+        }
+
+        private fun getBitsRedstoneLampBinary(blockState: BlockState): ULong? {
+            if (blockState.block != Blocks.REDSTONE_LAMP) return null
             return if (blockState.getValue(BlockStateProperties.LIT)) 1UL else 0UL
         }
     }

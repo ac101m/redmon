@@ -40,7 +40,7 @@ class ProfileListReaderTests {
     }
 
     @Test
-    fun `Can load a v1 profile storage file`() {
+    fun `Can read a v1 profile`() {
         val stream = getStream("profiles/test-profiles-v1.json")
 
         val persistentObject = assertDoesNotThrow {
@@ -48,11 +48,11 @@ class ProfileListReaderTests {
         }
 
         assertThat(persistentObject).isInstanceOf(PersistentProfileListV2::class.java)
-        assertThat(persistentObject.version).isEqualTo(2)
+        assertThat(persistentObject.version).isEqualTo(3)
     }
 
     @Test
-    fun `Can load a v2 profile storage file`() {
+    fun `Can read a v2 profile`() {
         val stream = getStream("profiles/test-profiles-v2.json")
 
         val persistentObject = assertDoesNotThrow {
@@ -60,7 +60,19 @@ class ProfileListReaderTests {
         }
 
         assertThat(persistentObject).isInstanceOf(PersistentProfileListV2::class.java)
-        assertThat(persistentObject.version).isEqualTo(2)
+        assertThat(persistentObject.version).isEqualTo(3)
+    }
+
+    @Test
+    fun `Can read a v3 profile`() {
+        val stream = getStream("profiles/test-profiles-v3.json")
+
+        val persistentObject = assertDoesNotThrow {
+            stateReader.readProfileListFromJsonStream(stream)
+        }
+
+        assertThat(persistentObject).isInstanceOf(PersistentProfileListV2::class.java)
+        assertThat(persistentObject.version).isEqualTo(3)
     }
 
     companion object {

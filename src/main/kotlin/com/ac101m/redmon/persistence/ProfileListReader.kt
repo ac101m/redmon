@@ -58,7 +58,7 @@ class ProfileListReader(val mapper: ObjectMapper) {
 
     companion object {
         const val MIN_SUPPORTED_VERSION = 1
-        const val MAX_SUPPORTED_VERSION = 2
+        const val MAX_SUPPORTED_VERSION = 3
 
         fun getStorageSubtype(version: Int) = when (version) {
             /**
@@ -75,24 +75,34 @@ class ProfileListReader(val mapper: ObjectMapper) {
              */
             2 -> PersistentProfileListV2::class.java
 
+            /**
+             * Support for lamps (new signal type)
+             * Unreleased. Still subject to change.
+             */
+            3 -> PersistentProfileListV2::class.java
+
             else -> error("Storage $version does not correspond to a known subtype")
         }
 
         /**
          * Converts a persistent profile list in any format to the current format.
          *
-         * @param profileList Input persistent profile list in any format.
+         * @param inputProfileList Input persistent profile list in any format.
          */
-        fun upgradeToLatest(profileList: PersistentProfileList): PersistentProfileListV2 {
-            return when (profileList.version) {
-                1 -> upgradeV1toV2(profileList as PersistentProfileListV1)
-                2 -> profileList as PersistentProfileListV2
-                else -> error("Unrecognized profile list version ${profileList.version}")
+        fun upgradeToLatest(inputProfileList: PersistentProfileList): PersistentProfileListV2 {
+            var profileList = inputProfileList
+            while (profileList.version < MAX_SUPPORTED_VERSION) {
+                profileList = when (profileList.version) {
+                    1 -> upgradeV1toV2(profileList as PersistentProfileListV1)
+                    2 -> upgradeV2toV3(profileList as PersistentProfileListV2)
+                    else -> error("Unrecognized profile list version ${profileList.version}")
+                }
             }
+            return profileList as PersistentProfileListV2
         }
 
         /**
-         * Major structural upgrade.
+         * Major structural changes.
          * V2 format contains pages and columns, features not present in v1.
          * Each old profile is converted into a new one with a single page and single column.
          */
@@ -121,6 +131,17 @@ class ProfileListReader(val mapper: ObjectMapper) {
                     ))
                 )}
             )
+        }
+
+        /**
+         * Minor upgrade.
+         * Added support for lamps and floating point.
+         */
+        fun upgradeV2toV3(oldProfileList: PersistentProfileListV2): PersistentProfileListV2 {
+            check(oldProfileList.version == 2) {
+                "Expected profile list version to be 2, but got ${oldProfileList.version}"
+            }
+            return oldProfileList.copy(version = 3)
         }
     }
 }

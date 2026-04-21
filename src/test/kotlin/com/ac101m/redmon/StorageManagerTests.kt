@@ -67,4 +67,30 @@ class StorageManagerTests {
 
         assertThat(profiles[0].name).isEqualTo("jampu1.fetch")
     }
+
+    @Test
+    fun `Can load a v2 profile storage file`() {
+        val file = testFile("profiles/test-profiles-v2.json")
+        val manager = StorageManager(file, testMapper, profileListReader)
+
+        val profiles = assertDoesNotThrow {
+            manager.loadProfiles()
+        }
+
+        assertThat(profiles[0].name).isEqualTo("test_profile")
+        assertThat(profiles[1].name).isEqualTo("jampu1")
+    }
+
+    @Test
+    fun `Can load a v3 profile storage file`() {
+        val file = testFile("profiles/test-profiles-v3.json")
+        val manager = StorageManager(file, testMapper, profileListReader)
+
+        val profiles = assertDoesNotThrow {
+            manager.loadProfiles()
+        }
+
+        assertThat(profiles[0].name).isEqualTo("test_profile")
+        assertThat(profiles[1].name).isEqualTo("jampu1")
+    }
 }

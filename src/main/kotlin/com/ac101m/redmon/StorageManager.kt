@@ -67,7 +67,7 @@ class StorageManager(
     fun saveProfiles(profiles: List<Profile>) {
         val persistentProfiles = profiles.map { it.toPersistentProfile() }
         val persistentProfileList = PersistentProfileListV2(
-            version = CURRENT_STORAGE_VERSION,
+            version = ProfileListReader.MAX_SUPPORTED_VERSION,
             modVersion = REDMON_VERSION,
             profiles = persistentProfiles
         )
@@ -77,8 +77,6 @@ class StorageManager(
     }
 
     companion object {
-        const val CURRENT_STORAGE_VERSION = 2
-
         private fun getInputStream(path: Path): InputStream {
             if (!path.exists()) {
                 throw RedmonException("No such file '$path'.")
