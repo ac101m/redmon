@@ -15,12 +15,12 @@ class InstructionSet(
     var name: String,
     val instructionSize: Int,
     val registerAliases: Map<ULong, String> = emptyMap(),
-    initInstructions: List<Instruction> = emptyList()
+    initInstructions: List<InstructionLayout> = emptyList()
 ) {
     private val instructions = initInstructions.toMutableList()
     private val instructionMask = computeMask(instructionSize)
 
-    fun addInstruction(newInstruction: Instruction) {
+    fun addInstruction(newInstruction: InstructionLayout) {
         for (instruction in instructions) {
             TODO("Not yet implemented")
         }
@@ -35,8 +35,8 @@ class InstructionSet(
         require(instructionSize > 0) {
             "Instruction size must be greater than zero."
         }
-        require(instructionSize <= Instruction.MAX_INSTRUCTION_SIZE) {
-            "Instruction size must be less than ${Instruction.MAX_INSTRUCTION_SIZE}."
+        require(instructionSize <= InstructionLayout.MAX_INSTRUCTION_SIZE) {
+            "Instruction size must be less than ${InstructionLayout.MAX_INSTRUCTION_SIZE}."
         }
     }
 }

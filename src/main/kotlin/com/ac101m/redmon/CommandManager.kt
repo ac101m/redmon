@@ -1,5 +1,6 @@
 package com.ac101m.redmon
 
+import com.ac101m.redmon.isa.InstructionLayout
 import com.ac101m.redmon.profile.Profile
 import com.ac101m.redmon.profile.SignalFormat
 import com.ac101m.redmon.profile.SignalType
@@ -45,9 +46,8 @@ class CommandManager(
             .profileCommands()
             .pageCommands()
             .signalCommands()
-            // TODO: Complete implementation
-            //.isaCommands()
-            //.instructionCommands()
+            .isaCommands()
+            .instructionCommands()
     }
 
     private fun LiteralArgumentBuilder<FabricClientCommandSource>.miscCommands(): LiteralArgumentBuilder<FabricClientCommandSource> {
@@ -246,7 +246,7 @@ class CommandManager(
             .then(literal("add")
                 .then(str("isa-name", ::suggestInstructionSetNames)
                     .then(str("instruction-name")
-                        .then(greedyStr("instruction-sections")
+                        .then(greedyStr("instruction-layout")
                             .executes { c -> instructionAddCommand(c) }
                         )
                     )
@@ -662,11 +662,17 @@ class CommandManager(
     }
 
     private fun instructionAddCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        TODO("Not yet implemented")
+        val instructionSetName = getString(ctx, "isa-name")
+        val instructionName = getString(ctx, "instruction-name")
+        val fieldText = getString(ctx, "instruction-layout").split(" ")
+        val instruction = InstructionLayout.createFromArgs(instructionName, fieldText, null)
+        ctx.sendFeedback("Added instruction '${instruction.name}': ${instruction.prettyPrint()}")
     }
 
     private fun instructionRemoveCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        TODO("Not yet implemented")
+        val instructionSetName = getString(ctx, "isa-name")
+        val instructionName = getString(ctx, "instruction-name")
+        //redmon.removeInstruction(instructionSetName)
     }
 
     companion object {

@@ -1,5 +1,6 @@
 package com.ac101m.redmon.isa
 
+import com.ac101m.redmon.isa.instruction.OpcodeField
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
@@ -9,22 +10,13 @@ import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.junit.jupiter.params.provider.ValueSource
 
-class InstructionTests {
-    val testOpcodeField = InstructionField(FieldType.OPCODE, 0, 4)
-    val testOpcodeBits = "0101"
-
-    @Test
-    fun `If an invalid opcode bit pattern is supplied, an error is generated`() {
-        val e = assertThrows<IllegalArgumentException> {
-            Instruction("TST", 16, "nope", listOf(testOpcodeField), null)
-        }
-        assertThat(e).hasMessage("Opcode bits are not a valid binary string.")
-    }
+class InstructionLayoutTests {
+    val testOpcodeField = OpcodeField("0101", 0)
 
     @Test
     fun `If no opcode field is supplied, an error is generated`() {
         val e = assertThrows<IllegalArgumentException> {
-            Instruction("TST", 16, testOpcodeBits, emptyList(), null)
+            InstructionLayout("TST", 16, null, emptyList())
         }
         assertThat(e).hasMessage("Opcode field is missing.")
     }
@@ -32,23 +24,15 @@ class InstructionTests {
     @Test
     fun `If the opcode bit pattern does not match the size of the opcode field, an error is generated`() {
         val e = assertThrows<IllegalArgumentException> {
-            Instruction("TST", 16, testOpcodeBits, listOf(testOpcodeField, testOpcodeField), null)
+            InstructionLayout("TST", 16, null, listOf(testOpcodeField, testOpcodeField))
         }
         assertThat(e).hasMessage("Multiple opcode fields are present.")
     }
 
     @Test
-    fun `If the opcode bit pattern does not have the same size as the opcode field, an error is generated`() {
-        val e = assertThrows<IllegalArgumentException> {
-            Instruction("TST", 16, "00000", listOf(testOpcodeField), null)
-        }
-        assertThat(e).hasMessage("Opcode bit pattern does not match opcode field length.")
-    }
-
-    @Test
     fun `If one or more fields do not fit within the instruction, an error is generated`() {
         val e = assertThrows<IllegalArgumentException> {
-            Instruction("TST", 3, "0000", listOf(testOpcodeField), null)
+            InstructionLayout("TST", 3, null, listOf(testOpcodeField))
         }
         assertThat(e).hasMessage("One or more fields do not fit within the instruction.")
     }
@@ -61,11 +45,10 @@ class InstructionTests {
 
         assertThat(testBitPattern).hasSize(testInstructionSize)
 
-        val instruction = Instruction(
+        val instruction = InstructionLayout(
             name = "TST",
             size = testInstructionSize,
-            opcodeBitPattern = "1001",
-            fields = listOf(testOpcodeField),
+            fields = listOf(OpcodeField("1001", 0)),
             description = "A test instruction"
         )
 
@@ -80,11 +63,10 @@ class InstructionTests {
 
         assertThat(testBitPattern).hasSize(testInstructionSize)
 
-        val instruction = Instruction(
+        val instruction = InstructionLayout(
             name = "TST",
             size = testInstructionSize,
-            opcodeBitPattern = "1001",
-            fields = listOf(testOpcodeField),
+            fields = listOf(OpcodeField("1001", 0)),
             description = "A test instruction"
         )
 
@@ -94,26 +76,22 @@ class InstructionTests {
     @ParameterizedTest
     @MethodSource("conflictingOpcodePatterns")
     fun `When instructions have conflicting opcodes, conflictsWith() returns true`(
-        opcode1: String,
-        opcode1Offset: Int,
-        opcode2: String,
-        opcode2Offset: Int
+        opcodeField1: OpcodeField,
+        opcodeField2: OpcodeField
     ) {
         val testInstructionSize = 16
 
-        val instruction1 = Instruction(
+        val instruction1 = InstructionLayout(
             name = "TST1",
             size = testInstructionSize,
-            opcodeBitPattern = opcode1,
-            fields = listOf(InstructionField(FieldType.OPCODE, opcode1Offset, opcode1.length)),
+            fields = listOf(opcodeField1),
             description = "A test instruction"
         )
 
-        val instruction2 = Instruction(
+        val instruction2 = InstructionLayout(
             name = "TST2",
             size = testInstructionSize,
-            opcodeBitPattern = opcode2,
-            fields = listOf(InstructionField(FieldType.OPCODE, opcode2Offset, opcode2.length)),
+            fields = listOf(opcodeField2),
             description = "Another test instruction"
         )
 
@@ -123,26 +101,22 @@ class InstructionTests {
     @ParameterizedTest
     @MethodSource("nonConflictingOpcodePatterns")
     fun `When instructions do not have conflicting opcodes, conflictsWith() returns false`(
-        opcode1: String,
-        opcode1Offset: Int,
-        opcode2: String,
-        opcode2Offset: Int
+        opcodeField1: OpcodeField,
+        opcodeField2: OpcodeField
     ) {
         val testInstructionSize = 16
 
-        val instruction1 = Instruction(
+        val instruction1 = InstructionLayout(
             name = "TST1",
             size = testInstructionSize,
-            opcodeBitPattern = opcode1,
-            fields = listOf(InstructionField(FieldType.OPCODE, opcode1Offset, opcode1.length)),
+            fields = listOf(opcodeField1),
             description = "A test instruction"
         )
 
-        val instruction2 = Instruction(
+        val instruction2 = InstructionLayout(
             name = "TST2",
             size = testInstructionSize,
-            opcodeBitPattern = opcode2,
-            fields = listOf(InstructionField(FieldType.OPCODE, opcode2Offset, opcode2.length)),
+            fields = listOf(opcodeField2),
             description = "Another test instruction"
         )
 
@@ -153,7 +127,7 @@ class InstructionTests {
     @MethodSource("validInstructionStrings")
     fun `Valid instructions can be successfully constructed from text`(name: String, fields: List<String>) {
         val instruction = assertDoesNotThrow {
-            Instruction.createFromArgs(name, fields, null)
+            InstructionLayout.createFromArgs(name, fields, null)
         }
 
         instruction.apply {
@@ -166,18 +140,18 @@ class InstructionTests {
 
         @JvmStatic
         fun conflictingOpcodePatterns() = listOf<Arguments>(
-            Arguments.of("1010", 0, "1010", 0),     // Identical
-            Arguments.of("1010", 0, "1010", 8),     // Non overlapping
-            Arguments.of("1010", 0, "01010", 0),    // Identical within overlapping section, same offset
-            Arguments.of("1010", 0, "1010", 2)      // Identical with overlapping section, different offsets
+            Arguments.of(OpcodeField("1010", 0), OpcodeField("1010", 0)),     // Identical
+            Arguments.of(OpcodeField("1010", 0), OpcodeField("1010", 8)),     // Non overlapping
+            Arguments.of(OpcodeField("1010", 0), OpcodeField("01010", 0)),    // Identical within overlapping section, same offset
+            Arguments.of(OpcodeField("1010", 0), OpcodeField("1010", 2))      // Identical with overlapping section, different offsets
         )
 
         @JvmStatic
         fun nonConflictingOpcodePatterns() = listOf<Arguments>(
-            Arguments.of("1010", 0, "1011", 0),     // Non-identical
-            Arguments.of("1010", 0, "11011", 0),    // Non-identical within overlapping section
-            Arguments.of("1010", 0, "1011", 2),     // Non-identical within overlapping section, different offsets
-            Arguments.of("110010", 0, "10100", 5)   // Non-identical one shared bit
+            Arguments.of(OpcodeField("1010", 0), OpcodeField("1011", 0)),     // Non-identical
+            Arguments.of(OpcodeField("1010", 0), OpcodeField("11011", 0)),    // Non-identical within overlapping section
+            Arguments.of(OpcodeField("1010", 0), OpcodeField("1011", 2)),     // Non-identical within overlapping section, different offsets
+            Arguments.of(OpcodeField("110010", 0), OpcodeField("10100", 5))   // Non-identical one shared bit
         )
 
         @JvmStatic

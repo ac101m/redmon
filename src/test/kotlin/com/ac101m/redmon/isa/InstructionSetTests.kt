@@ -18,12 +18,12 @@ class InstructionSetTests {
 
     @Test
     fun `Creating an instruction set with a size which exceeds to max instruction size causes an error`() {
-        val testSize = (Instruction.MAX_INSTRUCTION_SIZE + 1 until Int.MAX_VALUE).random()
+        val testSize = (InstructionLayout.MAX_INSTRUCTION_SIZE + 1 until Int.MAX_VALUE).random()
 
         val e = assertThrows<IllegalArgumentException> {
             InstructionSet(testInstructionSetName, testSize)
         }
 
-        assertThat(e).hasMessageContaining("Instruction size must be less than ${Instruction.MAX_INSTRUCTION_SIZE}")
+        assertThat(e).hasMessageContaining("Instruction size must be less than ${InstructionLayout.MAX_INSTRUCTION_SIZE}")
     }
 }

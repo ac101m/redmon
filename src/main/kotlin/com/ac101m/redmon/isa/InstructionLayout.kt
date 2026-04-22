@@ -1,6 +1,9 @@
 package com.ac101m.redmon.isa
 
-import com.ac101m.redmon.utils.computeMask
+import com.ac101m.redmon.isa.instruction.Field
+import com.ac101m.redmon.isa.instruction.IgnoreField
+import com.ac101m.redmon.isa.instruction.OpcodeField
+import com.ac101m.redmon.utils.Colour
 
 /**
  * Represents an instruction within an instruction set.
@@ -8,23 +11,32 @@ import com.ac101m.redmon.utils.computeMask
  *
  * @property name The name of the instruction.
  * @property size The size of the instruction in bits.
- * @param opcodeBitPattern The opcode bits for this instruction.
  * @param fields The fields within the instruction.
- * @param description Optional description of the instruction.
+ * @property description Optional description of the instruction.
  */
-class Instruction(
+class InstructionLayout(
     val name: String,
     val size: Int,
-    private val opcodeBitPattern: String,
-    private val fields: List<InstructionField>,
-    private val description: String?
+    val description: String?,
+    private val fields: List<Field>
 ) {
+    val opcodeBitPattern: String
+
     private val opcodeBits: ULong
-    private val opcodeField: InstructionField
-    private val instructionMask = computeMask(size)
+    private val opcodeField: Field
 
     init {
-        val opcodeFields = fields.filter { it.type == FieldType.OPCODE }.apply {
+        for (a in fields) {
+            for (b in fields) {
+                if (a !== b) {
+                    require(!a.overlapsWith(b)) {
+                        "One or more fields overlap with eachother."
+                    }
+                }
+            }
+        }
+
+        val opcodeFields = fields.filterIsInstance<OpcodeField>().apply {
             require(isNotEmpty()) {
                 "Opcode field is missing."
             }
@@ -39,11 +51,8 @@ class Instruction(
             }
         }
 
-        opcodeField = opcodeFields.single().apply {
-            require(size == opcodeBitPattern.length) {
-                "Opcode bit pattern does not match opcode field length."
-            }
-        }
+        opcodeField = opcodeFields.single()
+        opcodeBitPattern = opcodeField.bitPattern
 
         opcodeBits = try {
             (opcodeBitPattern.toULong(2) shl opcodeField.offset) and opcodeField.mask
@@ -68,7 +77,7 @@ class Instruction(
      *
      * @param other Instruction to compare with.
      */
-    fun conflictsWith(other: Instruction): Boolean {
+    fun conflictsWith(other: InstructionLayout): Boolean {
         val opcodeMask = opcodeField.mask
         val otherOpcodeMask = other.opcodeField.mask
         val sharedOpcodeMask = opcodeMask and otherOpcodeMask
@@ -77,20 +86,62 @@ class Instruction(
         return maskedOpcodeBits == otherMaskedOpcodeBits
     }
 
+    /**
+     * Pretty print the instruction.
+     */
+    fun prettyPrint(): String {
+        val sb = StringBuilder(size * 2)
+        var i = 0
+
+        sb.append("[ ")
+
+        while (i < size) {
+            val field = getFieldAtBit(i)
+
+            if (field != null) {
+                val fieldRepresentation = field.bitRepresentation()
+                sb.append(fieldRepresentation)
+                sb.append(Colour.WHITE.prefix)
+                sb.append(' ')
+                i += field.size
+            } else {
+                sb.append('X')
+                i++
+            }
+        }
+
+        sb.append(Colour.WHITE.prefix)
+        sb.append(']')
+
+        return sb.toString()
+    }
+
+    private fun getFieldAtBit(bitIndex: Int): Field? {
+        require(bitIndex < size) {
+            "Bit index out of range."
+        }
+
+        for (field in fields) {
+            if (field.containsBit(bitIndex)) {
+                return field
+            }
+        }
+
+        return null
+    }
+
     companion object {
         const val MAX_INSTRUCTION_SIZE = 64
 
-        fun createFromArgs(name: String, fieldText: List<String>, description: String?): Instruction {
-            val parsedFields = ArrayList<InstructionField>()
+        private val DIVIDER_COLOUR = Colour.WHITE
+
+        fun createFromArgs(name: String, fieldText: List<String>, description: String?): InstructionLayout {
+            val parsedFields = ArrayList<Field>()
             var currentOffset = 0
-            var opcodeBitPattern: String? = null
 
             for (str in fieldText) {
                 try {
-                    val field = InstructionField.of(str, currentOffset)
-                    if (field.type == FieldType.OPCODE) {
-                        opcodeBitPattern = field.data
-                    }
+                    val field = Field.of(str, currentOffset)
                     currentOffset += field.size
                     parsedFields.add(field)
                 } catch (e: Exception) {
@@ -98,14 +149,9 @@ class Instruction(
                 }
             }
 
-            requireNotNull(opcodeBitPattern) {
-                "No opcode was added. Please add an opcode to your instruction."
-            }
-
-            return Instruction(
+            return InstructionLayout(
                 name = name,
                 size = currentOffset,
-                opcodeBitPattern = opcodeBitPattern,
                 fields = parsedFields,
                 description = description
             )
