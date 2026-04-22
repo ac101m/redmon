@@ -1,11 +1,12 @@
 package com.ac101m.redmon
 
-import com.ac101m.redmon.persistence.ProfileListReader
-import com.ac101m.redmon.persistence.v2.PersistentProfileListV2
+import com.ac101m.redmon.persistence.StorageReader
+import com.ac101m.redmon.persistence.v2.PersistentStorageV2
 import com.ac101m.redmon.profile.Profile
 import com.ac101m.redmon.utils.Config.Companion.REDMON_VERSION
 import com.ac101m.redmon.utils.RedmonException
 import com.ac101m.redmon.utils.UnsupportedProfileVersionException
+import com.ac101m.redmon.world.WorldMetadata
 import com.fasterxml.jackson.databind.ObjectMapper
 import java.io.InputStream
 import java.nio.file.Path
@@ -19,16 +20,16 @@ import kotlin.io.path.outputStream
  *
  * @param profileStoragePath Path to profile storage file.
  * @param jsonMapper Jackson object mapper for stored profile deserialisation.
- * @param profileListReader Reader for reading profiles.
+ * @param storageReader Reader for reading profiles.
  */
 class StorageManager(
     private val profileStoragePath: Path,
     private val jsonMapper: ObjectMapper,
-    private val profileListReader: ProfileListReader
+    private val storageReader: StorageReader
 ) {
     init {
         if (!profileStoragePath.exists()) {
-            saveProfiles(emptyList())
+            saveState(emptyList(), emptyList())
         } else if (!profileStoragePath.isRegularFile()) {
             error("Profile storage file at '$profileStoragePath' is not a regular file.")
         }
@@ -39,11 +40,11 @@ class StorageManager(
      *
      * @return A list of loaded [Profile] objects.
      */
-    fun loadProfiles(): List<Profile> {
+    fun loadStorage(): PersistentStorageV2 {
         val inputStream = getInputStream(profileStoragePath)
 
-        val persistentProfileList = try {
-            profileListReader.readProfileListFromJsonStream(inputStream)
+        val persistentStorage = try {
+            storageReader.readStorageFromJsonStream(inputStream)
         } catch (e: UnsupportedProfileVersionException) {
             throw UnsupportedProfileVersionException(
                 cause = e,
@@ -54,25 +55,26 @@ class StorageManager(
             throw IllegalStateException("Failed to load stored profiles.", e)
         }
 
-        return persistentProfileList.profiles.map { persistentProfile ->
-            Profile.fromPersistentProfile(persistentProfile)
-        }
+        return persistentStorage
     }
 
     /**
-     * Save profiles to disk.
+     * Save profiles and world metadata to disk.
      *
      * @param profiles The profiles to store.
+     * @param worldMetadata World metadata items to store.
      */
-    fun saveProfiles(profiles: List<Profile>) {
+    fun saveState(profiles: List<Profile>, worldMetadata: List<WorldMetadata>) {
         val persistentProfiles = profiles.map { it.toPersistentProfile() }
-        val persistentProfileList = PersistentProfileListV2(
-            version = ProfileListReader.MAX_SUPPORTED_VERSION,
+        val persistentWorldMetadata = worldMetadata.filter { !it.isEmpty() }.map { it.toPersistent() }
+        val persistentStorage = PersistentStorageV2(
+            version = StorageReader.MAX_SUPPORTED_VERSION,
             modVersion = REDMON_VERSION,
-            profiles = persistentProfiles
+            profiles = persistentProfiles,
+            worldData = persistentWorldMetadata
         )
         profileStoragePath.outputStream().use { outputStream ->
-            jsonMapper.writer().writeValue(outputStream, persistentProfileList)
+            jsonMapper.writer().writeValue(outputStream, persistentStorage)
         }
     }
 

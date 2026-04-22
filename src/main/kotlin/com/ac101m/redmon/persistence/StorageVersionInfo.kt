@@ -6,10 +6,10 @@ import com.fasterxml.jackson.databind.JsonNode
  * This class is used for extracting version information from a stored or imported profile list.
  * Ignores all properties but the version number and mod version.
  */
-data class ProfileListVersionInfo(
+data class StorageVersionInfo(
     override val version: Int,
     override val modVersion: String? = null
-) : PersistentProfileList {
+) : PersistentStorage {
     companion object {
         /**
          * Extract profile list version information from a JSON tree.
@@ -17,7 +17,7 @@ data class ProfileListVersionInfo(
          *  - Avoids the need for multiple passes when reading a stored profile.
          *  - Allows us to check the version of stored/serialized profile lists written by later versions of the mod.
          */
-        fun fromJsonNode(json: JsonNode): ProfileListVersionInfo {
+        fun fromJsonNode(json: JsonNode): StorageVersionInfo {
             check(json.hasNonNull("version")) {
                 "Could not get storage version info, version field is missing or null."
             }
@@ -46,7 +46,7 @@ data class ProfileListVersionInfo(
                 null
             }
 
-            return ProfileListVersionInfo(version, modVersion)
+            return StorageVersionInfo(version, modVersion)
         }
     }
 }

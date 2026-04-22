@@ -3,7 +3,7 @@ package com.ac101m.redmon.persistence
 /**
  * Interface for all profile storage subtypes.
  */
-interface PersistentProfileList {
+interface PersistentStorage {
     /**
      * Persistent storage version.
      * If this is incremented, this indicates a breaking change in the profile format has occurred.

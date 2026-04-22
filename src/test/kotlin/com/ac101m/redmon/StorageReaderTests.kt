@@ -1,7 +1,7 @@
 package com.ac101m.redmon
 
-import com.ac101m.redmon.persistence.ProfileListReader
-import com.ac101m.redmon.persistence.v2.PersistentProfileListV2
+import com.ac101m.redmon.persistence.StorageReader
+import com.ac101m.redmon.persistence.v2.PersistentStorageV2
 import com.ac101m.redmon.utils.UnsupportedProfileVersionException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
@@ -11,16 +11,16 @@ import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import java.io.InputStream
 
-class ProfileListReaderTests {
+class StorageReaderTests {
     val testMapper = ObjectMapper().registerKotlinModule()
-    val stateReader = ProfileListReader(testMapper)
+    val stateReader = StorageReader(testMapper)
 
     @Test
     fun `Reading a file with a non matching (high) version results in an exception`() {
         val stream = getStream("profiles/absurd-high-version.json")
 
         val e = assertThrows<UnsupportedProfileVersionException> {
-            stateReader.readProfileListFromJsonStream(stream)
+            stateReader.readStorageFromJsonStream(stream)
         }
 
         assertThat(e).hasMessageContaining("Redmon was unable to read profile data")
@@ -32,7 +32,7 @@ class ProfileListReaderTests {
         val stream = getStream("profiles/absurd-low-version.json")
 
         val e = assertThrows<UnsupportedProfileVersionException> {
-            stateReader.readProfileListFromJsonStream(stream)
+            stateReader.readStorageFromJsonStream(stream)
         }
 
         assertThat(e).hasMessageContaining("Redmon was unable to read profile data")
@@ -44,10 +44,10 @@ class ProfileListReaderTests {
         val stream = getStream("profiles/test-profiles-v1.json")
 
         val persistentObject = assertDoesNotThrow {
-            stateReader.readProfileListFromJsonStream(stream)
+            stateReader.readStorageFromJsonStream(stream)
         }
 
-        assertThat(persistentObject).isInstanceOf(PersistentProfileListV2::class.java)
+        assertThat(persistentObject).isInstanceOf(PersistentStorageV2::class.java)
         assertThat(persistentObject.version).isEqualTo(3)
     }
 
@@ -56,10 +56,10 @@ class ProfileListReaderTests {
         val stream = getStream("profiles/test-profiles-v2.json")
 
         val persistentObject = assertDoesNotThrow {
-            stateReader.readProfileListFromJsonStream(stream)
+            stateReader.readStorageFromJsonStream(stream)
         }
 
-        assertThat(persistentObject).isInstanceOf(PersistentProfileListV2::class.java)
+        assertThat(persistentObject).isInstanceOf(PersistentStorageV2::class.java)
         assertThat(persistentObject.version).isEqualTo(3)
     }
 
@@ -68,10 +68,10 @@ class ProfileListReaderTests {
         val stream = getStream("profiles/test-profiles-v3.json")
 
         val persistentObject = assertDoesNotThrow {
-            stateReader.readProfileListFromJsonStream(stream)
+            stateReader.readStorageFromJsonStream(stream)
         }
 
-        assertThat(persistentObject).isInstanceOf(PersistentProfileListV2::class.java)
+        assertThat(persistentObject).isInstanceOf(PersistentStorageV2::class.java)
         assertThat(persistentObject.version).isEqualTo(3)
     }
 

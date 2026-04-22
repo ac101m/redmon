@@ -28,6 +28,10 @@ class ProfileRegistry(initProfiles: List<Profile>) {
         return profileIndex[name]!!
     }
 
+    fun getProfileOrNull(name: String): Profile? {
+        return profileIndex[name]
+    }
+
     fun addProfile(profile: Profile) {
         requireProfileDoesNotExist(profile.name)
         profileIndex[profile.name] = profile

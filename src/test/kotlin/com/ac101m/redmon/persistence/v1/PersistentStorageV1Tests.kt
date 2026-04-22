@@ -6,12 +6,12 @@ import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
-class PersistentProfileListV1Tests {
+class PersistentStorageV1Tests {
     val mapper = ObjectMapper().registerKotlinModule()
 
     @Test
     fun `Round trip test`() {
-        val original = PersistentProfileListV1(
+        val original = PersistentStorageV1(
             1,
             "test-no-version",
             listOf(
@@ -36,7 +36,7 @@ class PersistentProfileListV1Tests {
         )
 
         val serialized = mapper.writeValueAsString(original)
-        val deserialized = mapper.readValue(serialized, PersistentProfileListV1::class.java)
+        val deserialized = mapper.readValue(serialized, PersistentStorageV1::class.java)
 
         assertThat(deserialized).isEqualTo(original)
     }
@@ -44,10 +44,10 @@ class PersistentProfileListV1Tests {
     @Test
     fun `Round trip test with real data`() {
         val stream = this::class.java.classLoader.getResourceAsStream("profiles/test-profiles-v1.json")!!
-        val original = mapper.readValue(stream, PersistentProfileListV1::class.java)
+        val original = mapper.readValue(stream, PersistentStorageV1::class.java)
 
         val serialized = mapper.writeValueAsString(original)
-        val deserialized = mapper.readValue(serialized, PersistentProfileListV1::class.java)
+        val deserialized = mapper.readValue(serialized, PersistentStorageV1::class.java)
 
         assertThat(deserialized).isEqualTo(original)
     }
