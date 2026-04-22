@@ -88,13 +88,16 @@ class ProfilePage(var name: String, initColumns: List<ProfilePageColumn>) {
         val signalInfo = requireSignalExists(name)
         val oldColumn = signalInfo.column
         val newColumn = getOrCreateColumn(columnIndex)
+
         if (oldColumn === newColumn) {
             return
-        } else {
-            oldColumn.removeSignal(name)
-            newColumn.addSignal(signalInfo.signal)
-            signalInfo.column = newColumn
         }
+
+        oldColumn.removeSignal(name)
+        newColumn.addSignal(signalInfo.signal)
+        signalInfo.column = newColumn
+
+        columns.removeIf { it.signals.isEmpty() }
     }
 
     fun toPersistentProfilePage(): PersistentPageV2 {

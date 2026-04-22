@@ -53,6 +53,19 @@ enum class SignalType(val maxBlocks: Int, val bitsPerBlock: Int) {
     }
 
     companion object {
+        fun suggestNames(filter: String): List<String> {
+            return entries.map { it.name.lowercase() }.filter { it.contains(filter) }
+        }
+
+        fun fromCommandString(str: String): SignalType {
+            return try {
+                SignalType.valueOf(str.uppercase())
+            } catch (e: IllegalArgumentException) {
+                val validTypesString = SignalType.entries.joinToString(", ") { it.name.lowercase() }
+                throw RedmonException("Invalid signal type. Valid types are: $validTypesString", e)
+            }
+        }
+
         private fun getBitsRepeater(blockState: BlockState): ULong? {
             if (blockState.block != Blocks.REPEATER) return null
             return if (blockState.getValue(BlockStateProperties.POWERED)) 1UL else 0UL

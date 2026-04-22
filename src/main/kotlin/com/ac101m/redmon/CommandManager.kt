@@ -60,79 +60,153 @@ class CommandManager(
         return this.then(literal("profile")
             .then(literal("list")
                 .then(int("page", 1)
-                    .executes { c -> profileListCommand(c) })
-                .executes { c -> profileListCommandFirstPage(c) })
-            .then(literal("search").then(str("query")
-                .executes { c -> profileSearchCommandSinglePage(c) }))
-            .then(literal("search").then(str("query").then(int("page", 1)
-                .executes { c -> profileSearchCommand(c) })))
-            .then(literal("create").then(str("name")
-                .executes { c -> profileCreateCommand(c) }))
-            .then(literal("delete").then(str("name")
-                .executes { c -> profileDeleteCommand(c) }))
-            .then(literal("select").then(str("name")
-                .executes { c -> profileSelectCommand(c) }))
+                    .executes { c -> profileListCommand(c) }
+                )
+                .executes { c -> profileListCommandFirstPage(c) }
+            )
+            .then(literal("search")
+                .then(str("query")
+                    .executes { c -> profileSearchCommandSinglePage(c) }
+                )
+            )
+            .then(literal("search")
+                .then(str("query")
+                    .then(int("page", 1)
+                        .executes { c -> profileSearchCommand(c) }
+                    )
+                )
+            )
+            .then(literal("create")
+                .then(str("name", ::suggestProfileNames)
+                    .executes { c -> profileCreateCommand(c) }
+                )
+            )
+            .then(literal("delete")
+                .then(str("name", ::suggestProfileNames)
+                    .executes { c -> profileDeleteCommand(c) }
+                )
+            )
+            .then(literal("select")
+                .then(str("name", ::suggestProfileNames)
+                    .executes { c -> profileSelectCommand(c) }
+                )
+            )
             .then(literal("deselect")
-                .executes { c -> profileDeselectCommand(c) })
-            .then(literal("rename").then(str("name").then(str("new-name")
-                .executes { c -> profileRenameCommand(c) })))
+                .executes { c -> profileDeselectCommand(c) }
+            )
+            .then(literal("rename")
+                .then(str("name", ::suggestProfileNames)
+                    .then(str("new-name")
+                        .executes { c -> profileRenameCommand(c) }
+                    )
+                )
+            )
         )
     }
 
     private fun LiteralArgumentBuilder<FabricClientCommandSource>.pageCommands(): LiteralArgumentBuilder<FabricClientCommandSource> {
         return this.then(literal("page")
-            .then(literal("add").then(str("name")
-                .executes { c -> pageAddCommand(c) }))
-            .then(literal("remove").then(str("name")
-                .executes { c -> pageRemoveCommand(c) } ))
+            .then(literal("add")
+                .then(str("name")
+                    .executes { c -> pageAddCommand(c) }
+                )
+            )
+            .then(literal("remove")
+                .then(str("name", ::suggestPageNames)
+                    .executes { c -> pageRemoveCommand(c) }
+                )
+            )
             .then(literal("next")
-                .executes { c -> nextPageCommand(c) })
+                .executes { c -> nextPageCommand(c) }
+            )
             .then(literal("previous")
-                .executes { c -> previousPageCommand(c) })
-            .then(literal("rename").then(str("new-name")
-                .executes { c -> pageRenameCommand(c)}))
+                .executes { c -> previousPageCommand(c) }
+            )
+            .then(literal("rename")
+                .then(str("new-name")
+                    .executes { c -> pageRenameCommand(c) }
+                )
+            )
         )
     }
 
     private fun LiteralArgumentBuilder<FabricClientCommandSource>.signalCommands(): LiteralArgumentBuilder<FabricClientCommandSource> {
         return this.then(literal("signal")
-            .then(literal("add").then(str("name").apply {
-                for (signalType in SignalType.entries) {
-                    then(literal(signalType.name.lowercase()).then(int("block-count").then(int("column-number", 1)
-                        .executes { c -> signalAddWithColumnCommand(c, signalType) })
-                    .executes { c -> signalAddCommand(c, signalType) }))
-                }
-            }))
-            .then(literal("remove").then(str("name")
-                .executes { c -> signalRemoveCommand(c) }))
-            .then(literal("invert").then(str("name")
-                .executes { c -> signalInvertCommand(c) }))
-            .then(literal("flip").then(str("name")
-                .executes { c -> signalFlipCommand(c) }))
-            .then(literal("add-block").then(str("name")
-                .executes { c -> signalAppendBlockCommand(c) }))
-            .then(literal("add-blocks").then(str("name").then(int("count", 0)
-                .executes { c -> signalAppendBlocksCommand(c) })))
-            .then(literal("rename").then(str("name").then(str("new-name")
-                .executes { c -> signalRenameCommand(c) })))
-            .then(literal("format").then(str("name").apply {
-                for (format in SignalFormat.entries) {
-                    then(literal(format.name.lowercase()).executes { c ->
-                        signalFormatCommand(c, format)
-                    })
-                }
-            }))
-            .then(literal("move").then(str("name")
-                .then(literal("up")
-                    .then(int("count", 1)
-                        .executes { c -> signalMoveUpCommand(c) })
-                    .executes { c -> signalMoveUpOneCommand(c) })
-                .then(literal("down")
-                    .then(int("count", 1)
-                        .executes { c -> signalMoveDownCommand(c) })
-                    .executes { c -> signalMoveDownOneCommand(c) })
-                .then(literal("column").then(int("column-number", 1)
-                    .executes { c -> signalMoveColumnCommand(c) })))
+            .then(literal("add")
+                .then(str("name")
+                    .then(str("signal-type", SignalType::suggestNames)
+                        .then(int("block-count")
+                            .then(int("column-number", 1, suggestionProvider = ::suggestColumnNumbers)
+                                .executes { c -> signalAddWithColumnCommand(c) }
+                            )
+                            .executes { c -> signalAddCommand(c) }
+                        )
+                    )
+                )
+            )
+            .then(literal("remove")
+                .then(str("name", ::suggestSignalNames)
+                    .executes { c -> signalRemoveCommand(c) }
+                )
+            )
+            .then(literal("invert")
+                .then(str("name", ::suggestSignalNames)
+                    .executes { c -> signalInvertCommand(c) }
+                )
+            )
+            .then(literal("flip")
+                .then(str("name", ::suggestSignalNames)
+                    .executes { c -> signalFlipCommand(c) }
+                )
+            )
+            .then(literal("add-block")
+                .then(str("name", ::suggestSignalNames)
+                    .executes { c -> signalAppendBlockCommand(c) }
+                )
+            )
+            .then(literal("add-blocks")
+                .then(str("name", ::suggestSignalNames)
+                    .then(int("count", 0)
+                        .executes { c -> signalAppendBlocksCommand(c) }
+                    )
+                )
+            )
+            .then(literal("rename")
+                .then(str("name", ::suggestSignalNames)
+                    .then(str("new-name")
+                        .executes { c -> signalRenameCommand(c) }
+                    )
+                )
+            )
+            .then(literal("format")
+                .then(str("name", ::suggestSignalNames)
+                    .then(str("format", SignalFormat::suggestNames)
+                        .executes { c ->
+                            signalFormatCommand(c)
+                        }
+                    )
+                )
+            )
+            .then(literal("move")
+                .then(str("name", ::suggestSignalNames)
+                    .then(literal("up")
+                        .then(int("count", 1)
+                            .executes { c -> signalMoveUpCommand(c) }
+                        )
+                        .executes { c -> signalMoveUpOneCommand(c) }
+                    )
+                    .then(literal("down")
+                        .then(int("count", 1)
+                            .executes { c -> signalMoveDownCommand(c) }
+                        )
+                        .executes { c -> signalMoveDownOneCommand(c) }
+                    )
+                    .then(literal("column")
+                        .then(int("column-number", 1, suggestionProvider = ::suggestColumnNumbers)
+                            .executes { c -> signalMoveColumnCommand(c) }
+                        )
+                    )
+                )
             )
         )
     }
@@ -141,35 +215,108 @@ class CommandManager(
         return this.then(literal("isa")
             .then(literal("list")
                 .then(int("page")
-                    .executes { c -> isaListCommand(c) })
-                .executes { c -> isaListCommandFirstPage(c) })
+                    .executes { c -> isaListCommand(c) }
+                )
+                .executes { c -> isaListCommandFirstPage(c) }
+            )
             .then(literal("create")
-                .then(str("isa-name").then(int("instruction-size")
-                    .executes { c -> isaCreateCommand(c) })))
+                .then(str("isa-name")
+                    .then(int("instruction-size")
+                        .executes { c -> isaCreateCommand(c) }
+                    )
+                )
+            )
             .then(literal("delete")
-                .then(str("isa-name", redmon::getInstructionSetNames)
-                    .executes { c -> isaDeleteCommand(c) }))
+                .then(str("isa-name", ::suggestInstructionSetNames)
+                    .executes { c -> isaDeleteCommand(c) }
+                )
+            )
             .then(literal("rename")
-                .then(str("isa-name", redmon::getInstructionSetNames).then(str("new-isa-name")
-                    .executes { c -> isaRenameCommand(c) })))
+                .then(str("isa-name", ::suggestInstructionSetNames)
+                    .then(str("new-isa-name")
+                        .executes { c -> isaRenameCommand(c) }
+                    )
+                )
+            )
         )
     }
 
     private fun LiteralArgumentBuilder<FabricClientCommandSource>.instructionCommands(): LiteralArgumentBuilder<FabricClientCommandSource> {
         return this.then(literal("instruction")
             .then(literal("add")
-                .then(str("isa-name", redmon::getInstructionSetNames)
-                    .then(str("instruction-name").then(greedyStr("instruction-sections")
-                        .executes { c -> instructionAddCommand(c) }))))
+                .then(str("isa-name", ::suggestInstructionSetNames)
+                    .then(str("instruction-name")
+                        .then(greedyStr("instruction-sections")
+                            .executes { c -> instructionAddCommand(c) }
+                        )
+                    )
+                )
+            )
             .then(literal("remove")
-                .then(str("isa-name", redmon::getInstructionSetNames).then(str("name")
-                    .executes { c -> instructionRemoveCommand(c) })))
+                .then(str("isa-name", ::suggestInstructionSetNames)
+                    .then(str("instruction-name")
+                        .executes { c -> instructionRemoveCommand(c) }
+                    )
+                )
+            )
         )
     }
 
     fun registerCommands(dispatcher: CommandDispatcher<FabricClientCommandSource>) {
         dispatcher.register(literal("redmon").allCommands())
         dispatcher.register(literal("rm").allCommands())
+    }
+
+    private fun suggestProfileNames(currentInput: String): List<String> {
+        return ArrayList<String>().apply {
+            redmon.getProfileNames().forEach { name ->
+                if (name.contains(currentInput)) {
+                    add(name)
+                }
+            }
+        }
+    }
+
+    private fun suggestSignalNames(currentInput: String): List<String> {
+        return ArrayList<String>(MAX_COMMAND_SUGGESTIONS).apply {
+            redmon.getVisibleSignalNames().forEach { name ->
+                if (name.contains(currentInput)) {
+                    add(name)
+                }
+            }
+        }
+    }
+
+    private fun suggestInstructionSetNames(currentInput: String): List<String> {
+        return ArrayList<String>().apply {
+            redmon.getInstructionSetNames().forEach { name ->
+                if (name.contains(currentInput)) {
+                    add(name)
+                }
+            }
+        }
+    }
+
+    private fun suggestColumnNumbers(currentInput: String): List<String> {
+        return ArrayList<String>().apply {
+            val visibleColumnCount = redmon.getVisibleColumnCount() ?: 0
+            repeat(visibleColumnCount + 1) { i ->
+                val str = (i + 1).toString()
+                if (str.contains(currentInput)) {
+                    add(str)
+                }
+            }
+        }
+    }
+
+    private fun suggestPageNames(currentInput: String): List<String> {
+        return ArrayList<String>().apply {
+            redmon.getCurrentProfilePageNames().forEachIndexed { i, name ->
+                if (name.contains(currentInput)) {
+                    add(name)
+                }
+            }
+        }
     }
 
     private fun showCommand(): Int {
@@ -352,9 +499,10 @@ class CommandManager(
         return bitPositions
     }
 
-    private fun doSignalAdd(ctx: CommandContext<FabricClientCommandSource>, type: SignalType, columnIndex: Int) {
+    private fun doSignalAdd(ctx: CommandContext<FabricClientCommandSource>, columnIndex: Int) {
         val initialBlockCount = getInteger(ctx, "block-count")
         val signalName = getString(ctx, "name")
+        val type = SignalType.fromCommandString(getString(ctx, "signal-type"))
         val inverted = false
         val format = DEFAULT_SIGNAL_FORMAT
         val blockLocations = when (initialBlockCount) {
@@ -367,13 +515,13 @@ class CommandManager(
         ctx.sendFeedback("Added signal '$signalName' with $initialBlockCount bits")
     }
 
-    private fun signalAddCommand(ctx: CommandContext<FabricClientCommandSource>, type: SignalType) = commandWrapper(ctx) {
-        doSignalAdd(ctx, type, 0)
+    private fun signalAddCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        doSignalAdd(ctx, 0)
     }
 
-    private fun signalAddWithColumnCommand(ctx: CommandContext<FabricClientCommandSource>, type: SignalType) = commandWrapper(ctx) {
+    private fun signalAddWithColumnCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val columnIndex = getInteger(ctx, "column-number") - 1
-        doSignalAdd(ctx, type, columnIndex)
+        doSignalAdd(ctx, columnIndex)
     }
 
     private fun signalRemoveCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
@@ -427,8 +575,9 @@ class CommandManager(
         ctx.sendFeedback("Renamed signal '$signalName' in the active profile to '$newSignalName'")
     }
 
-    private fun signalFormatCommand(ctx: CommandContext<FabricClientCommandSource>, newFormat: SignalFormat) = commandWrapper(ctx) {
+    private fun signalFormatCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val signalName = getString(ctx, "name")
+        val newFormat = SignalFormat.fromCommandString(getString(ctx, "format"))
         if (signalName == "all") {
             redmon.setAllSignalFormats(newFormat)
             ctx.sendFeedback("Set format of all signals in active profile to $newFormat")
@@ -524,20 +673,20 @@ class CommandManager(
         private const val COMMAND_ERROR = -1
         private const val COMMAND_SUCCESS = 1
 
+        private const val MAX_COMMAND_SUGGESTIONS = 10
+
         private fun str(
             name: String,
-            suggestionProvider: () -> List<String> = { emptyList() }
+            suggestionProvider: (String) -> List<String> = { emptyList() }
         ): RequiredArgumentBuilder<FabricClientCommandSource, String> {
             return argument(name, string()).suggests { ctx, builder ->
                 val partialArg = try {
                     getString(ctx, name)
                 } catch (_: Exception) {
-                    null
+                    ""
                 }
-                for (suggestion in suggestionProvider()) {
-                    if (partialArg == null || suggestion.contains(partialArg)) {
-                        builder.suggest(suggestion)
-                    }
+                for (suggestion in suggestionProvider(partialArg)) {
+                    builder.suggest(suggestion)
                 }
                 builder.buildFuture()
             }
@@ -550,9 +699,20 @@ class CommandManager(
         private fun int(
             name: String,
             min: Int = Int.MIN_VALUE,
-            max: Int = Int.MAX_VALUE
+            max: Int = Int.MAX_VALUE,
+            suggestionProvider: (String) -> List<String> = { emptyList() }
         ): RequiredArgumentBuilder<FabricClientCommandSource, Int> {
-            return argument(name, integer(min, max))
+            return argument(name, integer(min, max)).suggests { ctx, builder ->
+                val partialArg = try {
+                    getString(ctx, name)
+                } catch (_: Exception) {
+                    ""
+                }
+                for (suggestion in suggestionProvider(partialArg)) {
+                    builder.suggest(suggestion)
+                }
+                builder.buildFuture()
+            }
         }
 
         private fun commandWrapper(

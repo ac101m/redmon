@@ -2,6 +2,7 @@ package com.ac101m.redmon.profile
 
 import com.ac101m.redmon.utils.Config.Companion.DEFAULT_SIGNAL_FORMAT
 import com.ac101m.redmon.utils.Colour
+import com.ac101m.redmon.utils.RedmonException
 import com.ac101m.redmon.utils.floatFromFp16Bits
 import java.io.StringWriter
 
@@ -88,6 +89,19 @@ enum class SignalFormat {
     }
 
     companion object {
+        fun suggestNames(filter: String): List<String> {
+            return SignalFormat.entries.map { it.name.lowercase() }.filter { it.contains(filter) }
+        }
+
+        fun fromCommandString(str: String): SignalFormat {
+            return try {
+                SignalFormat.valueOf(str.uppercase())
+            } catch (e: IllegalArgumentException) {
+                val validFormatString = SignalFormat.entries.joinToString(", ") { it.name.lowercase() }
+                throw RedmonException("Invalid signal format. Valid formats are: $validFormatString", e)
+            }
+        }
+
         fun fromStringOrDefault(str: String): SignalFormat {
             return try {
                 SignalFormat.valueOf(str)

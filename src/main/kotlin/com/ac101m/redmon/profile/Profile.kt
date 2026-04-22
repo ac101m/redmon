@@ -3,7 +3,7 @@ package com.ac101m.redmon.profile
 import com.ac101m.redmon.persistence.v2.PersistentProfileV2
 
 class Profile(internal var name: String, initPages: List<ProfilePage>) {
-    private val pages = initPages.toMutableList()
+    val pages = initPages.toMutableList()
     private var currentPageIndex: Int
 
     init {

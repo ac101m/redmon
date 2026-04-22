@@ -94,6 +94,39 @@ class RedmonState(profileStoragePath: Path) {
     }
 
     /**
+     * Get instruction set names as a list.
+     */
+    fun getInstructionSetNames(): List<String> {
+        return instructionSetRegistry.instructionSets.map { it.name }
+    }
+
+    /**
+     * Get list of visible signal names.
+     */
+    fun getVisibleSignalNames(): List<String> {
+        return currentWorld?.activeProfile?.profile?.getCurrentPage()?.let { activePage ->
+            activePage.signalMap.keys.map { it }
+        } ?: emptyList()
+    }
+
+    /**
+     * Get the names of pages in the current profile.
+     */
+    fun getCurrentProfilePageNames(): List<String> {
+        return currentWorld?.activeProfile?.profile?.let { activeProfile ->
+            activeProfile.pages.map { it.name }
+        } ?: emptyList()
+    }
+
+    /**
+     * Get the number of columns in the currently active page.
+     * Returns null if no profile is active.
+     */
+    fun getVisibleColumnCount(): Int? {
+        return currentWorld?.activeProfile?.profile?.getCurrentPage()?.columns?.size
+    }
+
+    /**
      * Add a new profile.
      *
      * @param profile The profile to add.
@@ -368,13 +401,6 @@ class RedmonState(profileStoragePath: Path) {
         }
         profileInfo.profile.getCurrentPage().name = newName
         saveState()
-    }
-
-    /**
-     * Get instruction set names as a list.
-     */
-    fun getInstructionSetNames(): List<String> {
-        return instructionSetRegistry.instructionSets.map { it.name }
     }
 
     /**
