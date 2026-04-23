@@ -1,6 +1,7 @@
 package com.ac101m.redmon.isa.instruction
 
 import com.ac101m.redmon.isa.InstructionLayout
+import com.ac101m.redmon.persistence.v2.PersistentInstructionFieldV2
 import com.ac101m.redmon.utils.Colour
 
 /**
@@ -22,8 +23,16 @@ class IgnoreField(
         return sb.toString()
     }
 
+    override fun toPersistent(): PersistentInstructionFieldV2 {
+        return PersistentInstructionFieldV2(FieldType.IGNORE, size, offset)
+    }
+
     companion object {
         val COLOUR = Colour.GRAY
+
+        fun fromPersistent(persistent: PersistentInstructionFieldV2): IgnoreField {
+            return IgnoreField(persistent.size, persistent.offset)
+        }
 
         fun of(text: String, offset: Int): IgnoreField {
             val sizeInt = try {

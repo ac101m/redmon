@@ -1,6 +1,7 @@
 package com.ac101m.redmon.isa.instruction
 
 import com.ac101m.redmon.isa.InstructionLayout
+import com.ac101m.redmon.persistence.v2.PersistentInstructionFieldV2
 import com.ac101m.redmon.utils.Colour
 
 /**
@@ -22,8 +23,16 @@ class RegisterAddressField(
         return sb.toString()
     }
 
+    override fun toPersistent(): PersistentInstructionFieldV2 {
+        return PersistentInstructionFieldV2(FieldType.REGISTER_ADDRESS, size, offset)
+    }
+
     companion object {
         val COLOUR = Colour.AQUA
+
+        fun fromPersistent(persistent: PersistentInstructionFieldV2): RegisterAddressField {
+            return RegisterAddressField(persistent.size, persistent.offset)
+        }
 
         fun of(text: String, offset: Int): RegisterAddressField {
             val sizeInt = try {

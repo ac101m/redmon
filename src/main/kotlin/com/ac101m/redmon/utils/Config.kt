@@ -18,7 +18,12 @@ class Config {
 
         // Save file related constants
         private const val PROFILE_SAVE_FILE = "redmon_profiles.json"
+        private const val WORLD_METADATA_SAVE_FILE = "redmon_world_metadata.json"
+        private const val INSTRUCTION_SET_SAVE_FILE = "redmon_instruction_sets.json"
+
         val PROFILE_STORAGE_PATH: Path = FabricLoader.getInstance().configDir.resolve(PROFILE_SAVE_FILE)
+        val WORLD_METADATA_STORAGE_PATH: Path = FabricLoader.getInstance().configDir.resolve(WORLD_METADATA_SAVE_FILE)
+        val INSTRUCTION_SET_STORAGE_PATH: Path = FabricLoader.getInstance().configDir.resolve(INSTRUCTION_SET_SAVE_FILE)
 
         // UI Constants
         val OVERLAY_POSITION = Vec3i(2, 2, 0)

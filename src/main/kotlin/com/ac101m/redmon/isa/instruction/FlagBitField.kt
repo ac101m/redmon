@@ -1,5 +1,6 @@
 package com.ac101m.redmon.isa.instruction
 
+import com.ac101m.redmon.persistence.v2.PersistentInstructionFieldV2
 import com.ac101m.redmon.utils.Colour
 
 /**
@@ -18,8 +19,19 @@ class FlagBitField(
         return "${COLOUR.prefix}$char"
     }
 
+    override fun toPersistent(): PersistentInstructionFieldV2 {
+        return PersistentInstructionFieldV2(FieldType.FLAG_BIT, size, offset, char.toString())
+    }
+
     companion object {
         val COLOUR = Colour.GOLD
+
+        fun fromPersistent(persistent: PersistentInstructionFieldV2): FlagBitField {
+            val metadata = requireNotNull(persistent.metadata) {
+                "Flag metadata is missing."
+            }
+            return FlagBitField(metadata[0], persistent.offset)
+        }
 
         fun of(text: String, offset: Int): FlagBitField {
             require(text.length == 1) {

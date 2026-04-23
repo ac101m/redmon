@@ -1,6 +1,7 @@
 package com.ac101m.redmon.isa.instruction
 
 import com.ac101m.redmon.isa.InstructionLayout
+import com.ac101m.redmon.persistence.v2.PersistentInstructionFieldV2
 import com.ac101m.redmon.utils.Colour
 
 /**
@@ -27,8 +28,22 @@ class OpcodeField(
         return "${COLOUR.prefix}$bitPattern"
     }
 
+    override fun toPersistent(): PersistentInstructionFieldV2 {
+        return PersistentInstructionFieldV2(FieldType.OPCODE, size, offset, bitPattern)
+    }
+
     companion object {
         val COLOUR = Colour.RED
+
+        fun fromPersistent(persistent: PersistentInstructionFieldV2): OpcodeField {
+            val bitPattern = requireNotNull(persistent.metadata) {
+                "Bit pattern metadata missing."
+            }
+            require(persistent.size == bitPattern.length) {
+                "Bit pattern length mismatch."
+            }
+            return OpcodeField(bitPattern, persistent.offset)
+        }
 
         fun of(text: String, offset: Int): OpcodeField {
             try {

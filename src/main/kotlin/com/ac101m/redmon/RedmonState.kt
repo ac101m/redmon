@@ -26,35 +26,34 @@ import java.nio.file.Path
 /**
  * Contains all state for redmon and implements mod logic.
  *
- * @param profileStoragePath The path to the profile storage location.
+ * @param profileStoragePath Path to the profile storage location.
+ * @param worldMetadataStoragePath Path to the world metadata storage location.
+ * @param instructionSetStoragePath Path to the instruction set storage location.
  */
-class RedmonState(profileStoragePath: Path) {
+class RedmonState(profileStoragePath: Path, worldMetadataStoragePath: Path, instructionSetStoragePath: Path) {
     private val mapper = ObjectMapper().registerKotlinModule()
     private val storageReader = StorageReader(mapper)
-    private val profileStorageManager = StorageManager(profileStoragePath, mapper, storageReader)
-
+    private val storageManager = StorageManager(
+        profileStoragePath,
+        worldMetadataStoragePath,
+        instructionSetStoragePath,
+        mapper,
+        storageReader
+    )
     private val profileRegistry: ProfileRegistry
     private val worldRegistry: WorldRegistry
     private val instructionSetRegistry: InstructionSetRegistry
 
     init {
-        val persistentStorage = profileStorageManager.loadStorage()
-
-        val profiles = persistentStorage.profiles.map {
-            Profile.fromPersistentProfile(it)
-        }
-
-        // TODO: Implement persistence for instruction sets
-        val instructionSets = emptyList<InstructionSet>()
+        val profiles = storageManager.loadProfiles()
+        val instructionSets = storageManager.loadInstructionSets()
 
         instructionSetRegistry = InstructionSetRegistry(instructionSets)
         profileRegistry = ProfileRegistry(profiles)
 
-        val worldRegistryEntries = persistentStorage.worldData.map {
-            WorldMetadata.fromPersistent(profileRegistry, it)
-        }
+        val worldMetadata = storageManager.loadWorldMetadata(profileRegistry)
 
-        worldRegistry = WorldRegistry(worldRegistryEntries)
+        worldRegistry = WorldRegistry(worldMetadata)
     }
 
     // Internal variables
@@ -133,7 +132,7 @@ class RedmonState(profileStoragePath: Path) {
      */
     fun addProfile(profile: Profile) {
         profileRegistry.addProfile(profile)
-        saveState()
+        saveProfiles()
     }
 
     /**
@@ -144,7 +143,7 @@ class RedmonState(profileStoragePath: Path) {
      */
     fun renameProfile(name: String, newName: String) {
         profileRegistry.renameProfile(name, newName)
-        saveState()
+        saveProfiles()
     }
 
     /**
@@ -158,7 +157,7 @@ class RedmonState(profileStoragePath: Path) {
             clearActiveProfile()
         }
         profileRegistry.deleteProfile(profileName)
-        saveState()
+        saveProfiles()
     }
 
     /**
@@ -187,7 +186,7 @@ class RedmonState(profileStoragePath: Path) {
         val newSignal = Signal(name, type, inverted, format, blockLocationsRelative)
 
         profileInfo.profile.getCurrentPage().addSignal(newSignal, columnIndex)
-        saveState()
+        saveProfiles()
     }
 
     /**
@@ -201,7 +200,7 @@ class RedmonState(profileStoragePath: Path) {
             "Cannot rename signal, no profile is selected"
         }
         profileInfo.profile.getCurrentPage().renameSignal(name, newName)
-        saveState()
+        saveProfiles()
     }
 
     /**
@@ -214,7 +213,7 @@ class RedmonState(profileStoragePath: Path) {
             "Cannot delete signal, no profile is selected"
         }
         profileInfo.profile.getCurrentPage().removeSignal(name)
-        saveState()
+        saveProfiles()
     }
 
     /**
@@ -230,7 +229,7 @@ class RedmonState(profileStoragePath: Path) {
         }
         val signal = profileInfo.profile.getCurrentPage().getSignal(name)
         signal.invert()
-        saveState()
+        saveProfiles()
         return signal.invert
     }
 
@@ -246,7 +245,7 @@ class RedmonState(profileStoragePath: Path) {
         }
         val signal = profileInfo.profile.getCurrentPage().getSignal(name)
         signal.flipBits()
-        saveState()
+        saveProfiles()
     }
 
     /**
@@ -283,7 +282,7 @@ class RedmonState(profileStoragePath: Path) {
         }
 
         signal.appendBlocks(relativeBlockLocations)
-        saveState()
+        saveProfiles()
     }
 
     /**
@@ -298,7 +297,7 @@ class RedmonState(profileStoragePath: Path) {
         }
         val signal = profileInfo.profile.getCurrentPage().getSignal(name)
         signal.format = format
-        saveState()
+        saveProfiles()
     }
 
     /**
@@ -311,7 +310,7 @@ class RedmonState(profileStoragePath: Path) {
             "Cannot set signal formats, no profile is selected"
         }
         profileInfo.profile.getCurrentPage().signalMap.values.forEach { it.signal.format = format }
-        saveState()
+        saveProfiles()
     }
 
     /**
@@ -326,7 +325,7 @@ class RedmonState(profileStoragePath: Path) {
             "Cannot set signal formats, no profile is selected"
         }
         val n = profileInfo.profile.getCurrentPage().moveSignalVertically(name, n)
-        saveState()
+        saveProfiles()
         return n
     }
 
@@ -341,7 +340,7 @@ class RedmonState(profileStoragePath: Path) {
             "Cannot change signal column, no profile is selected"
         }
         profileInfo.profile.getCurrentPage().changeSignalColumn(name, columnIndex)
-        saveState()
+        saveProfiles()
     }
 
     /**
@@ -374,7 +373,7 @@ class RedmonState(profileStoragePath: Path) {
             "Cannot add new page, no profile is selected"
         }
         profileInfo.profile.addPage(name)
-        saveState()
+        saveProfiles()
     }
 
     /**
@@ -387,7 +386,7 @@ class RedmonState(profileStoragePath: Path) {
             "Cannot remove page, no profile is selected"
         }
         profileInfo.profile.removePage(name)
-        saveState()
+        saveProfiles()
     }
 
     /**
@@ -400,7 +399,7 @@ class RedmonState(profileStoragePath: Path) {
             "Cannot rename page, no profile is selected"
         }
         profileInfo.profile.getCurrentPage().name = newName
-        saveState()
+        saveProfiles()
     }
 
     /**
@@ -412,7 +411,7 @@ class RedmonState(profileStoragePath: Path) {
     fun createInstructionSet(name: String, instructionSize: Int) {
         val newInstructionSet = InstructionSet(name, instructionSize)
         instructionSetRegistry.addInstructionSet(newInstructionSet)
-        saveState()
+        saveInstructionSets()
     }
 
     /**
@@ -422,7 +421,7 @@ class RedmonState(profileStoragePath: Path) {
      */
     fun deleteInstructionSet(name: String) {
         instructionSetRegistry.removeInstructionSet(name)
-        saveState()
+        saveInstructionSets()
     }
 
     /**
@@ -433,7 +432,7 @@ class RedmonState(profileStoragePath: Path) {
      */
     fun renameInstructionSet(name: String, newName: String) {
         instructionSetRegistry.renameInstructionSet(name, newName)
-        saveState()
+        saveInstructionSets()
     }
 
     /**
@@ -473,7 +472,7 @@ class RedmonState(profileStoragePath: Path) {
                 offset
             )
         }
-        saveState()
+        saveWorldMetadata()
     }
 
     /**
@@ -488,7 +487,7 @@ class RedmonState(profileStoragePath: Path) {
      */
     fun clearActiveProfile() {
         currentWorld?.activeProfile = null
-        saveState()
+        saveWorldMetadata()
     }
 
     /**
@@ -499,11 +498,16 @@ class RedmonState(profileStoragePath: Path) {
         currentWorld = worldRegistry.getMetadataForCurrentWorld()
     }
 
-    private fun saveState() {
-        profileStorageManager.saveState(
-            profileRegistry.profiles,
-            worldRegistry.worldMetadata
-        )
+    private fun saveProfiles() {
+        storageManager.saveProfiles(profileRegistry.profiles)
+    }
+
+    private fun saveWorldMetadata() {
+        storageManager.saveWorldMetadata(worldRegistry.worldMetadata)
+    }
+
+    private fun saveInstructionSets() {
+        storageManager.saveInstructionSets(instructionSetRegistry.instructionSets)
     }
 
     private fun requireActiveProfile(lazyMessage: () -> String): ActiveProfileInfo {

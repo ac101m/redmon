@@ -1,6 +1,7 @@
 package com.ac101m.redmon.isa.instruction
 
 import com.ac101m.redmon.isa.InstructionLayout
+import com.ac101m.redmon.persistence.v2.PersistentInstructionFieldV2
 import com.ac101m.redmon.utils.Colour
 
 class SignedImmediateField(
@@ -16,8 +17,16 @@ class SignedImmediateField(
         return sb.toString()
     }
 
+    override fun toPersistent(): PersistentInstructionFieldV2 {
+        return PersistentInstructionFieldV2(FieldType.SIGNED_IMMEDIATE, size, offset)
+    }
+
     companion object {
         val COLOUR = Colour.GREEN
+
+        fun fromPersistent(persistent: PersistentInstructionFieldV2): SignedImmediateField {
+            return SignedImmediateField(persistent.size, persistent.offset)
+        }
 
         fun of(sizeText: String, offset: Int): SignedImmediateField {
             val sizeInt = try {

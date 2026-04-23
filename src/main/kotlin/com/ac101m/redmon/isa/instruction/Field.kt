@@ -1,6 +1,7 @@
 package com.ac101m.redmon.isa.instruction
 
 import com.ac101m.redmon.isa.InstructionLayout
+import com.ac101m.redmon.persistence.v2.PersistentInstructionFieldV2
 import com.ac101m.redmon.utils.computeMask
 
 abstract class Field(
@@ -46,7 +47,20 @@ abstract class Field(
      */
     abstract fun bitRepresentation(): String
 
+    abstract fun toPersistent(): PersistentInstructionFieldV2
+
     companion object {
+        fun fromPersistent(persistent: PersistentInstructionFieldV2): Field {
+            return when (persistent.type) {
+                FieldType.IGNORE -> IgnoreField.fromPersistent(persistent)
+                FieldType.OPCODE -> OpcodeField.fromPersistent(persistent)
+                FieldType.FLAG_BIT -> FlagBitField.fromPersistent(persistent)
+                FieldType.REGISTER_ADDRESS -> RegisterAddressField.fromPersistent(persistent)
+                FieldType.UNSIGNED_IMMEDIATE -> UnsignedImmediateField.fromPersistent(persistent)
+                FieldType.SIGNED_IMMEDIATE -> SignedImmediateField.fromPersistent(persistent)
+            }
+        }
+
         /**
          * Get instruction field from text.
          * Used for reading instruction fields from user input.
@@ -65,14 +79,14 @@ abstract class Field(
             val value = tokens.last()
 
             return when (key) {
-                FieldType.IGNORE.key -> IgnoreField.of(value, offset)
-                FieldType.OPCODE.key -> OpcodeField.of(value, offset)
-                FieldType.FLAG_BIT.key -> FlagBitField.of(value, offset)
-                FieldType.REGISTER_ADDRESS.key -> RegisterAddressField.of(value, offset)
-                FieldType.IMMEDIATE_UNSIGNED.key -> UnsignedImmediateField.of(value, offset)
-                FieldType.IMMEDIATE_SIGNED.key -> SignedImmediateField.of(value, offset)
+                FieldType.IGNORE.commandKey -> IgnoreField.of(value, offset)
+                FieldType.OPCODE.commandKey -> OpcodeField.of(value, offset)
+                FieldType.FLAG_BIT.commandKey -> FlagBitField.of(value, offset)
+                FieldType.REGISTER_ADDRESS.commandKey -> RegisterAddressField.of(value, offset)
+                FieldType.UNSIGNED_IMMEDIATE.commandKey -> UnsignedImmediateField.of(value, offset)
+                FieldType.SIGNED_IMMEDIATE.commandKey -> SignedImmediateField.of(value, offset)
                 else -> {
-                    val validKeyNames = FieldType.entries.joinToString(", ") { it.key }
+                    val validKeyNames = FieldType.entries.joinToString(", ") { it.commandKey }
                     error("Unrecognized instruction field type '$key'. Valid field types are: $validKeyNames.")
                 }
             }

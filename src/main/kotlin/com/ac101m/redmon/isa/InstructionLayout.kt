@@ -3,6 +3,8 @@ package com.ac101m.redmon.isa
 import com.ac101m.redmon.isa.instruction.Field
 import com.ac101m.redmon.isa.instruction.IgnoreField
 import com.ac101m.redmon.isa.instruction.OpcodeField
+import com.ac101m.redmon.persistence.v2.PersistentInstructionLayoutV2
+import com.ac101m.redmon.persistence.v2.PersistentInstructionSetV2
 import com.ac101m.redmon.utils.Colour
 
 /**
@@ -130,10 +132,22 @@ class InstructionLayout(
         return null
     }
 
+    fun toPersistent(): PersistentInstructionLayoutV2 {
+        val persistentFields = fields.map { it.toPersistent() }
+        return PersistentInstructionLayoutV2(name, description, persistentFields)
+    }
+
     companion object {
         const val MAX_INSTRUCTION_SIZE = 64
 
-        private val DIVIDER_COLOUR = Colour.WHITE
+        fun fromPersistent(size: Int, persistent: PersistentInstructionLayoutV2): InstructionLayout {
+            return InstructionLayout(
+                name = persistent.name,
+                size = size,
+                description = persistent.description,
+                fields = persistent.fields.map { Field.fromPersistent(it) }
+            )
+        }
 
         fun createFromArgs(name: String, fieldText: List<String>, description: String?): InstructionLayout {
             val parsedFields = ArrayList<Field>()
