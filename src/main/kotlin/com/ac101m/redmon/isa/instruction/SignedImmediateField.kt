@@ -6,35 +6,51 @@ import com.ac101m.redmon.utils.Colour
 
 class SignedImmediateField(
     size: Int,
-    offset: Int
+    offset: Int,
+    val description: String?
 ) : Field(size, offset) {
     override val maxSize get() = InstructionLayout.MAX_INSTRUCTION_SIZE
 
-    override fun bitRepresentation(): String {
-        val sb = StringBuilder()
-        sb.append(COLOUR.prefix)
-        repeat(size) { sb.append('S') }
-        return sb.toString()
+    override fun bitRepresentation(crossOut: Boolean): String {
+        return StringBuilder(size * 2).apply {
+            if (crossOut) {
+                append(Colour.GRAY.prefix)
+                repeat(size) { append('-') }
+            } else {
+                append(COLOUR.prefix)
+                repeat(size) { append('S') }
+            }
+        }.toString()
+    }
+
+    override fun descriptionText(): String {
+        return description ?: "$size bit signed immediate."
     }
 
     override fun toPersistent(): PersistentInstructionFieldV2 {
-        return PersistentInstructionFieldV2(FieldType.SIGNED_IMMEDIATE, size, offset)
+        return PersistentInstructionFieldV2(
+            type = FieldType.SIGNED_IMMEDIATE,
+            size = size,
+            offset = offset,
+            metadata = null,
+            description = description
+        )
     }
 
     companion object {
         val COLOUR = Colour.GREEN
 
         fun fromPersistent(persistent: PersistentInstructionFieldV2): SignedImmediateField {
-            return SignedImmediateField(persistent.size, persistent.offset)
+            return SignedImmediateField(persistent.size, persistent.offset, persistent.description)
         }
 
-        fun of(sizeText: String, offset: Int): SignedImmediateField {
+        fun of(sizeText: String): SignedImmediateField {
             val sizeInt = try {
                 sizeText.toUInt()
             } catch (e: NumberFormatException) {
                 throw IllegalArgumentException("Expected an unsigned integer but got '$sizeText'.", e)
             }
-            return SignedImmediateField(sizeInt.toInt(), offset)
+            return SignedImmediateField(sizeInt.toInt(), 0, null)
         }
     }
 }

@@ -4,7 +4,6 @@ import com.ac101m.redmon.isa.instruction.Field
 import com.ac101m.redmon.isa.instruction.IgnoreField
 import com.ac101m.redmon.isa.instruction.OpcodeField
 import com.ac101m.redmon.persistence.v2.PersistentInstructionLayoutV2
-import com.ac101m.redmon.persistence.v2.PersistentInstructionSetV2
 import com.ac101m.redmon.utils.Colour
 
 /**
@@ -17,7 +16,7 @@ import com.ac101m.redmon.utils.Colour
  * @property description Optional description of the instruction.
  */
 class InstructionLayout(
-    val name: String,
+    var name: String,
     val size: Int,
     val description: String?,
     private val fields: List<Field>
@@ -89,24 +88,23 @@ class InstructionLayout(
     }
 
     /**
-     * Pretty print the instruction.
+     * Pretty print the instruction (single line).
      */
-    fun prettyPrint(): String {
+    fun prettyPrint(highlightField: Field? = null): String {
         val sb = StringBuilder(size * 2)
         var i = 0
 
-        sb.append("[ ")
+        sb.append('[')
 
         while (i < size) {
-            val field = getFieldAtBit(i)
+            val field = getFieldAtBit((size - 1) - i)
 
             if (field != null) {
-                val fieldRepresentation = field.bitRepresentation()
-                sb.append(fieldRepresentation)
-                sb.append(Colour.WHITE.prefix)
-                sb.append(' ')
+                val crossOut = highlightField != null && field !== highlightField
+                sb.append(field.bitRepresentation(crossOut))
                 i += field.size
             } else {
+                sb.append(IgnoreField.COLOUR.prefix)
                 sb.append('X')
                 i++
             }
@@ -114,6 +112,29 @@ class InstructionLayout(
 
         sb.append(Colour.WHITE.prefix)
         sb.append(']')
+
+        return sb.toString()
+    }
+
+    /**
+     * Dump all information about the instruction to a multi-line string.
+     */
+    fun infoString(): String {
+        val sb = StringBuilder()
+
+        sb.append(name)
+        sb.append(":\n")
+        sb.append(description ?: "No instruction description.")
+        sb.append('\n')
+
+        fields.forEachIndexed { i, field ->
+            sb.append(i + 1)
+            sb.append(' ')
+            sb.append(prettyPrint(field))
+            sb.append(" - ")
+            sb.append(field.descriptionText())
+            sb.append('\n')
+        }
 
         return sb.toString()
     }
@@ -151,21 +172,31 @@ class InstructionLayout(
 
         fun createFromArgs(name: String, fieldText: List<String>, description: String?): InstructionLayout {
             val parsedFields = ArrayList<Field>()
-            var currentOffset = 0
+            var instructionSize = 0
 
             for (str in fieldText) {
                 try {
-                    val field = Field.of(str, currentOffset)
-                    currentOffset += field.size
+                    val field = Field.of(str)
                     parsedFields.add(field)
+                    instructionSize += field.size
                 } catch (e: Exception) {
                     throw IllegalArgumentException("Error near '$str': ${e.message ?: e.javaClass}")
                 }
             }
 
+            var fieldOffset = instructionSize
+
+            // Compute offsets from the left
+            for (field in parsedFields) {
+                field.offset = fieldOffset - field.size
+                fieldOffset -= field.size
+            }
+
+            check(fieldOffset == 0)
+
             return InstructionLayout(
                 name = name,
-                size = currentOffset,
+                size = instructionSize,
                 fields = parsedFields,
                 description = description
             )

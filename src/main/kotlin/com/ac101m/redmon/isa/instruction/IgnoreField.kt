@@ -16,15 +16,30 @@ class IgnoreField(
 ) : Field(size, offset) {
     override val maxSize get() = InstructionLayout.MAX_INSTRUCTION_SIZE
 
-    override fun bitRepresentation(): String {
-        val sb = StringBuilder(size * 2)
-        sb.append(COLOUR.prefix)
-        repeat(size) { sb.append('X') }
-        return sb.toString()
+    override fun bitRepresentation(crossOut: Boolean): String {
+        return StringBuilder(size * 2).apply {
+            if (crossOut) {
+                append(Colour.GRAY.prefix)
+                repeat(size) { append('-') }
+            } else {
+                append(COLOUR.prefix)
+                repeat(size) { append('X') }
+            }
+        }.toString()
+    }
+
+    override fun descriptionText(): String {
+        return "Ignored."
     }
 
     override fun toPersistent(): PersistentInstructionFieldV2 {
-        return PersistentInstructionFieldV2(FieldType.IGNORE, size, offset)
+        return PersistentInstructionFieldV2(
+            type = FieldType.IGNORE,
+            size = size,
+            offset = offset,
+            metadata = null,
+            description = null
+        )
     }
 
     companion object {
@@ -34,13 +49,13 @@ class IgnoreField(
             return IgnoreField(persistent.size, persistent.offset)
         }
 
-        fun of(text: String, offset: Int): IgnoreField {
+        fun of(text: String): IgnoreField {
             val sizeInt = try {
                 text.toUInt()
             } catch (e: NumberFormatException) {
                 throw IllegalArgumentException("Expected an unsigned integer but got '$text'.", e)
             }
-            return IgnoreField(sizeInt.toInt(), offset)
+            return IgnoreField(sizeInt.toInt(), 0)
         }
     }
 }

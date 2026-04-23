@@ -6,35 +6,51 @@ import com.ac101m.redmon.utils.Colour
 
 class UnsignedImmediateField(
     size: Int,
-    offset: Int
+    offset: Int,
+    val description: String?
 ) : Field(size, offset) {
     override val maxSize get() = InstructionLayout.MAX_INSTRUCTION_SIZE
 
-    override fun bitRepresentation(): String {
-        val sb = StringBuilder(size * 2)
-        sb.append(COLOUR.prefix)
-        repeat(size) { sb.append('U') }
-        return sb.toString()
+    override fun bitRepresentation(crossOut: Boolean): String {
+        return StringBuilder(size * 2).apply {
+            if (crossOut) {
+                append(Colour.GRAY.prefix)
+                repeat(size) { append('-') }
+            } else {
+                append(COLOUR.prefix)
+                repeat(size) { append('U') }
+            }
+        }.toString()
+    }
+
+    override fun descriptionText(): String {
+        return description ?: "$size bit unsigned immediate."
     }
 
     override fun toPersistent(): PersistentInstructionFieldV2 {
-        return PersistentInstructionFieldV2(FieldType.UNSIGNED_IMMEDIATE, size, offset)
+        return PersistentInstructionFieldV2(
+            type = FieldType.UNSIGNED_IMMEDIATE,
+            size = size,
+            offset = offset,
+            metadata = null,
+            description = description
+        )
     }
 
     companion object {
         val COLOUR = Colour.DARK_GREEN
 
         fun fromPersistent(persistent: PersistentInstructionFieldV2): UnsignedImmediateField {
-            return UnsignedImmediateField(persistent.size, persistent.offset)
+            return UnsignedImmediateField(persistent.size, persistent.offset, persistent.description)
         }
 
-        fun of(sizeText: String, offset: Int): UnsignedImmediateField {
+        fun of(sizeText: String): UnsignedImmediateField {
             val sizeInt = try {
                 sizeText.toUInt()
             } catch (e: NumberFormatException) {
                 throw IllegalArgumentException("Expected an unsigned integer but got '$sizeText'.", e)
             }
-            return UnsignedImmediateField(sizeInt.toInt(), offset)
+            return UnsignedImmediateField(sizeInt.toInt(), 0, null)
         }
     }
 }

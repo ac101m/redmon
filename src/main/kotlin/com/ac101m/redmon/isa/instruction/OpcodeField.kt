@@ -12,7 +12,7 @@ import com.ac101m.redmon.utils.Colour
  */
 class OpcodeField(
     val bitPattern: String,
-    offset: Int,
+    offset: Int
 ) : Field(bitPattern.length, offset) {
     override val maxSize get() = InstructionLayout.MAX_INSTRUCTION_SIZE
 
@@ -24,12 +24,30 @@ class OpcodeField(
         }
     }
 
-    override fun bitRepresentation(): String {
-        return "${COLOUR.prefix}$bitPattern"
+    override fun bitRepresentation(crossOut: Boolean): String {
+        return StringBuilder(size * 2).apply {
+            if (crossOut) {
+                append(Colour.GRAY.prefix)
+                repeat(bitPattern.length) { append('-') }
+            } else {
+                append(COLOUR.prefix)
+                append(bitPattern)
+            }
+        }.toString()
+    }
+
+    override fun descriptionText(): String {
+        return "${bitPattern.length} bit opcode."
     }
 
     override fun toPersistent(): PersistentInstructionFieldV2 {
-        return PersistentInstructionFieldV2(FieldType.OPCODE, size, offset, bitPattern)
+        return PersistentInstructionFieldV2(
+            type = FieldType.OPCODE,
+            size = size,
+            offset = offset,
+            metadata = bitPattern,
+            description = null
+        )
     }
 
     companion object {
@@ -45,13 +63,13 @@ class OpcodeField(
             return OpcodeField(bitPattern, persistent.offset)
         }
 
-        fun of(text: String, offset: Int): OpcodeField {
+        fun of(text: String): OpcodeField {
             try {
                 text.toULong(2)
             } catch (e: NumberFormatException) {
                 throw IllegalArgumentException("Expected a bit pattern but got '$text'.", e)
             }
-            return OpcodeField(text, offset)
+            return OpcodeField(text, 0)
         }
     }
 }

@@ -53,10 +53,6 @@ enum class SignalType(val maxBlocks: Int, val bitsPerBlock: Int) {
     }
 
     companion object {
-        fun suggestNames(filter: String): List<String> {
-            return entries.map { it.name.lowercase() }.filter { it.contains(filter) }
-        }
-
         fun fromCommandString(str: String): SignalType {
             return try {
                 SignalType.valueOf(str.uppercase())

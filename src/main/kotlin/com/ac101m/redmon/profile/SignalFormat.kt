@@ -89,10 +89,6 @@ enum class SignalFormat {
     }
 
     companion object {
-        fun suggestNames(filter: String): List<String> {
-            return SignalFormat.entries.map { it.name.lowercase() }.filter { it.contains(filter) }
-        }
-
         fun fromCommandString(str: String): SignalFormat {
             return try {
                 SignalFormat.valueOf(str.uppercase())

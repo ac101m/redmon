@@ -8,19 +8,38 @@ import com.ac101m.redmon.utils.Colour
  *
  * @property char The character that should be used to indicate the flag.
  * @property offset The offset of the flag bit within the instruction.
+ * @property description Optional user defined description of the flag bit.
  */
 class FlagBitField(
     val char: Char,
-    offset: Int
+    offset: Int,
+    val description: String?
 ) : Field(1, offset) {
     override val maxSize get() = 1
 
-    override fun bitRepresentation(): String {
-        return "${COLOUR.prefix}$char"
+    override fun bitRepresentation(crossOut: Boolean): String {
+        return StringBuilder(size).apply {
+            if (crossOut) {
+                append(Colour.GRAY.prefix)
+                append('-')
+            } else {
+                append(COLOUR.prefix)
+                append(char)
+            }
+        }.toString()
+    }
+
+    override fun descriptionText(): String {
+        return description ?: "Flag bit ($char)."
     }
 
     override fun toPersistent(): PersistentInstructionFieldV2 {
-        return PersistentInstructionFieldV2(FieldType.FLAG_BIT, size, offset, char.toString())
+        return PersistentInstructionFieldV2(
+            type = FieldType.FLAG_BIT,
+            size = size,
+            offset = offset,
+            metadata = char.toString()
+        )
     }
 
     companion object {
@@ -30,14 +49,14 @@ class FlagBitField(
             val metadata = requireNotNull(persistent.metadata) {
                 "Flag metadata is missing."
             }
-            return FlagBitField(metadata[0], persistent.offset)
+            return FlagBitField(metadata[0], persistent.offset, persistent.description)
         }
 
-        fun of(text: String, offset: Int): FlagBitField {
+        fun of(text: String): FlagBitField {
             require(text.length == 1) {
                 "Expected single flag bit character but got '$text'."
             }
-            return FlagBitField(text[0], offset)
+            return FlagBitField(text[0], 0, null)
         }
     }
 }

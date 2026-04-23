@@ -156,8 +156,9 @@ class InstructionLayoutTests {
 
         @JvmStatic
         fun validInstructionStrings() = listOf<Arguments>(
-            Arguments.of("LSLI", listOf("opcode:01001", "ignore:3", "imm_u:4", "reg_addr:4")),
-            Arguments.of("MOV", listOf("opcode:0000001", "flag_bit:S", "reg_addr:4", "reg_addr:4"))
+            Arguments.of("LSLI", listOf("opcode:01001", "ignore:3", "imm_u:4", "reg_w:4")),
+            Arguments.of("MOV", listOf("opcode:0000001", "flag_bit:S", "reg_r:4", "reg_w:4")),
+            Arguments.of("ADD", listOf("opcode:0000001", "flag_bit:S", "reg_r:4", "reg_rw:4")),
         )
     }
 }

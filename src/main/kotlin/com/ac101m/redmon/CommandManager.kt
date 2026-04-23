@@ -1,6 +1,7 @@
 package com.ac101m.redmon
 
 import com.ac101m.redmon.isa.InstructionLayout
+import com.ac101m.redmon.isa.instruction.FieldType
 import com.ac101m.redmon.profile.Profile
 import com.ac101m.redmon.profile.SignalFormat
 import com.ac101m.redmon.profile.SignalType
@@ -134,7 +135,7 @@ class CommandManager(
         return this.then(literal("signal")
             .then(literal("add")
                 .then(str("name")
-                    .then(str("signal-type", SignalType::suggestNames)
+                    .then(str("signal-type", ::suggestSignalTypeNames)
                         .then(int("block-count")
                             .then(int("column-number", 1, suggestionProvider = ::suggestColumnNumbers)
                                 .executes { c -> signalAddWithColumnCommand(c) }
@@ -180,7 +181,7 @@ class CommandManager(
             )
             .then(literal("format")
                 .then(str("name", ::suggestSignalNames)
-                    .then(str("format", SignalFormat::suggestNames)
+                    .then(str("format", ::suggestSignalFormatNames)
                         .executes { c ->
                             signalFormatCommand(c)
                         }
@@ -246,16 +247,42 @@ class CommandManager(
             .then(literal("add")
                 .then(str("isa-name", ::suggestInstructionSetNames)
                     .then(str("instruction-name")
-                        .then(greedyStr("instruction-layout")
-                            .executes { c -> instructionAddCommand(c) }
+                        .then(str("description")
+                            .then(greedyStr("instruction-layout", ::suggestInstructionLayout)
+                                .executes { c -> instructionAddCommand(c) }
+                            )
                         )
                     )
                 )
             )
             .then(literal("remove")
                 .then(str("isa-name", ::suggestInstructionSetNames)
-                    .then(str("instruction-name")
+                    .then(str("instruction-name", ::suggestInstructionNames)
                         .executes { c -> instructionRemoveCommand(c) }
+                    )
+                )
+            )
+            .then(literal("rename")
+                .then(str("isa-name", ::suggestInstructionSetNames)
+                    .then(str("instruction-name", ::suggestInstructionNames)
+                        .then(str("new-name")
+                            .executes { c -> instructionRenameCommand(c) }
+                        )
+                    )
+                )
+            )
+            .then(literal("list")
+                .then(str("isa-name", ::suggestInstructionSetNames)
+                    .then(int("page")
+                        .executes { c -> instructionListCommand(c) }
+                    )
+                    .executes { c -> instructionListCommandFirstPage(c) }
+                )
+            )
+            .then(literal("info")
+                .then(str("isa-name", ::suggestInstructionSetNames)
+                    .then(str("instruction-name", ::suggestInstructionNames)
+                        .executes { c -> instructionInfoCommand(c) }
                     )
                 )
             )
@@ -267,7 +294,10 @@ class CommandManager(
         dispatcher.register(literal("rm").allCommands())
     }
 
-    private fun suggestProfileNames(currentInput: String): List<String> {
+    private fun suggestProfileNames(
+        ctx: CommandContext<FabricClientCommandSource>,
+        currentInput: String
+    ): List<String> {
         return ArrayList<String>().apply {
             redmon.getProfileNames().forEach { name ->
                 if (name.contains(currentInput)) {
@@ -277,8 +307,11 @@ class CommandManager(
         }
     }
 
-    private fun suggestSignalNames(currentInput: String): List<String> {
-        return ArrayList<String>(MAX_COMMAND_SUGGESTIONS).apply {
+    private fun suggestSignalNames(
+        ctx: CommandContext<FabricClientCommandSource>,
+        currentInput: String
+    ): List<String> {
+        return ArrayList<String>().apply {
             redmon.getVisibleSignalNames().forEach { name ->
                 if (name.contains(currentInput)) {
                     add(name)
@@ -287,7 +320,10 @@ class CommandManager(
         }
     }
 
-    private fun suggestInstructionSetNames(currentInput: String): List<String> {
+    private fun suggestInstructionSetNames(
+        ctx: CommandContext<FabricClientCommandSource>,
+        currentInput: String
+    ): List<String> {
         return ArrayList<String>().apply {
             redmon.getInstructionSetNames().forEach { name ->
                 if (name.contains(currentInput)) {
@@ -309,12 +345,67 @@ class CommandManager(
         }
     }
 
-    private fun suggestPageNames(currentInput: String): List<String> {
+    private fun suggestPageNames(
+        ctx: CommandContext<FabricClientCommandSource>,
+        currentInput: String
+    ): List<String> {
         return ArrayList<String>().apply {
             redmon.getCurrentProfilePageNames().forEachIndexed { i, name ->
                 if (name.contains(currentInput)) {
                     add(name)
                 }
+            }
+        }
+    }
+
+    fun suggestSignalFormatNames(
+        ctx: CommandContext<FabricClientCommandSource>,
+        currentInput: String
+    ): List<String> {
+        return SignalFormat.entries.map { it.name.lowercase() }.filter { it.contains(currentInput) }
+    }
+
+    fun suggestSignalTypeNames(
+        ctx: CommandContext<FabricClientCommandSource>,
+        currentInput: String
+    ): List<String> {
+        return SignalType.entries.map { it.name.lowercase() }.filter { it.contains(currentInput) }
+    }
+
+    fun suggestInstructionNames(
+        ctx: CommandContext<FabricClientCommandSource>,
+        currentInput: String
+    ): List<String> {
+        val isaName = getString(ctx, "isa-name")
+        return try {
+            redmon.getInstructionNames(isaName).filter { it.contains(currentInput) }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    fun suggestInstructionLayout(
+        ctx: CommandContext<FabricClientCommandSource>,
+        currentInput: String
+    ): List<String> {
+        val fieldStrings = currentInput.split(INSTRUCTION_FORMAT_FIELD_DELIMITER)
+        val lastField = fieldStrings.last().trim()
+
+        if (fieldStrings.isEmpty() || lastField.isEmpty()) {
+            return FieldType.entries.map { "$currentInput${it.commandKey}:" }
+        }
+
+        val entries = FieldType.entries.filter {
+            it.commandKey.contains(lastField)
+        }
+
+        val fieldStringsWithoutLast = fieldStrings.subList(0, fieldStrings.size - 1)
+
+        return entries.map {
+            if (fieldStringsWithoutLast.isNotEmpty()) {
+                "${fieldStringsWithoutLast.joinToString(INSTRUCTION_FORMAT_FIELD_DELIMITER)}; ${it.commandKey}:"
+            } else {
+                "${it.commandKey}:"
             }
         }
     }
@@ -664,42 +755,73 @@ class CommandManager(
     private fun instructionAddCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val instructionSetName = getString(ctx, "isa-name")
         val instructionName = getString(ctx, "instruction-name")
-        val fieldText = getString(ctx, "instruction-layout").split(" ")
-        val instruction = InstructionLayout.createFromArgs(instructionName, fieldText, null)
+        val description = getString(ctx, "description")
+        val layoutText = getString(ctx, "instruction-layout")
+
+        val fieldTextElements = layoutText.split(INSTRUCTION_FORMAT_FIELD_DELIMITER).map {
+            it.trim()
+        }.filter {
+            !it.isEmpty()
+        }
+
+        val instruction = InstructionLayout.createFromArgs(instructionName, fieldTextElements, description)
+        redmon.addInstruction(instructionSetName, instruction)
         ctx.sendFeedback("Added instruction '${instruction.name}': ${instruction.prettyPrint()}")
     }
 
     private fun instructionRemoveCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val instructionSetName = getString(ctx, "isa-name")
         val instructionName = getString(ctx, "instruction-name")
-        //redmon.removeInstruction(instructionSetName)
+        redmon.removeInstruction(instructionSetName, instructionName)
+        ctx.sendFeedback("Removed instruction '$instructionName'")
+    }
+
+    private fun instructionRenameCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val instructionSetName = getString(ctx, "isa-name")
+        val instructionName = getString(ctx, "instruction-name")
+        val newInstructionName = getString(ctx, "new-name")
+        redmon.renameInstruction(instructionSetName, instructionName, newInstructionName)
+        ctx.sendFeedback("Renamed instruction '$instructionName' to '$newInstructionName'")
+    }
+
+    private fun doInstructionList(ctx: CommandContext<FabricClientCommandSource>, page: Int) {
+        val instructionSetName = getString(ctx, "isa-name")
+        val summaries = redmon.getInstructionSummaries(instructionSetName)
+        paginateList(ctx, summaries, page, "instructions")
+    }
+
+    private fun instructionListCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        doInstructionList(ctx, getInteger(ctx, "page"))
+    }
+
+    private fun instructionListCommandFirstPage(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        doInstructionList(ctx, 1)
+    }
+
+    private fun instructionInfoCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val instructionSetName = getString(ctx, "isa-name")
+        val instructionName = getString(ctx, "instruction-name")
+        ctx.sendFeedback(redmon.getInstructionInfo(instructionSetName, instructionName))
     }
 
     companion object {
         private const val COMMAND_ERROR = -1
         private const val COMMAND_SUCCESS = 1
 
-        private const val MAX_COMMAND_SUGGESTIONS = 10
+        private const val INSTRUCTION_FORMAT_FIELD_DELIMITER = ";"
 
         private fun str(
             name: String,
-            suggestionProvider: (String) -> List<String> = { emptyList() }
+            suggestionProvider: ((CommandContext<FabricClientCommandSource>, String) -> List<String>)? = null
         ): RequiredArgumentBuilder<FabricClientCommandSource, String> {
-            return argument(name, string()).suggests { ctx, builder ->
-                val partialArg = try {
-                    getString(ctx, name)
-                } catch (_: Exception) {
-                    ""
-                }
-                for (suggestion in suggestionProvider(partialArg)) {
-                    builder.suggest(suggestion)
-                }
-                builder.buildFuture()
-            }
+            return argument(name, string()).suggestsString(name, suggestionProvider)
         }
 
-        private fun greedyStr(name: String): RequiredArgumentBuilder<FabricClientCommandSource, String> {
-            return argument(name, greedyString())
+        private fun greedyStr(
+            name: String,
+            suggestionProvider: ((CommandContext<FabricClientCommandSource>, String) -> List<String>)? = null
+        ): RequiredArgumentBuilder<FabricClientCommandSource, String> {
+            return argument(name, greedyString()).suggestsString(name, suggestionProvider)
         }
 
         private fun int(
@@ -715,6 +837,26 @@ class CommandManager(
                     ""
                 }
                 for (suggestion in suggestionProvider(partialArg)) {
+                    builder.suggest(suggestion)
+                }
+                builder.buildFuture()
+            }
+        }
+
+        private fun RequiredArgumentBuilder<FabricClientCommandSource, String>.suggestsString(
+            name: String,
+            suggestionProvider: ((CommandContext<FabricClientCommandSource>, String) -> List<String>)? = null
+        ): RequiredArgumentBuilder<FabricClientCommandSource, String> {
+            if (suggestionProvider == null) {
+                return this
+            }
+            return suggests { ctx, builder ->
+                val currentInput = try {
+                    getString(ctx, name)
+                } catch (_: Exception) {
+                    ""
+                }
+                for (suggestion in suggestionProvider(ctx, currentInput)) {
                     builder.suggest(suggestion)
                 }
                 builder.buildFuture()

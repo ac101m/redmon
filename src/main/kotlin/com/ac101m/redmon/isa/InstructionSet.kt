@@ -38,25 +38,51 @@ class InstructionSet(
         }
     }
 
+    private fun requireInstructionDoesNotExist(instructionName: String) {
+        require(!instructionIndex.containsKey(instructionName)) {
+            "Instruction set '$name' already contains an instruction called '$instructionName'."
+        }
+    }
+
+    private fun requireInstructionExists(instructionName: String): InstructionLayout {
+        return requireNotNull(instructionIndex[instructionName]) {
+            "Instruction set '$name' does not contain an instruction '$instructionName'."
+        }
+    }
+
+    fun getInstruction(instructionName: String): InstructionLayout {
+        return requireInstructionExists(instructionName)
+    }
+
     fun addInstruction(newInstruction: InstructionLayout) {
         requireInstructionDoesNotExist(newInstruction.name)
+        require(newInstruction.size == instructionSize) {
+            "Instruction set '$name' expects $instructionSize bit instructions, but got ${newInstruction.size}."
+        }
         for (existingInstruction in instructions) {
             require(!newInstruction.conflictsWith(existingInstruction)) {
-                "New instruction opcode conflicts with existing instruction ${existingInstruction.name}."
+                "New instruction opcode conflicts with existing instruction '${existingInstruction.name}'."
             }
         }
         instructionIndex[newInstruction.name] = newInstruction
     }
 
+    fun removeInstruction(instructionName: String) {
+        requireInstructionExists(instructionName)
+        instructionIndex.remove(instructionName)
+    }
+
+    fun renameInstruction(instructionName: String, newInstructionName: String) {
+        val instruction = requireInstructionExists(instructionName)
+        requireInstructionDoesNotExist(newInstructionName)
+        instruction.name = newInstructionName
+        instructionIndex.remove(instructionName)
+        instructionIndex[newInstructionName] = instruction
+    }
+
     fun disassemble(bits: ULong): String {
         val bitsMasked = bits and instructionMask
         TODO("Not yet implemented")
-    }
-
-    private fun requireInstructionDoesNotExist(name: String) {
-        require(!instructionIndex.containsKey(name)) {
-            "Instruction set already contains an instruction called '$name'."
-        }
     }
 
     fun toPersistent(): PersistentInstructionSetV2 {

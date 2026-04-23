@@ -6,9 +6,17 @@ import com.ac101m.redmon.utils.computeMask
 
 abstract class Field(
     val size: Int,
-    val offset: Int
+    initOffset: Int
 ) {
-    val mask = computeMask(size) shl offset
+    val mask get() = computeMask(size) shl offset
+    var offset: Int = initOffset
+        set(newValue) {
+            val extent = size + newValue
+            require(extent <= InstructionLayout.MAX_INSTRUCTION_SIZE) {
+                "Maximum extent of $extent exceeds maximum instruction length."
+            }
+            field = newValue
+        }
 
     abstract val maxSize: Int
 
@@ -19,9 +27,7 @@ abstract class Field(
         require(size <= maxSize) {
             "Field may have a size of at most $maxSize bits."
         }
-        require(size + offset <= InstructionLayout.MAX_INSTRUCTION_SIZE) {
-            "Maximum extent of ${size + offset} exceeds maximum instruction length."
-        }
+        offset = initOffset
     }
 
     /**
@@ -44,10 +50,21 @@ abstract class Field(
 
     /**
      * Get a bit-level representation of the field as a string.
+     * Optionally cross out the characters and make them grey.
+     *
+     * @param crossOut Grey out characters and replace with hyphens (default: false).
      */
-    abstract fun bitRepresentation(): String
+    abstract fun bitRepresentation(crossOut: Boolean = false): String
 
+    /**
+     * Convert to persistence object.
+     */
     abstract fun toPersistent(): PersistentInstructionFieldV2
+
+    /**
+     * Get description text.
+     */
+    abstract fun descriptionText(): String
 
     companion object {
         fun fromPersistent(persistent: PersistentInstructionFieldV2): Field {
@@ -55,7 +72,9 @@ abstract class Field(
                 FieldType.IGNORE -> IgnoreField.fromPersistent(persistent)
                 FieldType.OPCODE -> OpcodeField.fromPersistent(persistent)
                 FieldType.FLAG_BIT -> FlagBitField.fromPersistent(persistent)
-                FieldType.REGISTER_ADDRESS -> RegisterAddressField.fromPersistent(persistent)
+                FieldType.REGISTER_READ -> RegisterField.fromPersistent(persistent)
+                FieldType.REGISTER_WRITE -> RegisterField.fromPersistent(persistent)
+                FieldType.REGISTER_READ_WRITE -> RegisterField.fromPersistent(persistent)
                 FieldType.UNSIGNED_IMMEDIATE -> UnsignedImmediateField.fromPersistent(persistent)
                 FieldType.SIGNED_IMMEDIATE -> SignedImmediateField.fromPersistent(persistent)
             }
@@ -64,27 +83,29 @@ abstract class Field(
         /**
          * Get instruction field from text.
          * Used for reading instruction fields from user input.
+         * Note this does not configure the offset, which must be manually set after instantiation.
          *
          * @param text Input string to parse.
-         * @param offset The offset of the field.
          */
-        fun of(text: String, offset: Int): Field {
-            val tokens = text.split(":")
+        fun of(text: String): Field {
+            val tokens = text.split(":", limit = 2)
 
             require(tokens.size == 2) {
-                "Expected colon separated instruction specification but got '$text'."
+                "Expected colon separated field specification but got '$text'."
             }
 
             val key = tokens.first()
             val value = tokens.last()
 
             return when (key) {
-                FieldType.IGNORE.commandKey -> IgnoreField.of(value, offset)
-                FieldType.OPCODE.commandKey -> OpcodeField.of(value, offset)
-                FieldType.FLAG_BIT.commandKey -> FlagBitField.of(value, offset)
-                FieldType.REGISTER_ADDRESS.commandKey -> RegisterAddressField.of(value, offset)
-                FieldType.UNSIGNED_IMMEDIATE.commandKey -> UnsignedImmediateField.of(value, offset)
-                FieldType.SIGNED_IMMEDIATE.commandKey -> SignedImmediateField.of(value, offset)
+                FieldType.IGNORE.commandKey -> IgnoreField.of(value)
+                FieldType.OPCODE.commandKey -> OpcodeField.of(value)
+                FieldType.FLAG_BIT.commandKey -> FlagBitField.of(value)
+                FieldType.REGISTER_READ.commandKey -> SrcRegisterField.of(value)
+                FieldType.REGISTER_WRITE.commandKey -> DestRegisterField.of(value)
+                FieldType.REGISTER_READ_WRITE.commandKey -> SrcDestRegisterField.of(value)
+                FieldType.UNSIGNED_IMMEDIATE.commandKey -> UnsignedImmediateField.of(value)
+                FieldType.SIGNED_IMMEDIATE.commandKey -> SignedImmediateField.of(value)
                 else -> {
                     val validKeyNames = FieldType.entries.joinToString(", ") { it.commandKey }
                     error("Unrecognized instruction field type '$key'. Valid field types are: $validKeyNames.")

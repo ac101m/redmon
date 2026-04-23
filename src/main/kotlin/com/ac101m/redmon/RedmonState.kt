@@ -2,6 +2,7 @@ package com.ac101m.redmon
 
 import com.ac101m.redmon.gui.ProfileOverlay
 import com.ac101m.redmon.gui.TextOverlay
+import com.ac101m.redmon.isa.InstructionLayout
 import com.ac101m.redmon.isa.InstructionSet
 import com.ac101m.redmon.isa.InstructionSetRegistry
 import com.ac101m.redmon.persistence.StorageReader
@@ -433,6 +434,78 @@ class RedmonState(profileStoragePath: Path, worldMetadataStoragePath: Path, inst
     fun renameInstructionSet(name: String, newName: String) {
         instructionSetRegistry.renameInstructionSet(name, newName)
         saveInstructionSets()
+    }
+
+    /**
+     * Add an instruction to an instruction set.
+     *
+     * @param instructionSetName The name of the instruction set.
+     * @param instruction The instruction to add to the instruction set.
+     */
+    fun addInstruction(instructionSetName: String, instruction: InstructionLayout) {
+        val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
+        instructionSet.addInstruction(instruction)
+        saveInstructionSets()
+    }
+
+    /**
+     * Remove an instruction from an instruction set.
+     *
+     * @param instructionSetName The name of the instruction set to remove the instruction from.
+     * @param instructionName The name of the instruction to remove.
+     */
+    fun removeInstruction(instructionSetName: String, instructionName: String) {
+        val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
+        instructionSet.removeInstruction(instructionName)
+        saveInstructionSets()
+    }
+
+    /**
+     * Remove an instruction from an instruction set.
+     *
+     * @param instructionSetName The name of the instruction set to remove the instruction from.
+     * @param instructionName The name of the instruction to remove.
+     * @param newInstructionName The new instruction name.
+     */
+    fun renameInstruction(instructionSetName: String, instructionName: String, newInstructionName: String) {
+        val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
+        instructionSet.renameInstruction(instructionName, newInstructionName)
+        saveInstructionSets()
+    }
+
+    /**
+     * Get a list of all instruction names within an instruction set.
+     *
+     * @param instructionSetName The name of the instruction set to get instruction names from.
+     */
+    fun getInstructionNames(instructionSetName: String): List<String> {
+        val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
+        return instructionSet.instructions.map { it.name }
+    }
+
+    /**
+     * Get instruction summaries for all instructions in an instruction set.
+     *
+     * @param instructionSetName The name of the instruction set to get instruction names from.
+     */
+    fun getInstructionSummaries(instructionSetName: String): List<String> {
+        val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
+        return instructionSet.instructions.map {
+            val descriptionText = it.description ?: "No description."
+            "${it.prettyPrint()} - ${it.name}\n     $descriptionText"
+        }
+    }
+
+    /**
+     * Get details instruction information, including breakdown of fields.
+     *
+     * @param instructionSetName The name of the instruction set containing the instruction.
+     * @param instructionName The name of the instruction to get info for.
+     */
+    fun getInstructionInfo(instructionSetName: String, instructionName: String): String {
+        val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
+        val instruction = instructionSet.getInstruction(instructionName)
+        return instruction.infoString()
     }
 
     /**

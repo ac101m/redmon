@@ -14,8 +14,12 @@ enum class FieldType(val commandKey: String) {
     OPCODE(commandKey = "opcode"),
     @JsonProperty("flag")
     FLAG_BIT(commandKey = "flag_bit"),
-    @JsonProperty("reg")
-    REGISTER_ADDRESS(commandKey = "reg_addr"),
+    @JsonProperty("reg_r")
+    REGISTER_READ(commandKey = "reg_r"),
+    @JsonProperty("reg_w")
+    REGISTER_WRITE(commandKey = "reg_w"),
+    @JsonProperty("reg_rw")
+    REGISTER_READ_WRITE(commandKey = "reg_rw"),
     @JsonProperty("imm_u")
     UNSIGNED_IMMEDIATE(commandKey = "imm_u"),
     @JsonProperty("imm_s")

@@ -34,6 +34,10 @@ class InstructionSetRegistry(initInstructionSets: List<InstructionSet>) {
         instructionSetIndex[instructionSet.name] = instructionSet
     }
 
+    fun getInstructionSet(name: String): InstructionSet {
+        return requireInstructionSetExists(name)
+    }
+
     fun removeInstructionSet(name: String) {
         requireInstructionSetExists(name)
         instructionSetIndex.remove(name)
