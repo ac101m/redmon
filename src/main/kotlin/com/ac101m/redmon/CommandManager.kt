@@ -239,6 +239,25 @@ class CommandManager(
                     )
                 )
             )
+            .then(literal("disassemble")
+                .then(str(ISA_NAME_ARG, ::suggestInstructionSetNames)
+                    .then(literal("bin")
+                        .then(str("instruction")
+                            .executes { c -> isaDisassembleCommand(c, 2) }
+                        )
+                    )
+                    .then(literal("hex")
+                        .then(str("instruction")
+                            .executes { c -> isaDisassembleCommand(c, 16) }
+                        )
+                    )
+                    .then(literal("dec")
+                        .then(str("instruction")
+                            .executes { c -> isaDisassembleCommand(c, 10) }
+                        )
+                    )
+                )
+            )
         )
     }
 
@@ -770,6 +789,26 @@ class CommandManager(
         val newName = getString(ctx, "new-isa-name")
         redmon.renameInstructionSet(name, newName)
         ctx.sendFeedback("Renamed instruction set '$name' to '$newName'")
+    }
+
+    private fun isaDisassembleCommand(ctx: CommandContext<FabricClientCommandSource>, radix: Int) = commandWrapper(ctx) {
+        val name = getString(ctx, ISA_NAME_ARG)
+        val bitString = getString(ctx, "instruction")
+
+        val instructionBits = try {
+            bitString.toULong(radix)
+        } catch (_: NumberFormatException) {
+            throw IllegalArgumentException("Expected instruction word (radix $radix), but got '$bitString'.")
+        }
+
+        ctx.sendFeedback("Instruction bits: ${instructionBits.toString(2)}")
+
+        val instructionSet = redmon.getInstructionSet(name)
+        val disassembly = requireNotNull(instructionSet.disassemble(instructionBits)) {
+            "No instruction was found that matches the provided"
+        }
+
+        ctx.sendFeedback("Disassembly: $disassembly")
     }
 
     private fun instructionAddCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {

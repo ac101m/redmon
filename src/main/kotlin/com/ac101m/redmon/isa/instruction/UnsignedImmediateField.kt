@@ -8,13 +8,18 @@ class UnsignedImmediateField(
     size: Int,
     offset: Int,
     description: String?
-) : ParameterField(size, offset, description) {
+) : ParameterField(size, offset, description), DecodableField {
     override val maxSize get() = InstructionLayout.MAX_INSTRUCTION_SIZE
     override val displayColour get() = COLOUR
     override val displayChar get() = 'U'
 
     override fun descriptionText(): String {
         return description ?: "$size bit unsigned immediate."
+    }
+
+    override fun decode(bits: ULong): String {
+        val value = (bits and mask) shr offset
+        return value.toString()
     }
 
     override fun toPersistent(): PersistentInstructionFieldV2 {

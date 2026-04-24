@@ -416,6 +416,15 @@ class RedmonState(profileStoragePath: Path, worldMetadataStoragePath: Path, inst
     }
 
     /**
+     * Retrieves an instruction set.
+     *
+     * @param name The name of the instruction set.
+     */
+    fun getInstructionSet(name: String): InstructionSet {
+        return instructionSetRegistry.getInstructionSet(name)
+    }
+
+    /**
      * Delete an instruction set.
      *
      * @param name Name of the instruction set to delete.
@@ -491,7 +500,7 @@ class RedmonState(profileStoragePath: Path, worldMetadataStoragePath: Path, inst
     fun getInstructionSummaries(instructionSetName: String): List<String> {
         val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
         return instructionSet.instructions.map { instruction ->
-            "${instruction.prettyPrint()} - ${instruction.name}\n     ${instruction.descriptionText()}"
+            "${instruction.prettyPrint()} - ${instruction.name}\n   └ ${instruction.descriptionText()}"
         }
     }
 

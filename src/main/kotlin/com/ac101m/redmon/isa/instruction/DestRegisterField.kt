@@ -15,13 +15,18 @@ class DestRegisterField(
     size: Int,
     offset: Int,
     description: String?
-) : ParameterField(size, offset, description) {
+) : ParameterField(size, offset, description), DecodableField {
     override val maxSize get() = InstructionLayout.MAX_INSTRUCTION_SIZE
     override val displayColour get() = Colour.BLUE
     override val displayChar get() = 'R'
 
     override fun descriptionText(): String {
         return description ?: "Destination register."
+    }
+
+    override fun decode(bits: ULong): String {
+        val bits = (bits and mask) shr offset
+        return "r$bits"
     }
 
     override fun toPersistent(): PersistentInstructionFieldV2 {

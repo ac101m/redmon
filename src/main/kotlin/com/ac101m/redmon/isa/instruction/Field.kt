@@ -60,14 +60,14 @@ abstract class Field(
     abstract fun bitRepresentation(crossOut: Boolean = false): String
 
     /**
-     * Convert to persistence object.
-     */
-    abstract fun toPersistent(): PersistentInstructionFieldV2
-
-    /**
      * Get description text.
      */
     abstract fun descriptionText(): String
+
+    /**
+     * Convert to persistence object.
+     */
+    abstract fun toPersistent(): PersistentInstructionFieldV2
 
     companion object {
         val CROSSED_OUT_COLOUR = Colour.GRAY

@@ -136,6 +136,24 @@ class InstructionLayoutTests {
         }
     }
 
+    @ParameterizedTest
+    @MethodSource("instructionDisassemblyPairs")
+    fun `Can disassemble an instruction correctly`(
+        name: String,
+        fields: List<String>,
+        bitString: String,
+        expectedDisassembly: String
+    ) {
+        val bits = bitString.toULong(2)
+        val layout = InstructionLayout.createFromArgs(name, fields, null)
+
+        val result = assertDoesNotThrow {
+            layout.disassemble(bits)
+        }
+
+        assertThat(result).isEqualTo(expectedDisassembly)
+    }
+
     companion object {
 
         @JvmStatic
@@ -159,6 +177,16 @@ class InstructionLayoutTests {
             Arguments.of("LSLI", listOf("opcode:01001", "ignore:3", "imm_u:4", "reg_w:4")),
             Arguments.of("MOV", listOf("opcode:0000001", "flag_bit:S", "reg_r:4", "reg_w:4")),
             Arguments.of("ADD", listOf("opcode:0000001", "flag_bit:S", "reg_r:4", "reg_rw:4")),
+        )
+
+        @JvmStatic
+        fun instructionDisassemblyPairs() = listOf<Arguments>(
+            Arguments.of("ADDI", listOf("opcode:01000", "imm_s:7", "reg_w:4"), "0100011111110010", "ADDI r2, -1"),
+            Arguments.of("ADDI", listOf("opcode:01000", "imm_s:7", "reg_w:4"), "0100001111110001", "ADDI r1, 63"),
+            Arguments.of("MOVIZ", listOf("opcode:1000", "imm_u:8", "reg_w:4"), "1000000000000010", "MOVIZ r2, 0"),
+            Arguments.of("ADD", listOf("opcode:0001011", "flag_bit:F", "reg_r:4", "reg_rw:4"), "0001011001110001", "ADD r1, r7"),
+            Arguments.of("ADD", listOf("opcode:0001011", "flag_bit:F", "reg_r:4", "reg_rw:4"), "0001011101110001", "ADD[F] r1, r7"),
+            Arguments.of("ST16", listOf("opcode:0011111", "flag_bit:S", "reg_r:4", "reg_r:4"), "0011111000000001", "ST16 r0, r1")
         )
     }
 }

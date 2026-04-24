@@ -80,9 +80,25 @@ class InstructionSet(
         instructionIndex[newInstructionName] = instruction
     }
 
-    fun disassemble(bits: ULong): String {
+    /**
+     * Disassembles an instruction and returns a string.
+     * If no instruction matches the specified bit pattern, returns null.
+     *
+     * @param bits The bits of the instruction.
+     */
+    fun disassemble(bits: ULong): String? {
         val bitsMasked = bits and instructionMask
-        TODO("Not yet implemented")
+        val instructions = instructions.filter { it.opcodeMatches(bitsMasked) }
+
+        if (instructions.isEmpty()) {
+            return null
+        }
+
+        check(instructions.size == 1) {
+            "Multiple instructions match provided opcode. This should not happen!"
+        }
+
+        return instructions.single().disassemble(bits)
     }
 
     fun toPersistent(): PersistentInstructionSetV2 {

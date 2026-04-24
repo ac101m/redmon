@@ -8,13 +8,24 @@ class SignedImmediateField(
     size: Int,
     offset: Int,
     description: String?
-) : ParameterField(size, offset, description) {
+) : ParameterField(size, offset, description), DecodableField {
     override val maxSize get() = InstructionLayout.MAX_INSTRUCTION_SIZE
     override val displayColour get() = COLOUR
     override val displayChar get() = 'S'
 
     override fun descriptionText(): String {
         return description ?: "$size bit signed immediate."
+    }
+
+    override fun decode(bits: ULong): String {
+        val maskedBits = (bits and mask) shr offset
+        val signMask = 1UL shl (size - 1)
+        return if (signMask and maskedBits == 0UL) {
+            maskedBits.toString()
+        } else {
+            val signExtended = maskedBits or (mask shr offset).inv()
+            signExtended.toLong().toString()
+        }
     }
 
     override fun toPersistent(): PersistentInstructionFieldV2 {

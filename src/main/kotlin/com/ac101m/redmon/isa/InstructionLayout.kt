@@ -1,8 +1,12 @@
 package com.ac101m.redmon.isa
 
+import com.ac101m.redmon.isa.instruction.DecodableField
+import com.ac101m.redmon.isa.instruction.DestRegisterField
 import com.ac101m.redmon.isa.instruction.Field
+import com.ac101m.redmon.isa.instruction.FlagBitField
 import com.ac101m.redmon.isa.instruction.IgnoreField
 import com.ac101m.redmon.isa.instruction.OpcodeField
+import com.ac101m.redmon.isa.instruction.SrcDestRegisterField
 import com.ac101m.redmon.persistence.v2.PersistentInstructionLayoutV2
 import com.ac101m.redmon.utils.Colour
 
@@ -164,6 +168,33 @@ class InstructionLayout(
             "Field index out of range."
         }
         fields[index].description = newDescription
+    }
+
+    fun disassemble(bits: ULong): String {
+        val flagStringBuilder = StringBuilder(fields.size)
+        val strings = ArrayList<String>(fields.size)
+
+        val sortedFields = fields.sortedBy {
+            if (it is DestRegisterField || it is SrcDestRegisterField) 0 else 1
+        }
+
+        sortedFields.forEach { field ->
+            if (field is FlagBitField) {
+                if (field.mask and bits != 0UL) {
+                    flagStringBuilder.append(field.char)
+                }
+            } else if (field is DecodableField) {
+                strings.add(field.decode(bits))
+            }
+        }
+
+        val flagString = if (flagStringBuilder.isEmpty()) {
+            ""
+        } else {
+            "[$flagStringBuilder]"
+        }
+
+        return "$name$flagString ${strings.joinToString(", ")}"
     }
 
     fun toPersistent(): PersistentInstructionLayoutV2 {
