@@ -13,17 +13,18 @@ import com.ac101m.redmon.utils.Colour
 class FlagBitField(
     val char: Char,
     offset: Int,
-    val description: String?
-) : Field(1, offset) {
+    description: String?
+) : Field(1, offset, description) {
     override val maxSize get() = 1
+    override val colour get() = COLOUR
 
     override fun bitRepresentation(crossOut: Boolean): String {
-        return StringBuilder(size).apply {
+        return StringBuilder(size * 2).apply {
             if (crossOut) {
-                append(Colour.GRAY.prefix)
+                append(CROSSED_OUT_COLOUR.prefix)
                 append('-')
             } else {
-                append(COLOUR.prefix)
+                append(colour.prefix)
                 append(char)
             }
         }.toString()
@@ -38,7 +39,8 @@ class FlagBitField(
             type = FieldType.FLAG_BIT,
             size = size,
             offset = offset,
-            metadata = char.toString()
+            metadata = char.toString(),
+            description = description
         )
     }
 

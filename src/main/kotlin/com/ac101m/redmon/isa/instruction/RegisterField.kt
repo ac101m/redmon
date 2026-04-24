@@ -14,16 +14,14 @@ import com.ac101m.redmon.utils.Colour
 abstract class RegisterField(
     size: Int,
     offset: Int,
-    val description: String?
-) : Field(size, offset) {
+    description: String?
+) : Field(size, offset, description) {
     override val maxSize get() = InstructionLayout.MAX_INSTRUCTION_SIZE
-
-    abstract val colour: Colour
 
     override fun bitRepresentation(crossOut: Boolean): String {
         return StringBuilder(size * 2).apply {
             if (crossOut) {
-                append(Colour.GRAY.prefix)
+                append(CROSSED_OUT_COLOUR.prefix)
                 repeat(size) { append('-') }
             } else {
                 append(colour.prefix)

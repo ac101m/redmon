@@ -12,24 +12,26 @@ import com.ac101m.redmon.utils.Colour
  */
 class IgnoreField(
     size: Int,
-    offset: Int
-) : Field(size, offset) {
+    offset: Int,
+    description: String?
+) : Field(size, offset, description) {
     override val maxSize get() = InstructionLayout.MAX_INSTRUCTION_SIZE
+    override val colour get() = COLOUR
 
     override fun bitRepresentation(crossOut: Boolean): String {
         return StringBuilder(size * 2).apply {
             if (crossOut) {
-                append(Colour.GRAY.prefix)
+                append(CROSSED_OUT_COLOUR.prefix)
                 repeat(size) { append('-') }
             } else {
-                append(COLOUR.prefix)
+                append(colour.prefix)
                 repeat(size) { append('X') }
             }
         }.toString()
     }
 
     override fun descriptionText(): String {
-        return "Ignored."
+        return description ?: "Ignored."
     }
 
     override fun toPersistent(): PersistentInstructionFieldV2 {
@@ -38,7 +40,7 @@ class IgnoreField(
             size = size,
             offset = offset,
             metadata = null,
-            description = null
+            description = description
         )
     }
 
@@ -46,7 +48,7 @@ class IgnoreField(
         val COLOUR = Colour.GRAY
 
         fun fromPersistent(persistent: PersistentInstructionFieldV2): IgnoreField {
-            return IgnoreField(persistent.size, persistent.offset)
+            return IgnoreField(persistent.size, persistent.offset, persistent.description)
         }
 
         fun of(text: String): IgnoreField {
@@ -55,7 +57,7 @@ class IgnoreField(
             } catch (e: NumberFormatException) {
                 throw IllegalArgumentException("Expected an unsigned integer but got '$text'.", e)
             }
-            return IgnoreField(sizeInt.toInt(), 0)
+            return IgnoreField(sizeInt.toInt(), 0, null)
         }
     }
 }

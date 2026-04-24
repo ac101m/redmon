@@ -2,11 +2,13 @@ package com.ac101m.redmon.isa.instruction
 
 import com.ac101m.redmon.isa.InstructionLayout
 import com.ac101m.redmon.persistence.v2.PersistentInstructionFieldV2
+import com.ac101m.redmon.utils.Colour
 import com.ac101m.redmon.utils.computeMask
 
 abstract class Field(
     val size: Int,
-    initOffset: Int
+    initOffset: Int,
+    var description: String?
 ) {
     val mask get() = computeMask(size) shl offset
     var offset: Int = initOffset
@@ -19,6 +21,7 @@ abstract class Field(
         }
 
     abstract val maxSize: Int
+    abstract val colour: Colour
 
     init {
         require(size > 0) {
@@ -67,6 +70,8 @@ abstract class Field(
     abstract fun descriptionText(): String
 
     companion object {
+        val CROSSED_OUT_COLOUR = Colour.GRAY
+
         fun fromPersistent(persistent: PersistentInstructionFieldV2): Field {
             return when (persistent.type) {
                 FieldType.IGNORE -> IgnoreField.fromPersistent(persistent)

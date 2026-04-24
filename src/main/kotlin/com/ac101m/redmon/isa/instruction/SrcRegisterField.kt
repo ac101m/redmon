@@ -15,7 +15,7 @@ class SrcRegisterField(
     offset: Int,
     description: String?
 ) : RegisterField(size, offset, description) {
-    override val colour get() = Colour.AQUA
+    override val colour get() = COLOUR
 
     override fun descriptionText(): String {
         return description ?: "Source register."
@@ -32,6 +32,8 @@ class SrcRegisterField(
     }
 
     companion object {
+        val COLOUR = Colour.AQUA
+
         fun fromPersistent(persistent: PersistentInstructionFieldV2): SrcRegisterField {
             return SrcRegisterField(persistent.size, persistent.offset, persistent.description)
         }

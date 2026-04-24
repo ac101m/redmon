@@ -60,7 +60,7 @@ class CommandManager(
     private fun LiteralArgumentBuilder<FabricClientCommandSource>.profileCommands(): LiteralArgumentBuilder<FabricClientCommandSource> {
         return this.then(literal("profile")
             .then(literal("list")
-                .then(int("page", 1)
+                .then(int("page", min = 1)
                     .executes { c -> profileListCommand(c) }
                 )
                 .executes { c -> profileListCommandFirstPage(c) }
@@ -72,7 +72,7 @@ class CommandManager(
             )
             .then(literal("search")
                 .then(str("query")
-                    .then(int("page", 1)
+                    .then(int("page", min = 1)
                         .executes { c -> profileSearchCommand(c) }
                     )
                 )
@@ -137,7 +137,7 @@ class CommandManager(
                 .then(str("name")
                     .then(str("signal-type", ::suggestSignalTypeNames)
                         .then(int("block-count")
-                            .then(int("column-number", 1, suggestionProvider = ::suggestColumnNumbers)
+                            .then(int("column-number", min = 1, suggestionProvider = ::suggestColumnNumbers)
                                 .executes { c -> signalAddWithColumnCommand(c) }
                             )
                             .executes { c -> signalAddCommand(c) }
@@ -167,7 +167,7 @@ class CommandManager(
             )
             .then(literal("add-blocks")
                 .then(str("name", ::suggestSignalNames)
-                    .then(int("count", 0)
+                    .then(int("count", min = 0)
                         .executes { c -> signalAppendBlocksCommand(c) }
                     )
                 )
@@ -191,19 +191,19 @@ class CommandManager(
             .then(literal("move")
                 .then(str("name", ::suggestSignalNames)
                     .then(literal("up")
-                        .then(int("count", 1)
+                        .then(int("count", min = 1)
                             .executes { c -> signalMoveUpCommand(c) }
                         )
                         .executes { c -> signalMoveUpOneCommand(c) }
                     )
                     .then(literal("down")
-                        .then(int("count", 1)
+                        .then(int("count", min = 1)
                             .executes { c -> signalMoveDownCommand(c) }
                         )
                         .executes { c -> signalMoveDownOneCommand(c) }
                     )
                     .then(literal("column")
-                        .then(int("column-number", 1, suggestionProvider = ::suggestColumnNumbers)
+                        .then(int("column-number", min = 1, suggestionProvider = ::suggestColumnNumbers)
                             .executes { c -> signalMoveColumnCommand(c) }
                         )
                     )
@@ -291,6 +291,17 @@ class CommandManager(
                     .then(str(INSTRUCTION_NAME_ARG, ::suggestInstructionNames)
                         .then(str("new-description")
                             .executes { c -> instructionSetDescriptionCommand(c) }
+                        )
+                    )
+                )
+            )
+            .then(literal("set-field-description")
+                .then(str(ISA_NAME_ARG, ::suggestInstructionSetNames)
+                    .then(str(INSTRUCTION_NAME_ARG, ::suggestInstructionNames)
+                        .then(int("field-number", min = 1)
+                            .then(str("new-description")
+                                .executes { c -> instructionSetFieldDescription(c) }
+                            )
                         )
                     )
                 )
@@ -821,6 +832,15 @@ class CommandManager(
         ctx.sendFeedback("Updated description for instruction '$instructionName'.")
     }
 
+    private fun instructionSetFieldDescription(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val instructionSetName = getString(ctx, ISA_NAME_ARG)
+        val instructionName = getString(ctx, INSTRUCTION_NAME_ARG)
+        val fieldIndex = getInteger(ctx, "field-number") - 1
+        val newDescription = getString(ctx, "new-description")
+        redmon.setInstructionFieldDescription(instructionSetName, instructionName, fieldIndex, newDescription)
+        ctx.sendFeedback("Updated description for field $fieldIndex of instruction '$instructionName'.")
+    }
+
     companion object {
         private const val COMMAND_ERROR = -1
         private const val COMMAND_SUCCESS = 1
@@ -848,18 +868,22 @@ class CommandManager(
             name: String,
             min: Int = Int.MIN_VALUE,
             max: Int = Int.MAX_VALUE,
-            suggestionProvider: (String) -> List<String> = { emptyList() }
+            suggestionProvider: ((String) -> List<String>)? = null
         ): RequiredArgumentBuilder<FabricClientCommandSource, Int> {
-            return argument(name, integer(min, max)).suggests { ctx, builder ->
-                val partialArg = try {
-                    getString(ctx, name)
-                } catch (_: Exception) {
-                    ""
+            val arg = argument(name, integer(min, max))
+            return when(suggestionProvider) {
+                null -> arg
+                else -> arg.suggests { ctx, builder ->
+                    val partialArg = try {
+                        getString(ctx, name)
+                    } catch (_: Exception) {
+                        ""
+                    }
+                    for (suggestion in suggestionProvider(partialArg)) {
+                        builder.suggest(suggestion)
+                    }
+                    builder.buildFuture()
                 }
-                for (suggestion in suggestionProvider(partialArg)) {
-                    builder.suggest(suggestion)
-                }
-                builder.buildFuture()
             }
         }
 

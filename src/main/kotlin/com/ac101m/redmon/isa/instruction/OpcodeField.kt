@@ -12,9 +12,11 @@ import com.ac101m.redmon.utils.Colour
  */
 class OpcodeField(
     val bitPattern: String,
-    offset: Int
-) : Field(bitPattern.length, offset) {
+    offset: Int,
+    description: String?
+) : Field(bitPattern.length, offset, description) {
     override val maxSize get() = InstructionLayout.MAX_INSTRUCTION_SIZE
+    override val colour get() = COLOUR
 
     init {
         try {
@@ -27,17 +29,17 @@ class OpcodeField(
     override fun bitRepresentation(crossOut: Boolean): String {
         return StringBuilder(size * 2).apply {
             if (crossOut) {
-                append(Colour.GRAY.prefix)
+                append(CROSSED_OUT_COLOUR.prefix)
                 repeat(bitPattern.length) { append('-') }
             } else {
-                append(COLOUR.prefix)
+                append(colour.prefix)
                 append(bitPattern)
             }
         }.toString()
     }
 
     override fun descriptionText(): String {
-        return "${bitPattern.length} bit opcode."
+        return description ?: "${bitPattern.length} bit opcode."
     }
 
     override fun toPersistent(): PersistentInstructionFieldV2 {
@@ -46,7 +48,7 @@ class OpcodeField(
             size = size,
             offset = offset,
             metadata = bitPattern,
-            description = null
+            description = description
         )
     }
 
@@ -60,7 +62,7 @@ class OpcodeField(
             require(persistent.size == bitPattern.length) {
                 "Bit pattern length mismatch."
             }
-            return OpcodeField(bitPattern, persistent.offset)
+            return OpcodeField(bitPattern, persistent.offset, persistent.description)
         }
 
         fun of(text: String): OpcodeField {
@@ -69,7 +71,7 @@ class OpcodeField(
             } catch (e: NumberFormatException) {
                 throw IllegalArgumentException("Expected a bit pattern but got '$text'.", e)
             }
-            return OpcodeField(text, 0)
+            return OpcodeField(text, 0, null)
         }
     }
 }

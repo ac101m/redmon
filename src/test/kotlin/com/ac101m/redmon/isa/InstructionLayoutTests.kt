@@ -11,7 +11,7 @@ import org.junit.jupiter.params.provider.MethodSource
 import org.junit.jupiter.params.provider.ValueSource
 
 class InstructionLayoutTests {
-    val testOpcodeField = OpcodeField("0101", 0)
+    val testOpcodeField = OpcodeField("0101", 0, null)
 
     @Test
     fun `If no opcode field is supplied, an error is generated`() {
@@ -48,7 +48,7 @@ class InstructionLayoutTests {
         val instruction = InstructionLayout(
             name = "TST",
             size = testInstructionSize,
-            fields = listOf(OpcodeField("1001", 0)),
+            fields = listOf(OpcodeField("1001", 0, null)),
             description = "A test instruction"
         )
 
@@ -66,7 +66,7 @@ class InstructionLayoutTests {
         val instruction = InstructionLayout(
             name = "TST",
             size = testInstructionSize,
-            fields = listOf(OpcodeField("1001", 0)),
+            fields = listOf(OpcodeField("1001", 0, null)),
             description = "A test instruction"
         )
 
@@ -140,18 +140,18 @@ class InstructionLayoutTests {
 
         @JvmStatic
         fun conflictingOpcodePatterns() = listOf<Arguments>(
-            Arguments.of(OpcodeField("1010", 0), OpcodeField("1010", 0)),     // Identical
-            Arguments.of(OpcodeField("1010", 0), OpcodeField("1010", 8)),     // Non overlapping
-            Arguments.of(OpcodeField("1010", 0), OpcodeField("01010", 0)),    // Identical within overlapping section, same offset
-            Arguments.of(OpcodeField("1010", 0), OpcodeField("1010", 2))      // Identical with overlapping section, different offsets
+            Arguments.of(OpcodeField("1010", 0, null), OpcodeField("1010", 0, null)),     // Identical
+            Arguments.of(OpcodeField("1010", 0, null), OpcodeField("1010", 8, null)),     // Non overlapping
+            Arguments.of(OpcodeField("1010", 0, null), OpcodeField("01010", 0, null)),    // Identical within overlapping section, same offset
+            Arguments.of(OpcodeField("1010", 0, null), OpcodeField("1010", 2, null))      // Identical with overlapping section, different offsets
         )
 
         @JvmStatic
         fun nonConflictingOpcodePatterns() = listOf<Arguments>(
-            Arguments.of(OpcodeField("1010", 0), OpcodeField("1011", 0)),     // Non-identical
-            Arguments.of(OpcodeField("1010", 0), OpcodeField("11011", 0)),    // Non-identical within overlapping section
-            Arguments.of(OpcodeField("1010", 0), OpcodeField("1011", 2)),     // Non-identical within overlapping section, different offsets
-            Arguments.of(OpcodeField("110010", 0), OpcodeField("10100", 5))   // Non-identical one shared bit
+            Arguments.of(OpcodeField("1010", 0, null), OpcodeField("1011", 0, null)),     // Non-identical
+            Arguments.of(OpcodeField("1010", 0, null), OpcodeField("11011", 0, null)),    // Non-identical within overlapping section
+            Arguments.of(OpcodeField("1010", 0, null), OpcodeField("1011", 2, null)),     // Non-identical within overlapping section, different offsets
+            Arguments.of(OpcodeField("110010", 0, null), OpcodeField("10100", 5, null))   // Non-identical one shared bit
         )
 
         @JvmStatic

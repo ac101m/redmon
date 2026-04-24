@@ -133,7 +133,9 @@ class InstructionLayout(
             sb.append(prettyPrint(field))
             sb.append(" - ")
             sb.append(field.descriptionText())
-            sb.append('\n')
+            if (i < fields.size - 1) {
+                sb.append('\n')
+            }
         }
 
         return sb.toString()
@@ -154,7 +156,14 @@ class InstructionLayout(
     }
 
     fun descriptionText(): String {
-        return description ?: DEFAULT_INSTRUCTION_DESCRIPTION
+        return description ?: "No description."
+    }
+
+    fun setFieldDescription(index: Int, newDescription: String) {
+        require(index < fields.size) {
+            "Field index out of range."
+        }
+        fields[index].description = newDescription
     }
 
     fun toPersistent(): PersistentInstructionLayoutV2 {
@@ -164,7 +173,6 @@ class InstructionLayout(
 
     companion object {
         const val MAX_INSTRUCTION_SIZE = 64
-        const val DEFAULT_INSTRUCTION_DESCRIPTION = "No description."
 
         fun fromPersistent(size: Int, persistent: PersistentInstructionLayoutV2): InstructionLayout {
             return InstructionLayout(

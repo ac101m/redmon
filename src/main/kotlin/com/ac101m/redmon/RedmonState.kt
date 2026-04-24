@@ -522,6 +522,26 @@ class RedmonState(profileStoragePath: Path, worldMetadataStoragePath: Path, inst
     }
 
     /**
+     * Set instruction field description.
+     *
+     * @param instructionSetName The name of the instruction set containing the instruction.
+     * @param instructionName The name of the instruction to change the description of.
+     * @param fieldIndex The index of the field to rename.
+     * @param newDescription The description text to set for the new instruction.
+     */
+    fun setInstructionFieldDescription(
+        instructionSetName: String,
+        instructionName: String,
+        fieldIndex: Int,
+        newDescription: String,
+    ) {
+        val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
+        val instruction = instructionSet.getInstruction(instructionName)
+        instruction.setFieldDescription(fieldIndex, newDescription)
+        saveInstructionSets()
+    }
+
+    /**
      * Draw the redmon overlay.
      *
      * @param context The GUI rendering context to use for drawing.
