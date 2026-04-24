@@ -18,7 +18,7 @@ import com.ac101m.redmon.utils.Colour
 class InstructionLayout(
     var name: String,
     val size: Int,
-    val description: String?,
+    var description: String?,
     private val fields: List<Field>
 ) {
     val opcodeBitPattern: String
@@ -124,7 +124,7 @@ class InstructionLayout(
 
         sb.append(name)
         sb.append(":\n")
-        sb.append(description ?: "No instruction description.")
+        sb.append(descriptionText())
         sb.append('\n')
 
         fields.forEachIndexed { i, field ->
@@ -153,6 +153,10 @@ class InstructionLayout(
         return null
     }
 
+    fun descriptionText(): String {
+        return description ?: DEFAULT_INSTRUCTION_DESCRIPTION
+    }
+
     fun toPersistent(): PersistentInstructionLayoutV2 {
         val persistentFields = fields.map { it.toPersistent() }
         return PersistentInstructionLayoutV2(name, description, persistentFields)
@@ -160,6 +164,7 @@ class InstructionLayout(
 
     companion object {
         const val MAX_INSTRUCTION_SIZE = 64
+        const val DEFAULT_INSTRUCTION_DESCRIPTION = "No description."
 
         fun fromPersistent(size: Int, persistent: PersistentInstructionLayoutV2): InstructionLayout {
             return InstructionLayout(

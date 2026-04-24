@@ -221,19 +221,19 @@ class CommandManager(
                 .executes { c -> isaListCommandFirstPage(c) }
             )
             .then(literal("create")
-                .then(str("isa-name")
+                .then(str(ISA_NAME_ARG)
                     .then(int("instruction-size")
                         .executes { c -> isaCreateCommand(c) }
                     )
                 )
             )
             .then(literal("delete")
-                .then(str("isa-name", ::suggestInstructionSetNames)
+                .then(str(ISA_NAME_ARG, ::suggestInstructionSetNames)
                     .executes { c -> isaDeleteCommand(c) }
                 )
             )
             .then(literal("rename")
-                .then(str("isa-name", ::suggestInstructionSetNames)
+                .then(str(ISA_NAME_ARG, ::suggestInstructionSetNames)
                     .then(str("new-isa-name")
                         .executes { c -> isaRenameCommand(c) }
                     )
@@ -245,8 +245,8 @@ class CommandManager(
     private fun LiteralArgumentBuilder<FabricClientCommandSource>.instructionCommands(): LiteralArgumentBuilder<FabricClientCommandSource> {
         return this.then(literal("instruction")
             .then(literal("add")
-                .then(str("isa-name", ::suggestInstructionSetNames)
-                    .then(str("instruction-name")
+                .then(str(ISA_NAME_ARG, ::suggestInstructionSetNames)
+                    .then(str(INSTRUCTION_NAME_ARG)
                         .then(str("description")
                             .then(greedyStr("instruction-layout", ::suggestInstructionLayout)
                                 .executes { c -> instructionAddCommand(c) }
@@ -256,15 +256,15 @@ class CommandManager(
                 )
             )
             .then(literal("remove")
-                .then(str("isa-name", ::suggestInstructionSetNames)
-                    .then(str("instruction-name", ::suggestInstructionNames)
+                .then(str(ISA_NAME_ARG, ::suggestInstructionSetNames)
+                    .then(str(INSTRUCTION_NAME_ARG, ::suggestInstructionNames)
                         .executes { c -> instructionRemoveCommand(c) }
                     )
                 )
             )
             .then(literal("rename")
-                .then(str("isa-name", ::suggestInstructionSetNames)
-                    .then(str("instruction-name", ::suggestInstructionNames)
+                .then(str(ISA_NAME_ARG, ::suggestInstructionSetNames)
+                    .then(str(INSTRUCTION_NAME_ARG, ::suggestInstructionNames)
                         .then(str("new-name")
                             .executes { c -> instructionRenameCommand(c) }
                         )
@@ -272,7 +272,7 @@ class CommandManager(
                 )
             )
             .then(literal("list")
-                .then(str("isa-name", ::suggestInstructionSetNames)
+                .then(str(ISA_NAME_ARG, ::suggestInstructionSetNames)
                     .then(int("page")
                         .executes { c -> instructionListCommand(c) }
                     )
@@ -280,9 +280,18 @@ class CommandManager(
                 )
             )
             .then(literal("info")
-                .then(str("isa-name", ::suggestInstructionSetNames)
-                    .then(str("instruction-name", ::suggestInstructionNames)
+                .then(str(ISA_NAME_ARG, ::suggestInstructionSetNames)
+                    .then(str(INSTRUCTION_NAME_ARG, ::suggestInstructionNames)
                         .executes { c -> instructionInfoCommand(c) }
+                    )
+                )
+            )
+            .then(literal("set-description")
+                .then(str(ISA_NAME_ARG, ::suggestInstructionSetNames)
+                    .then(str(INSTRUCTION_NAME_ARG, ::suggestInstructionNames)
+                        .then(str("new-description")
+                            .executes { c -> instructionSetDescriptionCommand(c) }
+                        )
                     )
                 )
             )
@@ -376,7 +385,7 @@ class CommandManager(
         ctx: CommandContext<FabricClientCommandSource>,
         currentInput: String
     ): List<String> {
-        val isaName = getString(ctx, "isa-name")
+        val isaName = getString(ctx, ISA_NAME_ARG)
         return try {
             redmon.getInstructionNames(isaName).filter { it.contains(currentInput) }
         } catch (_: Exception) {
@@ -733,28 +742,28 @@ class CommandManager(
     }
 
     private fun isaCreateCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val name = getString(ctx, "isa-name")
+        val name = getString(ctx, ISA_NAME_ARG)
         val instructionSize = getInteger(ctx, "instruction-size")
         redmon.createInstructionSet(name, instructionSize)
         ctx.sendFeedback("Created new instruction set '$name' with an instruction size of $instructionSize bits")
     }
 
     private fun isaDeleteCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val name = getString(ctx, "isa-name")
+        val name = getString(ctx, ISA_NAME_ARG)
         redmon.deleteInstructionSet(name)
         ctx.sendFeedback("Deleted instruction set '$name'")
     }
 
     private fun isaRenameCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val name = getString(ctx, "isa-name")
+        val name = getString(ctx, ISA_NAME_ARG)
         val newName = getString(ctx, "new-isa-name")
         redmon.renameInstructionSet(name, newName)
         ctx.sendFeedback("Renamed instruction set '$name' to '$newName'")
     }
 
     private fun instructionAddCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val instructionSetName = getString(ctx, "isa-name")
-        val instructionName = getString(ctx, "instruction-name")
+        val instructionSetName = getString(ctx, ISA_NAME_ARG)
+        val instructionName = getString(ctx, INSTRUCTION_NAME_ARG)
         val description = getString(ctx, "description")
         val layoutText = getString(ctx, "instruction-layout")
 
@@ -770,22 +779,22 @@ class CommandManager(
     }
 
     private fun instructionRemoveCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val instructionSetName = getString(ctx, "isa-name")
-        val instructionName = getString(ctx, "instruction-name")
+        val instructionSetName = getString(ctx, ISA_NAME_ARG)
+        val instructionName = getString(ctx, INSTRUCTION_NAME_ARG)
         redmon.removeInstruction(instructionSetName, instructionName)
         ctx.sendFeedback("Removed instruction '$instructionName'")
     }
 
     private fun instructionRenameCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val instructionSetName = getString(ctx, "isa-name")
-        val instructionName = getString(ctx, "instruction-name")
+        val instructionSetName = getString(ctx, ISA_NAME_ARG)
+        val instructionName = getString(ctx, INSTRUCTION_NAME_ARG)
         val newInstructionName = getString(ctx, "new-name")
         redmon.renameInstruction(instructionSetName, instructionName, newInstructionName)
         ctx.sendFeedback("Renamed instruction '$instructionName' to '$newInstructionName'")
     }
 
     private fun doInstructionList(ctx: CommandContext<FabricClientCommandSource>, page: Int) {
-        val instructionSetName = getString(ctx, "isa-name")
+        val instructionSetName = getString(ctx, ISA_NAME_ARG)
         val summaries = redmon.getInstructionSummaries(instructionSetName)
         paginateList(ctx, summaries, page, "instructions")
     }
@@ -799,9 +808,17 @@ class CommandManager(
     }
 
     private fun instructionInfoCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val instructionSetName = getString(ctx, "isa-name")
-        val instructionName = getString(ctx, "instruction-name")
+        val instructionSetName = getString(ctx, ISA_NAME_ARG)
+        val instructionName = getString(ctx, INSTRUCTION_NAME_ARG)
         ctx.sendFeedback(redmon.getInstructionInfo(instructionSetName, instructionName))
+    }
+
+    private fun instructionSetDescriptionCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val instructionSetName = getString(ctx, ISA_NAME_ARG)
+        val instructionName = getString(ctx, INSTRUCTION_NAME_ARG)
+        val newDescription = getString(ctx, "new-description")
+        redmon.setInstructionDescription(instructionSetName, instructionName, newDescription)
+        ctx.sendFeedback("Updated description for instruction '$instructionName'.")
     }
 
     companion object {
@@ -809,6 +826,9 @@ class CommandManager(
         private const val COMMAND_SUCCESS = 1
 
         private const val INSTRUCTION_FORMAT_FIELD_DELIMITER = ";"
+
+        private const val ISA_NAME_ARG = "isa_name"
+        private const val INSTRUCTION_NAME_ARG = "instruction-name"
 
         private fun str(
             name: String,

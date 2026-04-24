@@ -490,9 +490,8 @@ class RedmonState(profileStoragePath: Path, worldMetadataStoragePath: Path, inst
      */
     fun getInstructionSummaries(instructionSetName: String): List<String> {
         val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
-        return instructionSet.instructions.map {
-            val descriptionText = it.description ?: "No description."
-            "${it.prettyPrint()} - ${it.name}\n     $descriptionText"
+        return instructionSet.instructions.map { instruction ->
+            "${instruction.prettyPrint()} - ${instruction.name}\n     ${instruction.descriptionText()}"
         }
     }
 
@@ -506,6 +505,20 @@ class RedmonState(profileStoragePath: Path, worldMetadataStoragePath: Path, inst
         val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
         val instruction = instructionSet.getInstruction(instructionName)
         return instruction.infoString()
+    }
+
+    /**
+     * Set the description of an instruction.
+     *
+     * @param instructionSetName The name of the instruction set containing the instruction.
+     * @param instructionName The name of the instruction to change the description of.
+     * @param newDescription The description text to set for the new instruction.
+     */
+    fun setInstructionDescription(instructionSetName: String, instructionName: String, newDescription: String) {
+        val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
+        val instruction = instructionSet.getInstruction(instructionName)
+        instruction.description = newDescription
+        saveInstructionSets()
     }
 
     /**
