@@ -8,21 +8,10 @@ class SignedImmediateField(
     size: Int,
     offset: Int,
     description: String?
-) : Field(size, offset, description) {
+) : ParameterField(size, offset, description) {
     override val maxSize get() = InstructionLayout.MAX_INSTRUCTION_SIZE
-    override val colour get() = COLOUR
-
-    override fun bitRepresentation(crossOut: Boolean): String {
-        return StringBuilder(size * 2).apply {
-            if (crossOut) {
-                append(CROSSED_OUT_COLOUR.prefix)
-                repeat(size) { append('-') }
-            } else {
-                append(colour.prefix)
-                repeat(size) { append('S') }
-            }
-        }.toString()
-    }
+    override val displayColour get() = COLOUR
+    override val displayChar get() = 'S'
 
     override fun descriptionText(): String {
         return description ?: "$size bit signed immediate."

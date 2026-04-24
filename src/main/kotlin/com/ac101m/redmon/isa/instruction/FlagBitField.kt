@@ -16,15 +16,15 @@ class FlagBitField(
     description: String?
 ) : Field(1, offset, description) {
     override val maxSize get() = 1
-    override val colour get() = COLOUR
+    override val displayColour get() = COLOUR
 
     override fun bitRepresentation(crossOut: Boolean): String {
-        return StringBuilder(size * 2).apply {
+        return StringBuilder(8).apply {
             if (crossOut) {
                 append(CROSSED_OUT_COLOUR.prefix)
                 append('-')
             } else {
-                append(colour.prefix)
+                append(displayColour.prefix)
                 append(char)
             }
         }.toString()

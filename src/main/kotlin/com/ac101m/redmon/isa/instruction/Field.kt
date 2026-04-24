@@ -21,7 +21,7 @@ abstract class Field(
         }
 
     abstract val maxSize: Int
-    abstract val colour: Colour
+    abstract val displayColour: Colour
 
     init {
         require(size > 0) {
@@ -77,9 +77,9 @@ abstract class Field(
                 FieldType.IGNORE -> IgnoreField.fromPersistent(persistent)
                 FieldType.OPCODE -> OpcodeField.fromPersistent(persistent)
                 FieldType.FLAG_BIT -> FlagBitField.fromPersistent(persistent)
-                FieldType.REGISTER_READ -> RegisterField.fromPersistent(persistent)
-                FieldType.REGISTER_WRITE -> RegisterField.fromPersistent(persistent)
-                FieldType.REGISTER_READ_WRITE -> RegisterField.fromPersistent(persistent)
+                FieldType.REGISTER_READ -> SrcRegisterField.fromPersistent(persistent)
+                FieldType.REGISTER_WRITE -> DestRegisterField.fromPersistent(persistent)
+                FieldType.REGISTER_READ_WRITE -> SrcDestRegisterField.fromPersistent(persistent)
                 FieldType.UNSIGNED_IMMEDIATE -> UnsignedImmediateField.fromPersistent(persistent)
                 FieldType.SIGNED_IMMEDIATE -> SignedImmediateField.fromPersistent(persistent)
             }

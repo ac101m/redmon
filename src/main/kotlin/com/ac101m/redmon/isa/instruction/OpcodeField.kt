@@ -11,32 +11,12 @@ import com.ac101m.redmon.utils.Colour
  * @param offset The offset of the field within the instruction.
  */
 class OpcodeField(
-    val bitPattern: String,
+    bitPattern: String,
     offset: Int,
     description: String?
-) : Field(bitPattern.length, offset, description) {
+) : LiteralField(bitPattern, offset, description) {
     override val maxSize get() = InstructionLayout.MAX_INSTRUCTION_SIZE
-    override val colour get() = COLOUR
-
-    init {
-        try {
-            bitPattern.toULong(2)
-        } catch (e: NumberFormatException) {
-            throw IllegalArgumentException("Expected binary bit pattern but got '$bitPattern'.", e)
-        }
-    }
-
-    override fun bitRepresentation(crossOut: Boolean): String {
-        return StringBuilder(size * 2).apply {
-            if (crossOut) {
-                append(CROSSED_OUT_COLOUR.prefix)
-                repeat(bitPattern.length) { append('-') }
-            } else {
-                append(colour.prefix)
-                append(bitPattern)
-            }
-        }.toString()
-    }
+    override val displayColour get() = COLOUR
 
     override fun descriptionText(): String {
         return description ?: "${bitPattern.length} bit opcode."

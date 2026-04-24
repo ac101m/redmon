@@ -8,21 +8,10 @@ class UnsignedImmediateField(
     size: Int,
     offset: Int,
     description: String?
-) : Field(size, offset, description) {
+) : ParameterField(size, offset, description) {
     override val maxSize get() = InstructionLayout.MAX_INSTRUCTION_SIZE
-    override val colour get() = COLOUR
-
-    override fun bitRepresentation(crossOut: Boolean): String {
-        return StringBuilder(size * 2).apply {
-            if (crossOut) {
-                append(CROSSED_OUT_COLOUR.prefix)
-                repeat(size) { append('-') }
-            } else {
-                append(COLOUR.prefix)
-                repeat(size) { append('U') }
-            }
-        }.toString()
-    }
+    override val displayColour get() = COLOUR
+    override val displayChar get() = 'U'
 
     override fun descriptionText(): String {
         return description ?: "$size bit unsigned immediate."

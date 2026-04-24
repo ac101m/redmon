@@ -1,5 +1,6 @@
 package com.ac101m.redmon.isa.instruction
 
+import com.ac101m.redmon.isa.InstructionLayout
 import com.ac101m.redmon.persistence.v2.PersistentInstructionFieldV2
 import com.ac101m.redmon.utils.Colour
 
@@ -14,8 +15,10 @@ class DestRegisterField(
     size: Int,
     offset: Int,
     description: String?
-) : RegisterField(size, offset, description) {
-    override val colour get() = Colour.BLUE
+) : ParameterField(size, offset, description) {
+    override val maxSize get() = InstructionLayout.MAX_INSTRUCTION_SIZE
+    override val displayColour get() = Colour.BLUE
+    override val displayChar get() = 'R'
 
     override fun descriptionText(): String {
         return description ?: "Destination register."
