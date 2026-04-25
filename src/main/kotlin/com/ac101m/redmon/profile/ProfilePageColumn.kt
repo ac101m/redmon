@@ -63,14 +63,14 @@ class ProfilePageColumn(initSignals: List<Signal>) {
         signals[b] = tmp
     }
 
-    fun toPersistentColumn(): PersistentColumnV2 {
-        val persistentSignals = signals.map { it.toPersistentSignal() }
+    fun toPersistent(): PersistentColumnV2 {
+        val persistentSignals = signals.map { it.toPersistent() }
         return PersistentColumnV2(persistentSignals)
     }
 
     companion object {
-        fun fromPersistentColumn(persistentColumn: PersistentColumnV2): ProfilePageColumn {
-            val signals = persistentColumn.signals.map { Signal.fromPersistentSignal(it) }
+        fun fromPersistent(persistentColumn: PersistentColumnV2): ProfilePageColumn {
+            val signals = persistentColumn.signals.map { Signal.fromPersistent(it) }
             return ProfilePageColumn(signals)
         }
     }

@@ -109,8 +109,8 @@ class ProfilePage(
         columns.removeIf { it.signals.isEmpty() }
     }
 
-    fun toPersistentProfilePage(): PersistentPageV2 {
-        val persistentColumns = columns.map { it.toPersistentColumn() }
+    fun toPersistent(): PersistentPageV2 {
+        val persistentColumns = columns.map { it.toPersistent() }
         val isaName = currentIsa?.let {
             if (it.deleted) {
                 null
@@ -122,12 +122,12 @@ class ProfilePage(
     }
 
     companion object {
-        fun fromPersistentProfilePage(
+        fun fromPersistent(
             persistentPage: PersistentPageV2,
             instructionSetRegistry: InstructionSetRegistry
         ): ProfilePage {
             val columns = persistentPage.columns.map {
-                ProfilePageColumn.fromPersistentColumn(it)
+                ProfilePageColumn.fromPersistent(it)
             }
             val isa = persistentPage.currentIsa?.let {
                 instructionSetRegistry.getInstructionSetOrNull(it)

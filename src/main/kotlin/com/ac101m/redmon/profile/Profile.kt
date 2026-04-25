@@ -50,18 +50,18 @@ class Profile(internal var name: String, initPages: List<ProfilePage>) {
         currentPageIndex %= pages.size
     }
 
-    fun toPersistentProfile(): PersistentProfileV2 {
-        val persistentPages = pages.map { page -> page.toPersistentProfilePage() }
+    fun toPersistent(): PersistentProfileV2 {
+        val persistentPages = pages.map { page -> page.toPersistent() }
         return PersistentProfileV2(name, persistentPages)
     }
 
     companion object {
-        fun fromPersistentProfile(
+        fun fromPersistent(
             persistentProfile: PersistentProfileV2,
             instructionSetRegistry: InstructionSetRegistry
         ): Profile {
             val pages = persistentProfile.pages.map { persistentProfilePage ->
-                ProfilePage.fromPersistentProfilePage(persistentProfilePage, instructionSetRegistry)
+                ProfilePage.fromPersistent(persistentProfilePage, instructionSetRegistry)
             }
             return Profile(persistentProfile.name, pages)
         }

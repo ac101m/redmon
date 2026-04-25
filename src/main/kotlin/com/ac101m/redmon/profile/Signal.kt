@@ -92,13 +92,13 @@ data class Signal(
         blocks = blocks.plus(newBlocks)
     }
 
-    fun toPersistentSignal(): PersistentSignalV2 {
+    fun toPersistent(): PersistentSignalV2 {
         val b = blocks.map { PersistentBlockV2(it.x, it.y, it.z) }
         return PersistentSignalV2(name, type, invert, format.name, b)
     }
 
     companion object {
-        fun fromPersistentSignal(persistentSignal: PersistentSignalV2): Signal {
+        fun fromPersistent(persistentSignal: PersistentSignalV2): Signal {
             val blockLocations = persistentSignal.blocks.map {
                 BlockPos(it.x, it.y, it.z)
             }

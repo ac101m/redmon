@@ -3,7 +3,6 @@ package com.ac101m.redmon
 import com.ac101m.redmon.isa.InstructionSet
 import com.ac101m.redmon.isa.InstructionSetRegistry
 import com.ac101m.redmon.persistence.StorageReader
-import com.ac101m.redmon.persistence.v2.PersistentInstructionSetV2
 import com.ac101m.redmon.persistence.v2.PersistentStorageV2
 import com.ac101m.redmon.profile.Profile
 import com.ac101m.redmon.profile.ProfileRegistry
@@ -49,7 +48,7 @@ class StorageManager(
      */
     fun loadProfiles(instructionSetRegistry: InstructionSetRegistry): List<Profile> {
         return loadStorage(profileStoragePath).profiles.map {
-            Profile.fromPersistentProfile(it, instructionSetRegistry)
+            Profile.fromPersistent(it, instructionSetRegistry)
         }
     }
 
@@ -81,7 +80,7 @@ class StorageManager(
      * @param profiles The profiles to store.
      */
     fun saveProfiles(profiles: List<Profile>) {
-        val persistentProfiles = profiles.map { it.toPersistentProfile() }
+        val persistentProfiles = profiles.map { it.toPersistent() }
         val persistentStorage = PersistentStorageV2(
             version = StorageReader.MAX_SUPPORTED_VERSION,
             modVersion = REDMON_VERSION,
