@@ -18,6 +18,7 @@ data class Signal(
 ) {
     // Raw state of the signal bits
     private var rawState: ULong = 0UL
+    private var representation: String? = null
 
     // State taking into account inversion
     private val state: ULong get() {
@@ -57,11 +58,21 @@ data class Signal(
             shift += type.bitsPerBlock
         }
 
+        if (state != rawState || missing != missingBits) {
+            representation = null
+        }
+
         rawState = state
         missingBits = missing
     }
 
     fun getRepresentation(instructionSet: InstructionSet?): String {
+        val currentRepresentation = representation
+
+        if (currentRepresentation != null) {
+            return currentRepresentation
+        }
+
         if (bitCount == 0) {
             return "${Colour.GRAY.prefix}EMPTY"
         }
@@ -74,7 +85,10 @@ data class Signal(
             return "${Colour.GOLD.prefix}MISSING $missingBits/$bitCount"
         }
 
-        return format.getRepresentation(state, bitCount, instructionSet)
+        val r = format.getRepresentation(state, bitCount, instructionSet)
+        representation = r
+
+        return r
     }
 
     fun invert() {
