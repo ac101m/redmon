@@ -114,7 +114,7 @@ class InstructionSet(
             return InstructionSet(
                 persistent.name,
                 persistent.instructionSize,
-                emptyMap(),
+                persistent.registerAliases,
                 persistent.instructions.map { persistentInstructionLayout ->
                     InstructionLayout.fromPersistent(persistent.instructionSize, persistentInstructionLayout)
                 }

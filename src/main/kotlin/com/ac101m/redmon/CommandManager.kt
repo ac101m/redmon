@@ -7,7 +7,6 @@ import com.ac101m.redmon.profile.SignalFormat
 import com.ac101m.redmon.profile.SignalType
 import com.ac101m.redmon.utils.CardinalDirection
 import com.ac101m.redmon.utils.Config.Companion.DEFAULT_SIGNAL_FORMAT
-import com.ac101m.redmon.utils.Config.Companion.PAGINATED_LIST_ENTRIES_PER_PAGE
 import com.ac101m.redmon.utils.RedmonException
 import com.ac101m.redmon.utils.ceilDiv
 import com.ac101m.redmon.utils.length
@@ -427,6 +426,12 @@ class CommandManager(
             return FieldType.entries.map { "$currentInput${it.commandKey}:" }
         }
 
+        val lastFieldTokens = fieldStrings.last().split(":")
+
+        if (lastFieldTokens.size > 1) {
+            return FieldType.entries.map { "$currentInput;" }
+        }
+
         val entries = FieldType.entries.filter {
             it.commandKey.contains(lastField)
         }
@@ -456,6 +461,7 @@ class CommandManager(
         ctx: CommandContext<FabricClientCommandSource>,
         names: List<String>,
         pageNumber: Int,
+        entriesPerPage: Int,
         entryType: String
     ) {
         if (names.isEmpty()) {
@@ -464,14 +470,14 @@ class CommandManager(
         }
 
         val pageIndex = pageNumber - 1
-        val pageCount = names.size.ceilDiv(PAGINATED_LIST_ENTRIES_PER_PAGE)
+        val pageCount = names.size.ceilDiv(entriesPerPage)
 
         require(pageIndex < pageCount) {
             "Requested page does not exist"
         }
 
-        val start = pageIndex * PAGINATED_LIST_ENTRIES_PER_PAGE
-        val end = min(start + PAGINATED_LIST_ENTRIES_PER_PAGE, names.size)
+        val start = pageIndex * entriesPerPage
+        val end = min(start + entriesPerPage, names.size)
         val pageNames = names.slice(start until end)
 
         val list = pageNames.joinToString(separator = "\n") { "- $it" }
@@ -480,14 +486,14 @@ class CommandManager(
 
     private fun doProfileList(ctx: CommandContext<FabricClientCommandSource>, pageNumber: Int) {
         val names = redmon.getProfileNames().sorted()
-        paginateList(ctx, names, pageNumber, "profiles")
+        paginateList(ctx, names, pageNumber, 10, "profiles")
     }
 
     private fun doProfileSearch(ctx: CommandContext<FabricClientCommandSource>, pageNumber: Int) {
         val names = redmon.getProfileNames().sorted()
         val queryString = getString(ctx, "query")
         val filteredNames = names.filter { it.contains(queryString, ignoreCase = true) }
-        paginateList(ctx, filteredNames, pageNumber, "profiles")
+        paginateList(ctx, filteredNames, pageNumber, 10, "profiles")
     }
 
     private fun profileListCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
@@ -564,6 +570,17 @@ class CommandManager(
     private fun pageRenameCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val newName = getString(ctx, "new-name")
         redmon.renameCurrentPage(newName)
+    }
+
+    private fun pageSetIsaCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val isaName = getString(ctx, ISA_NAME_ARG)
+        redmon.setActivePageInstructionSet(isaName)
+        ctx.sendFeedback("Set ISA '$isaName' as active ISA on the current page of the active profile.")
+    }
+
+    private fun pageClearIsaCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        redmon.clearActivePageInstructionSet()
+        ctx.sendFeedback("Cleared active ISA on the current page of the active profile.")
     }
 
     private fun getBlockFromCrosshairTarget(player: Player, signalType: SignalType): BlockPos {
@@ -752,7 +769,7 @@ class CommandManager(
 
     private fun doIsaList(ctx: CommandContext<FabricClientCommandSource>, pageNumber: Int) {
         val names = redmon.getInstructionSetNames().sorted()
-        paginateList(ctx, names, pageNumber, "instruction sets")
+        paginateList(ctx, names, pageNumber, 10, "instruction sets")
     }
 
     private fun isaListCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
@@ -782,17 +799,6 @@ class CommandManager(
         val newName = getString(ctx, "new-isa-name")
         redmon.renameInstructionSet(name, newName)
         ctx.sendFeedback("Renamed instruction set '$name' to '$newName'")
-    }
-
-    private fun pageSetIsaCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val isaName = getString(ctx, ISA_NAME_ARG)
-        redmon.setActivePageInstructionSet(isaName)
-        ctx.sendFeedback("Set ISA '$isaName' as active ISA on the current page of the active profile.")
-    }
-
-    private fun pageClearIsaCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        redmon.clearActivePageInstructionSet()
-        ctx.sendFeedback("Cleared active ISA on the current page of the active profile.")
     }
 
     private fun isaDisassembleCommand(ctx: CommandContext<FabricClientCommandSource>, radix: Int) = commandWrapper(ctx) {
@@ -846,7 +852,7 @@ class CommandManager(
 
     private fun doInstructionList(ctx: CommandContext<FabricClientCommandSource>, page: Int) {
         val summaries = redmon.getInstructionSummaries()
-        paginateList(ctx, summaries, page, "instructions")
+        paginateList(ctx, summaries, page, 5, "instructions")
     }
 
     private fun instructionListCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
@@ -858,25 +864,22 @@ class CommandManager(
     }
 
     private fun instructionInfoCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val instructionSetName = getString(ctx, ISA_NAME_ARG)
         val instructionName = getString(ctx, INSTRUCTION_NAME_ARG)
-        ctx.sendFeedback(redmon.getInstructionInfo(instructionSetName, instructionName))
+        ctx.sendFeedback(redmon.getInstructionInfo(instructionName))
     }
 
     private fun instructionSetDescriptionCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val instructionSetName = getString(ctx, ISA_NAME_ARG)
         val instructionName = getString(ctx, INSTRUCTION_NAME_ARG)
         val newDescription = getString(ctx, "new-description")
-        redmon.setInstructionDescription(instructionSetName, instructionName, newDescription)
+        redmon.setInstructionDescription(instructionName, newDescription)
         ctx.sendFeedback("Updated description for instruction '$instructionName'.")
     }
 
     private fun instructionSetFieldDescription(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
-        val instructionSetName = getString(ctx, ISA_NAME_ARG)
         val instructionName = getString(ctx, INSTRUCTION_NAME_ARG)
         val fieldIndex = getInteger(ctx, "field-number") - 1
         val newDescription = getString(ctx, "new-description")
-        redmon.setInstructionFieldDescription(instructionSetName, instructionName, fieldIndex, newDescription)
+        redmon.setInstructionFieldDescription(instructionName, fieldIndex, newDescription)
         ctx.sendFeedback("Updated description for field $fieldIndex of instruction '$instructionName'.")
     }
 

@@ -536,11 +536,12 @@ class RedmonState(profileStoragePath: Path, worldMetadataStoragePath: Path, inst
     /**
      * Get details instruction information, including breakdown of fields.
      *
-     * @param instructionSetName The name of the instruction set containing the instruction.
      * @param instructionName The name of the instruction to get info for.
      */
-    fun getInstructionInfo(instructionSetName: String, instructionName: String): String {
-        val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
+    fun getInstructionInfo(instructionName: String): String {
+        val instructionSet = requireActiveInstructionSet {
+            "Cannot get instruction info, no active instruction set"
+        }
         val instruction = instructionSet.getInstruction(instructionName)
         return instruction.infoString()
     }
@@ -548,12 +549,13 @@ class RedmonState(profileStoragePath: Path, worldMetadataStoragePath: Path, inst
     /**
      * Set the description of an instruction.
      *
-     * @param instructionSetName The name of the instruction set containing the instruction.
      * @param instructionName The name of the instruction to change the description of.
      * @param newDescription The description text to set for the new instruction.
      */
-    fun setInstructionDescription(instructionSetName: String, instructionName: String, newDescription: String) {
-        val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
+    fun setInstructionDescription(instructionName: String, newDescription: String) {
+        val instructionSet = requireActiveInstructionSet {
+            "Cannot set instruction description, no active instruction set"
+        }
         val instruction = instructionSet.getInstruction(instructionName)
         instruction.description = newDescription
         saveInstructionSets()
@@ -562,18 +564,14 @@ class RedmonState(profileStoragePath: Path, worldMetadataStoragePath: Path, inst
     /**
      * Set instruction field description.
      *
-     * @param instructionSetName The name of the instruction set containing the instruction.
      * @param instructionName The name of the instruction to change the description of.
      * @param fieldIndex The index of the field to rename.
      * @param newDescription The description text to set for the new instruction.
      */
-    fun setInstructionFieldDescription(
-        instructionSetName: String,
-        instructionName: String,
-        fieldIndex: Int,
-        newDescription: String,
-    ) {
-        val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
+    fun setInstructionFieldDescription(instructionName: String, fieldIndex: Int, newDescription: String) {
+        val instructionSet = requireActiveInstructionSet {
+            "Cannot set instruction field description, no active instruction set"
+        }
         val instruction = instructionSet.getInstruction(instructionName)
         instruction.setFieldDescription(fieldIndex, newDescription)
         saveInstructionSets()

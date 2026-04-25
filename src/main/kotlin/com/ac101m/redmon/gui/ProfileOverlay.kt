@@ -52,10 +52,10 @@ class ProfileOverlay : Drawable2D {
             prevColumnCount = columnCount
         }
 
-        val pageText = "${Colour.GRAY.prefix}Page ${profile.getCurrentPageNumber()}/${profile.getPageCount()}"
+        val pageText = "${Colour.GRAY.prefix}Page: ${profile.getCurrentPageNumber()}/${profile.getPageCount()}"
         val isaText = "${Colour.GRAY.prefix}ISA: ${currentIsa?.name ?: "none"}"
 
-        pageAndIsaText.text = "$pageText - $isaText"
+        pageAndIsaText.text = "$isaText  |  $pageText"
         profileText.text = "${Colour.DARK_AQUA.prefix}${profile.name} - ${profile.getCurrentPage().name}"
 
         currentPage.columns.forEachIndexed { columnIndex, column ->
