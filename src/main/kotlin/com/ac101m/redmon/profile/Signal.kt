@@ -9,25 +9,37 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Vec3i
 import net.minecraft.world.level.Level
 
-data class Signal(
+class Signal(
     var name: String,
     val type: SignalType,
     var invert: Boolean,
-    var format: SignalFormat,
+    initFormat: SignalFormat,
     var blocks: List<BlockPos> = listOf()
 ) {
     // Raw state of the signal bits
     private var rawState: ULong = 0UL
+
+    // Memoized representation of the signal
     private var representation: String? = null
 
-    // State taking into account inversion
-    private val state: ULong get() {
-        val mask = computeMask(bitCount)
-        return when (invert) {
-            false -> rawState and mask
-            true -> rawState.inv() and mask
+    // If the format is changed, we need to recalculate the representation
+    var format: SignalFormat = initFormat
+        set(value) {
+            if (value != field) {
+                representation = null
+            }
+            field = value
         }
-    }
+
+    // State taking into account inversion
+    private val state: ULong
+        get() {
+            val mask = computeMask(bitCount)
+            return when (invert) {
+                false -> rawState and mask
+                true -> rawState.inv() and mask
+            }
+        }
 
     private val bitCount get() = blocks.size * type.bitsPerBlock
     var missingBits = 0
@@ -66,13 +78,7 @@ data class Signal(
         missingBits = missing
     }
 
-    fun getRepresentation(instructionSet: InstructionSet?): String {
-        val currentRepresentation = representation
-
-        if (currentRepresentation != null) {
-            return currentRepresentation
-        }
-
+    private fun updateRepresentation(instructionSet: InstructionSet?): String {
         if (bitCount == 0) {
             return "${Colour.GRAY.prefix}EMPTY"
         }
@@ -85,18 +91,24 @@ data class Signal(
             return "${Colour.GOLD.prefix}MISSING $missingBits/$bitCount"
         }
 
-        val r = format.getRepresentation(state, bitCount, instructionSet)
-        representation = r
+        val newRepresentation = format.getRepresentation(state, bitCount, instructionSet)
+        representation = newRepresentation
 
-        return r
+        return newRepresentation
+    }
+
+    fun getRepresentation(instructionSet: InstructionSet?): String {
+        return representation ?: updateRepresentation(instructionSet)
     }
 
     fun invert() {
         invert = !invert
+        representation = null
     }
 
     fun flipBits() {
         blocks = blocks.reversed()
+        representation = null
     }
 
     fun appendBlocks(newBlocks: List<BlockPos>) {
@@ -104,6 +116,7 @@ data class Signal(
             "Too many blocks. Signals of type $type may contain at most ${type.maxBlocks} blocks"
         }
         blocks = blocks.plus(newBlocks)
+        representation = null
     }
 
     fun toPersistent(): PersistentSignalV2 {
