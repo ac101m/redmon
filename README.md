@@ -1,15 +1,17 @@
 # Redmon
 
-Redmon is a tool that allows you to create beautiful and functional debug overlays for your redstone projects. It is 
-intended for practitioners of computational redstone, but can be used for just about any redstone project!
+Redmon is a tool that allows you to create beautiful and functional in-game debug overlays for your redstone projects. 
 
-Redmon currently supports the following signals:
+<img src="images/preview-image.png" alt="drawing" width="400"/>
+
+The mod is intended for computational redstone projects, but it can be used for just about anything. Currently the mod 
+supports the following blocks:
 
 - Repeaters (on/off)
 - Comparators (on/off)
 - Torches (on/off)
-- Redstone dust (on/off)
-- Redstone dust (signal strength)
+- Redstone dust (on/off and signal strength)
+- Redstone lamps (on/off)
 
 ## Quickstart guide
 
@@ -26,12 +28,17 @@ These hotkeys may be configured in the game settings.
 ### Creating a profile
 
 Redmon functions using "profiles". Before any signals can be created or viewed, a profile must be created to contain
-them. Each profile is intended to correspond to a specific project or component.
+them. When you first load the mod, no profile will be selected (see top left). The first step to adding debug output to 
+your build is to pick an activation location for your profile and mark it so that you can find it later:
+
+![image](images/initial-state-reference-block.png)
+
+Once you've chosen your reference block, stand on top of it and create a profile:
 
 `/redmon profile create <profile-name>`
 
-This will create an empty profile with your specified name and set it as the currently selected profile with respect to
-your current position. After running this command, you should see the profile in the top left hand corner of your 
+This will create an empty profile with the specified name and set it as the current profile with respect to your 
+location in the world. After running this command, you should see the profile in the top left hand corner of your
 screen like so:
 
 ![image](images/created-profile.png)
