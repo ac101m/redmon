@@ -1,10 +1,16 @@
 package com.ac101m.redmon.profile
 
+import com.ac101m.redmon.isa.InstructionSet
+import com.ac101m.redmon.isa.InstructionSetRegistry
 import com.ac101m.redmon.persistence.v2.PersistentPageV2
 import net.minecraft.core.Vec3i
 import net.minecraft.world.level.Level
 
-class ProfilePage(var name: String, initColumns: List<ProfilePageColumn>) {
+class ProfilePage(
+    var name: String,
+    initColumns: List<ProfilePageColumn>,
+    var currentIsa: InstructionSet?
+) {
     val columns = initColumns.toMutableList()
     val signalMap = HashMap<String, SignalInfo>()
 
@@ -74,6 +80,9 @@ class ProfilePage(var name: String, initColumns: List<ProfilePageColumn>) {
     }
 
     fun updateState(world: Level, offset: Vec3i) {
+        if (currentIsa?.deleted == true) {
+            currentIsa = null
+        }
         signalMap.values.forEach { signalInfo ->
             signalInfo.signal.updateState(world, offset)
         }
@@ -102,13 +111,28 @@ class ProfilePage(var name: String, initColumns: List<ProfilePageColumn>) {
 
     fun toPersistentProfilePage(): PersistentPageV2 {
         val persistentColumns = columns.map { it.toPersistentColumn() }
-        return PersistentPageV2(name, persistentColumns)
+        val isaName = currentIsa?.let {
+            if (it.deleted) {
+                null
+            } else {
+                it.name
+            }
+        }
+        return PersistentPageV2(name, persistentColumns, isaName)
     }
 
     companion object {
-        fun fromPersistentProfilePage(persistentPage: PersistentPageV2): ProfilePage {
-            val columns = persistentPage.columns.map { ProfilePageColumn.fromPersistentColumn(it) }
-            return ProfilePage(persistentPage.name, columns)
+        fun fromPersistentProfilePage(
+            persistentPage: PersistentPageV2,
+            instructionSetRegistry: InstructionSetRegistry
+        ): ProfilePage {
+            val columns = persistentPage.columns.map {
+                ProfilePageColumn.fromPersistentColumn(it)
+            }
+            val isa = persistentPage.currentIsa?.let {
+                instructionSetRegistry.getInstructionSetOrNull(it)
+            }
+            return ProfilePage(persistentPage.name, columns, isa)
         }
     }
 }

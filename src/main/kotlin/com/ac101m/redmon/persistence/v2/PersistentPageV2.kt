@@ -6,5 +6,7 @@ data class PersistentPageV2(
     @param:JsonProperty("name", required = true)
     val name: String,
     @param:JsonProperty("columns", required = true)
-    val columns: List<PersistentColumnV2>
+    val columns: List<PersistentColumnV2>,
+    @param:JsonProperty("isa", required = false)
+    val currentIsa: String? = null
 )

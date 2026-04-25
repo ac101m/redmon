@@ -1,5 +1,6 @@
 package com.ac101m.redmon
 
+import com.ac101m.redmon.isa.InstructionSetRegistry
 import com.ac101m.redmon.persistence.StorageReader
 import com.ac101m.redmon.profile.ProfileRegistry
 import com.ac101m.redmon.utils.UnsupportedProfileVersionException
@@ -43,7 +44,7 @@ class StorageManagerTests {
         val manager = testManager(file)
 
         val e = assertThrows<UnsupportedProfileVersionException> {
-            manager.loadProfiles()
+            manager.loadProfiles(InstructionSetRegistry(emptyList()))
         }
 
         assertThat(e).hasMessageContaining("Failed to load persistent storage due to a profile versioning problem")
@@ -57,7 +58,7 @@ class StorageManagerTests {
         val manager = testManager(file)
 
         val e = assertThrows<UnsupportedProfileVersionException> {
-            manager.loadProfiles()
+            manager.loadProfiles(InstructionSetRegistry(emptyList()))
         }
 
         assertThat(e).hasMessageContaining("Failed to load persistent storage due to a profile versioning problem")
@@ -71,7 +72,7 @@ class StorageManagerTests {
         val manager = testManager(file)
 
         val profiles = assertDoesNotThrow {
-            manager.loadProfiles()
+            manager.loadProfiles(InstructionSetRegistry(emptyList()))
         }
 
         assertThat(profiles[0].name).isEqualTo("jampu1.fetch")
@@ -89,7 +90,7 @@ class StorageManagerTests {
         val manager = testManager(file)
 
         val profiles = assertDoesNotThrow {
-            manager.loadProfiles()
+            manager.loadProfiles(InstructionSetRegistry(emptyList()))
         }
 
         assertThat(profiles[0].name).isEqualTo("test_profile")
@@ -108,7 +109,7 @@ class StorageManagerTests {
         val manager = testManager(file)
 
         val profiles = assertDoesNotThrow {
-            manager.loadProfiles()
+            manager.loadProfiles(InstructionSetRegistry(emptyList()))
         }
 
         assertThat(profiles[0].name).isEqualTo("test_profile")

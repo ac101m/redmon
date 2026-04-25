@@ -3,8 +3,7 @@ package com.ac101m.redmon.isa
 /**
  * Class for managing instruction sets.
  *
- * @prop name The name of the string.
- * @param initInstructionSets
+ * @param initInstructionSets Initial set of instruction sets to populate the registry with.
  */
 class InstructionSetRegistry(initInstructionSets: List<InstructionSet>) {
     private val instructionSetIndex = HashMap<String, InstructionSet>()
@@ -38,8 +37,12 @@ class InstructionSetRegistry(initInstructionSets: List<InstructionSet>) {
         return requireInstructionSetExists(name)
     }
 
+    fun getInstructionSetOrNull(name: String): InstructionSet? {
+        return instructionSetIndex[name]
+    }
+
     fun removeInstructionSet(name: String) {
-        requireInstructionSetExists(name)
+        requireInstructionSetExists(name).deleted = true
         instructionSetIndex.remove(name)
     }
 

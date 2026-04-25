@@ -1,6 +1,7 @@
 package com.ac101m.redmon
 
 import com.ac101m.redmon.isa.InstructionSet
+import com.ac101m.redmon.isa.InstructionSetRegistry
 import com.ac101m.redmon.persistence.StorageReader
 import com.ac101m.redmon.persistence.v2.PersistentInstructionSetV2
 import com.ac101m.redmon.persistence.v2.PersistentStorageV2
@@ -43,11 +44,12 @@ class StorageManager(
     /**
      * Load profiles from disk.
      *
+     * @param instructionSetRegistry The instruction set registry. Required to look up active ISAs on pages.
      * @return A list of loaded [Profile] objects.
      */
-    fun loadProfiles(): List<Profile> {
+    fun loadProfiles(instructionSetRegistry: InstructionSetRegistry): List<Profile> {
         return loadStorage(profileStoragePath).profiles.map {
-            Profile.fromPersistentProfile(it)
+            Profile.fromPersistentProfile(it, instructionSetRegistry)
         }
     }
 

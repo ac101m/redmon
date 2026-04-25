@@ -7,12 +7,12 @@ import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.core.Vec3i
 
 class ProfileOverlay : Drawable2D {
-    private val pageText = SingleLineTextBox()
+    private val pageAndIsaText = SingleLineTextBox()
     private val profileText = SingleLineTextBox()
     private val signalNameTextElements = ArrayList<MultiLineTextBox>()
     private val signalValueTextElements = ArrayList<MultiLineTextBox>()
 
-    private val titleSection = HorizontalDivider(pageText, profileText)
+    private val titleSection = HorizontalDivider(pageAndIsaText, profileText)
     private var signalSection = VerticalDivider()
     private val layout = HorizontalDivider(titleSection, signalSection)
 
@@ -44,6 +44,7 @@ class ProfileOverlay : Drawable2D {
 
     fun update(profile: Profile) {
         val currentPage = profile.getCurrentPage()
+        val currentIsa = currentPage.currentIsa
         val columnCount = currentPage.columns.size
 
         if (columnCount != prevColumnCount) {
@@ -51,7 +52,10 @@ class ProfileOverlay : Drawable2D {
             prevColumnCount = columnCount
         }
 
-        pageText.text = "${Colour.GRAY.prefix}Page ${profile.getCurrentPageNumber()}/${profile.getPageCount()}"
+        val pageText = "${Colour.GRAY.prefix}Page ${profile.getCurrentPageNumber()}/${profile.getPageCount()}"
+        val isaText = "${Colour.GRAY.prefix}ISA: ${currentIsa?.name ?: "none"}"
+
+        pageAndIsaText.text = "$pageText - $isaText"
         profileText.text = "${Colour.DARK_AQUA.prefix}${profile.name} - ${profile.getCurrentPage().name}"
 
         currentPage.columns.forEachIndexed { columnIndex, column ->
@@ -60,7 +64,7 @@ class ProfileOverlay : Drawable2D {
 
             column.signals.forEach { signal ->
                 signalNamesElement.lines.add("${Colour.GREEN.prefix}${signal.name}${Colour.WHITE.prefix}: ")
-                signalValuesElement.lines.add(signal.getRepresentation())
+                signalValuesElement.lines.add(signal.getRepresentation(currentIsa))
             }
         }
     }

@@ -23,6 +23,9 @@ class InstructionSet(
 
     val instructions get() = instructionIndex.values.toList()
 
+    var deleted: Boolean = false
+        internal set
+
     init {
         require(instructionSize > 0) {
             "Instruction size must be greater than zero."

@@ -1,10 +1,10 @@
 package com.ac101m.redmon.profile
 
+import com.ac101m.redmon.isa.InstructionSet
 import com.ac101m.redmon.utils.Config.Companion.DEFAULT_SIGNAL_FORMAT
 import com.ac101m.redmon.utils.Colour
 import com.ac101m.redmon.utils.RedmonException
 import com.ac101m.redmon.utils.floatFromFp16Bits
-import java.io.StringWriter
 
 enum class SignalFormat {
     UNSIGNED,
@@ -12,15 +12,17 @@ enum class SignalFormat {
     HEX,
     BINARY,
     FP16_IEEE,
-    FP32_IEEE;
+    FP32_IEEE,
+    ASM;
 
     /**
      * Get the textual representation if a bit vector with fixed size.
      *
      * @param bits The raw bit vector as an unsigned long.
      * @param bitCount The number of bits to consider as part of the vector.
+     * @param instructionSet The instruction set to use for ASM formatting.
      */
-    fun getRepresentation(bits: ULong, bitCount: Int): String {
+    fun getRepresentation(bits: ULong, bitCount: Int, instructionSet: InstructionSet?): String {
         return when (this) {
             UNSIGNED -> "$bits"
             SIGNED -> formatSigned(bits, bitCount)
@@ -28,11 +30,12 @@ enum class SignalFormat {
             BINARY -> formatBinary(bits, bitCount)
             FP16_IEEE -> formatIeeeFp16(bits, bitCount)
             FP32_IEEE -> formatIeeeFp32(bits, bitCount)
+            ASM -> formatAsm(bits, bitCount, instructionSet)
         }
     }
 
     private fun formatSigned(bits: ULong, bitCount: Int): String {
-        val signBitMask = (1UL shl (bitCount - 1))
+        val signBitMask = 1UL shl (bitCount - 1)
 
         val signExtended = if ((bits and signBitMask) != 0UL) {
             bits or ((1UL shl bitCount) - 1UL).inv()
@@ -44,51 +47,70 @@ enum class SignalFormat {
     }
 
     private fun formatHex(bits: ULong, bitCount: Int): String {
-        val digitCount = when (bitCount % 4) {
-            0 -> bitCount / 4
-            else -> (bitCount / 4) + 1
-        }
+        val sb = StringBuilder(bitCount * 2)
 
-        val hex = bits.toString(16).uppercase()
-        val sw = StringWriter()
+        sb.append(Colour.GRAY.prefix)
+        sb.append("0x")
+        sb.append(Colour.WHITE.prefix)
+        sb.hexDigits(bits, bitCount)
 
-        for (i in hex.length until digitCount) {
-            sw.append("0")
-        }
-
-        sw.append(hex)
-
-        return "${Colour.GRAY.prefix}0x${Colour.WHITE.prefix}$sw"
+        return sb.toString()
     }
 
     private fun formatBinary(bits: ULong, bitCount: Int): String {
         val bin = bits.toString(2).uppercase()
-        val sw = StringWriter()
+        val sb = StringBuilder(bitCount + 8)
 
-        for (i in bin.length until bitCount) {
-            sw.append("0")
+        repeat(bitCount - bin.length) {
+            sb.append("0")
         }
 
-        sw.append(bin)
+        sb.append(Colour.GRAY.prefix)
+        sb.append("0b")
+        sb.append(Colour.WHITE.prefix)
+        sb.append(bin)
 
-        return "${Colour.GRAY.prefix}0b${Colour.WHITE.prefix}$sw"
+        return sb.toString()
     }
 
     private fun formatIeeeFp16(bits: ULong, bitCount: Int): String {
         if (bitCount != 16) {
-            return "${Colour.RED.prefix}WRONG_SIZE"
+            return WRONG_SIZE_STRING
         }
         return floatFromFp16Bits(bits.toInt()).toString()
     }
 
     private fun formatIeeeFp32(bits: ULong, bitCount: Int): String {
         if (bitCount != 32) {
-            return "${Colour.RED.prefix}WRONG_SIZE"
+            return WRONG_SIZE_STRING
         }
         return Float.fromBits(bits.toInt()).toString()
     }
 
+    private fun formatAsm(bits: ULong, bitCount: Int, instructionSet: InstructionSet?): String {
+        val sb = StringBuilder(32)
+
+        if (instructionSet == null) {
+            sb.append(Colour.RED.prefix)
+            sb.append("NO_ISA")
+        } else if (bitCount != instructionSet.instructionSize) {
+            sb.append(WRONG_SIZE_STRING)
+        } else when (val disassembly = instructionSet.disassemble(bits)) {
+            null -> {
+                sb.append(Colour.RED.prefix)
+                sb.append("? ")
+                sb.hexDigits(bits, bitCount)
+                sb.append(" ?")
+            }
+            else -> sb.append(disassembly)
+        }
+
+        return sb.toString()
+    }
+
     companion object {
+        private val WRONG_SIZE_STRING = "${Colour.RED.prefix}WRONG_SIZE"
+
         fun fromCommandString(str: String): SignalFormat {
             return try {
                 SignalFormat.valueOf(str.uppercase())
@@ -104,6 +126,21 @@ enum class SignalFormat {
             } catch (_: IllegalArgumentException) {
                 return DEFAULT_SIGNAL_FORMAT
             }
+        }
+
+        private fun StringBuilder.hexDigits(bits: ULong, bitCount: Int) {
+            val digitCount = when (bitCount % 4) {
+                0 -> bitCount / 4
+                else -> (bitCount / 4) + 1
+            }
+
+            val hex = bits.toString(16).uppercase()
+
+            repeat(digitCount - hex.length) {
+                append("0")
+            }
+
+            append(hex)
         }
     }
 }

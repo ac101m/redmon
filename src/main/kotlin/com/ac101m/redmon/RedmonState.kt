@@ -13,6 +13,7 @@ import com.ac101m.redmon.profile.SignalFormat
 import com.ac101m.redmon.profile.SignalType
 import com.ac101m.redmon.world.ActiveProfileInfo
 import com.ac101m.redmon.utils.Config.Companion.OVERLAY_POSITION
+import com.ac101m.redmon.utils.NoActiveInstructionSetException
 import com.ac101m.redmon.utils.NoActiveProfileException
 import com.ac101m.redmon.world.WorldMetadata
 import com.ac101m.redmon.world.WorldRegistry
@@ -46,14 +47,13 @@ class RedmonState(profileStoragePath: Path, worldMetadataStoragePath: Path, inst
     private val instructionSetRegistry: InstructionSetRegistry
 
     init {
-        val profiles = storageManager.loadProfiles()
         val instructionSets = storageManager.loadInstructionSets()
-
         instructionSetRegistry = InstructionSetRegistry(instructionSets)
+
+        val profiles = storageManager.loadProfiles(instructionSetRegistry)
         profileRegistry = ProfileRegistry(profiles)
 
         val worldMetadata = storageManager.loadWorldMetadata(profileRegistry)
-
         worldRegistry = WorldRegistry(worldMetadata)
     }
 
@@ -443,62 +443,91 @@ class RedmonState(profileStoragePath: Path, worldMetadataStoragePath: Path, inst
     fun renameInstructionSet(name: String, newName: String) {
         instructionSetRegistry.renameInstructionSet(name, newName)
         saveInstructionSets()
+        saveProfiles()  // So that ISA name strings are persisted after a rename
     }
 
     /**
-     * Add an instruction to an instruction set.
+     * Sets the ISA on the currently active page.
      *
-     * @param instructionSetName The name of the instruction set.
+     * @param name The name of the instruction set to select.
+     */
+    fun setActivePageInstructionSet(name: String) {
+        val profileInfo = requireActiveProfile {
+            "Cannot set current page instruction set, no profile is selected"
+        }
+        val instructionSet = instructionSetRegistry.getInstructionSet(name)
+        profileInfo.profile.getCurrentPage().currentIsa = instructionSet
+        saveProfiles()
+    }
+
+    /**
+     * Deselect the active instruction set on the current page.
+     */
+    fun clearActivePageInstructionSet() {
+        val profileInfo = requireActiveProfile {
+            "Cannot clear current page instruction set, no profile is selected"
+        }
+        profileInfo.profile.getCurrentPage().currentIsa = null
+        saveProfiles()
+    }
+
+    /**
+     * Add an instruction to the active instruction set.
+     *
      * @param instruction The instruction to add to the instruction set.
      */
-    fun addInstruction(instructionSetName: String, instruction: InstructionLayout) {
-        val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
+    fun addInstruction(instruction: InstructionLayout) {
+        val instructionSet = requireActiveInstructionSet {
+            "Cannot add instruction, no active instruction set"
+        }
         instructionSet.addInstruction(instruction)
         saveInstructionSets()
     }
 
     /**
-     * Remove an instruction from an instruction set.
+     * Remove an instruction from the active instruction set.
      *
-     * @param instructionSetName The name of the instruction set to remove the instruction from.
      * @param instructionName The name of the instruction to remove.
      */
-    fun removeInstruction(instructionSetName: String, instructionName: String) {
-        val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
+    fun removeInstruction(instructionName: String) {
+        val instructionSet = requireActiveInstructionSet {
+            "Cannot remove instruction, no active instruction set"
+        }
         instructionSet.removeInstruction(instructionName)
         saveInstructionSets()
     }
 
     /**
-     * Remove an instruction from an instruction set.
+     * Remove an instruction from the active instruction set.
      *
-     * @param instructionSetName The name of the instruction set to remove the instruction from.
      * @param instructionName The name of the instruction to remove.
      * @param newInstructionName The new instruction name.
      */
-    fun renameInstruction(instructionSetName: String, instructionName: String, newInstructionName: String) {
-        val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
+    fun renameInstruction(instructionName: String, newInstructionName: String) {
+        val instructionSet = requireActiveInstructionSet {
+            "Cannot rename instruction, no active instruction set"
+        }
         instructionSet.renameInstruction(instructionName, newInstructionName)
         saveInstructionSets()
     }
 
     /**
-     * Get a list of all instruction names within an instruction set.
-     *
-     * @param instructionSetName The name of the instruction set to get instruction names from.
+     * Get a list of all instruction names within the currently selected instruction set.
+     * Returns empty list if there is no active ISA.
      */
-    fun getInstructionNames(instructionSetName: String): List<String> {
-        val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
-        return instructionSet.instructions.map { it.name }
+    fun getCurrentIsaInstructionNames(): List<String> {
+        return currentWorld?.activeProfile?.profile?.getCurrentPage()?.currentIsa?.let { isa ->
+            isa.instructions.map { it.name }
+        } ?: emptyList()
     }
 
     /**
-     * Get instruction summaries for all instructions in an instruction set.
-     *
-     * @param instructionSetName The name of the instruction set to get instruction names from.
+     * Get instruction summaries for all instructions in teh active instruction set.
      */
-    fun getInstructionSummaries(instructionSetName: String): List<String> {
-        val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
+    fun getInstructionSummaries(): List<String> {
+        val instructionSet = requireActiveInstructionSet {
+            "Cannot get instruction summaries, no active instruction set"
+        }
         return instructionSet.instructions.map { instruction ->
             "${instruction.prettyPrint()} - ${instruction.name}\n   └ ${instruction.descriptionText()}"
         }
@@ -627,5 +656,12 @@ class RedmonState(profileStoragePath: Path, worldMetadataStoragePath: Path, inst
 
     private fun requireActiveProfile(lazyMessage: () -> String): ActiveProfileInfo {
         return currentWorld?.activeProfile ?: throw NoActiveProfileException(lazyMessage())
+    }
+
+    private fun requireActiveInstructionSet(lazyMessage: () -> String): InstructionSet {
+        val profileInfo = requireActiveProfile {
+            "Cannot get active instruction set, no profile is selected"
+        }
+        return profileInfo.profile.getCurrentPage().currentIsa ?: throw NoActiveInstructionSetException(lazyMessage())
     }
 }

@@ -1,5 +1,6 @@
 package com.ac101m.redmon.profile
 
+import com.ac101m.redmon.isa.InstructionSetRegistry
 import com.ac101m.redmon.persistence.v2.PersistentProfileV2
 
 class Profile(internal var name: String, initPages: List<ProfilePage>) {
@@ -8,7 +9,7 @@ class Profile(internal var name: String, initPages: List<ProfilePage>) {
 
     init {
         if (pages.isEmpty()) {
-            pages.add(ProfilePage("new_page", emptyList()))
+            pages.add(ProfilePage("new_page", emptyList(), null))
         }
         currentPageIndex = 0
     }
@@ -37,7 +38,7 @@ class Profile(internal var name: String, initPages: List<ProfilePage>) {
     }
 
     fun addPage(name: String) {
-        pages.add(ProfilePage(name, emptyList()))
+        pages.add(ProfilePage(name, emptyList(), null))
         currentPageIndex = pages.size - 1
     }
 
@@ -55,9 +56,12 @@ class Profile(internal var name: String, initPages: List<ProfilePage>) {
     }
 
     companion object {
-        fun fromPersistentProfile(persistentProfile: PersistentProfileV2): Profile {
+        fun fromPersistentProfile(
+            persistentProfile: PersistentProfileV2,
+            instructionSetRegistry: InstructionSetRegistry
+        ): Profile {
             val pages = persistentProfile.pages.map { persistentProfilePage ->
-                ProfilePage.fromPersistentProfilePage(persistentProfilePage)
+                ProfilePage.fromPersistentProfilePage(persistentProfilePage, instructionSetRegistry)
             }
             return Profile(persistentProfile.name, pages)
         }

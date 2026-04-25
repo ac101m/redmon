@@ -1,5 +1,6 @@
 package com.ac101m.redmon.profile
 
+import com.ac101m.redmon.isa.InstructionSet
 import com.ac101m.redmon.persistence.v2.PersistentBlockV2
 import com.ac101m.redmon.persistence.v2.PersistentSignalV2
 import com.ac101m.redmon.utils.Colour
@@ -60,7 +61,7 @@ data class Signal(
         missingBits = missing
     }
 
-    fun getRepresentation(): String {
+    fun getRepresentation(instructionSet: InstructionSet?): String {
         if (bitCount == 0) {
             return "${Colour.GRAY.prefix}EMPTY"
         }
@@ -73,7 +74,7 @@ data class Signal(
             return "${Colour.GOLD.prefix}MISSING $missingBits/$bitCount"
         }
 
-        return format.getRepresentation(state, bitCount)
+        return format.getRepresentation(state, bitCount, instructionSet)
     }
 
     fun invert() {
