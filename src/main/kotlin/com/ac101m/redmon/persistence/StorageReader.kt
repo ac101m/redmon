@@ -79,7 +79,8 @@ class StorageReader(val mapper: ObjectMapper) {
              * Support for lamps (new signal type)
              * Support for IEEE_754 FP16 and FP32 signal formats.
              * Persistence info for re-activation of profiles.
-             * Unreleased. Still subject to change.
+             * Instruction set and disassembler features.
+             * Frozen. Do not change.
              */
             3 -> PersistentStorageV2::class.java
 
@@ -136,8 +137,9 @@ class StorageReader(val mapper: ObjectMapper) {
         }
 
         /**
-         * Minor upgrade.
+         * Mostly additive upgrade. New fields and object hierarchies are optional.
          * Added support for lamps and floating point.
+         * Assembler and instruction set systems.
          */
         fun upgradeV2toV3(inputStorage: PersistentStorageV2): PersistentStorageV2 {
             check(inputStorage.version == 2) {
