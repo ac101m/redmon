@@ -32,6 +32,27 @@ class WorldRegistry(initWorldMetadata: List<WorldMetadata>) {
         }
     }
 
+    /**
+     * Notify the world registry of profile deletion.
+     *
+     * @param profileName The name of the profile that was deleted.
+     * @returns true if any changes occurred.
+     */
+    fun notifyProfileDeleted(profileName: String): Boolean {
+        var changes = false
+
+        for (world in worldMetadata) {
+            world.activeProfile?.let { activeProfile ->
+                if (activeProfile.profile.name == profileName) {
+                    world.activeProfile = null
+                    changes = true
+                }
+            }
+        }
+
+        return changes
+    }
+
     companion object {
         /**
          * Calculates a (hopefully) unique ID for the current world, regardless of whether the player is on

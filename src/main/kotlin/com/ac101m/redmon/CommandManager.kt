@@ -77,7 +77,7 @@ class CommandManager(
                 )
             )
             .then(literal("create")
-                .then(str("name", ::suggestProfileNames)
+                .then(str("name")
                     .executes { c -> profileCreateCommand(c) }
                 )
             )

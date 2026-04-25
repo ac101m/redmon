@@ -155,7 +155,10 @@ class RedmonState(profileStoragePath: Path, worldMetadataStoragePath: Path, inst
     fun deleteProfile(profileName: String) {
         val profileInfo = currentWorld?.activeProfile
         if (profileInfo != null && profileInfo.profile.name == profileName) {
-            clearActiveProfile()
+            currentWorld?.activeProfile = null
+        }
+        if (worldRegistry.notifyProfileDeleted(profileName)) {
+            saveWorldMetadata()
         }
         profileRegistry.deleteProfile(profileName)
         saveProfiles()
