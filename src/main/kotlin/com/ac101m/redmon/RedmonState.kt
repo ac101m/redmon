@@ -450,7 +450,7 @@ class RedmonState(profileStoragePath: Path, worldMetadataStoragePath: Path, inst
     }
 
     /**
-     * Sets the ISA on the currently active page.
+     * Set an instruction set as active on the current page.
      *
      * @param name The name of the instruction set to select.
      */
@@ -464,7 +464,7 @@ class RedmonState(profileStoragePath: Path, worldMetadataStoragePath: Path, inst
     }
 
     /**
-     * Deselect the active instruction set on the current page.
+     * Deselect the active instruction set from the current page.
      */
     fun clearActivePageInstructionSet() {
         val profileInfo = requireActiveProfile {
@@ -475,76 +475,74 @@ class RedmonState(profileStoragePath: Path, worldMetadataStoragePath: Path, inst
     }
 
     /**
-     * Add an instruction to the active instruction set.
+     * Add an instruction to an instruction set.
      *
+     * @param instructionSetName The name of the instruction set to add the instruction to.
      * @param instruction The instruction to add to the instruction set.
      */
-    fun addInstruction(instruction: InstructionLayout) {
-        val instructionSet = requireActiveInstructionSet {
-            "Cannot add instruction, no active instruction set"
-        }
+    fun addInstruction(instructionSetName: String, instruction: InstructionLayout) {
+        val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
         instructionSet.addInstruction(instruction)
         saveInstructionSets()
     }
 
     /**
-     * Remove an instruction from the active instruction set.
+     * Remove an instruction from an instruction set.
      *
+     * @param instructionSetName The name of the instruction set containing the instruction.
      * @param instructionName The name of the instruction to remove.
      */
-    fun removeInstruction(instructionName: String) {
-        val instructionSet = requireActiveInstructionSet {
-            "Cannot remove instruction, no active instruction set"
-        }
+    fun removeInstruction(instructionSetName: String, instructionName: String) {
+        val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
         instructionSet.removeInstruction(instructionName)
         saveInstructionSets()
     }
 
     /**
-     * Remove an instruction from the active instruction set.
+     * Rename an instruction in an instruction set.
      *
+     * @param instructionSetName The name of the instruction set containing the instruction.
      * @param instructionName The name of the instruction to remove.
      * @param newInstructionName The new instruction name.
      */
-    fun renameInstruction(instructionName: String, newInstructionName: String) {
-        val instructionSet = requireActiveInstructionSet {
-            "Cannot rename instruction, no active instruction set"
-        }
+    fun renameInstruction(instructionSetName: String, instructionName: String, newInstructionName: String) {
+        val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
         instructionSet.renameInstruction(instructionName, newInstructionName)
         saveInstructionSets()
     }
 
     /**
-     * Get a list of all instruction names within the currently selected instruction set.
-     * Returns empty list if there is no active ISA.
+     * Get a list of all instruction names within an instruction set.
+     * Returns empty list if the ISA cannot be found.
+     *
+     * @param instructionSetName The name of the instruction set.
      */
-    fun getCurrentIsaInstructionNames(): List<String> {
-        return currentWorld?.activeProfile?.profile?.getCurrentPage()?.currentIsa?.let { isa ->
+    fun getIsaInstructionNames(instructionSetName: String): List<String> {
+        return instructionSetRegistry.getInstructionSetOrNull(instructionSetName)?.let { isa ->
             isa.instructions.map { it.name }
         } ?: emptyList()
     }
 
     /**
-     * Get instruction summaries for all instructions in teh active instruction set.
+     * Get instruction summaries for all instructions in an instruction set.
+     *
+     * @param instructionSetName The name of the instruction set.
      */
-    fun getInstructionSummaries(): List<String> {
-        val instructionSet = requireActiveInstructionSet {
-            "Cannot get instruction summaries, no active instruction set"
-        }
+    fun getInstructionSummaries(instructionSetName: String): List<String> {
+        val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
         return instructionSet.instructions.map { instruction ->
             "${instruction.prettyPrint()} - ${instruction.name}\n   └ ${instruction.descriptionText()}"
         }
     }
 
     /**
-     * Get details instruction information, including breakdown of fields.
+     * Get detailed instruction information, including breakdown of fields.
      *
+     * @param instructionSetName The name of the instruction set containing the instruction.
      * @param instructionName The name of the instruction to get info for.
      */
-    fun getInstructionInfo(instructionName: String): String {
-        val instructionSet = requireActiveInstructionSet {
-            "Cannot get instruction info, no active instruction set"
-        }
+    fun getInstructionInfo(instructionSetName: String, instructionName: String): String {
+        val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
         val instruction = instructionSet.getInstruction(instructionName)
         return instruction.infoString()
     }
@@ -552,13 +550,12 @@ class RedmonState(profileStoragePath: Path, worldMetadataStoragePath: Path, inst
     /**
      * Set the description of an instruction.
      *
+     * @param instructionSetName The name of the instruction set containing the instruction.
      * @param instructionName The name of the instruction to change the description of.
      * @param newDescription The description text to set for the new instruction.
      */
-    fun setInstructionDescription(instructionName: String, newDescription: String) {
-        val instructionSet = requireActiveInstructionSet {
-            "Cannot set instruction description, no active instruction set"
-        }
+    fun setInstructionDescription(instructionSetName: String, instructionName: String, newDescription: String) {
+        val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
         val instruction = instructionSet.getInstruction(instructionName)
         instruction.description = newDescription
         saveInstructionSets()
@@ -567,14 +564,18 @@ class RedmonState(profileStoragePath: Path, worldMetadataStoragePath: Path, inst
     /**
      * Set instruction field description.
      *
+     * @param instructionSetName The name of the instruction set containing the instruction.
      * @param instructionName The name of the instruction to change the description of.
      * @param fieldIndex The index of the field to rename.
      * @param newDescription The description text to set for the new instruction.
      */
-    fun setInstructionFieldDescription(instructionName: String, fieldIndex: Int, newDescription: String) {
-        val instructionSet = requireActiveInstructionSet {
-            "Cannot set instruction field description, no active instruction set"
-        }
+    fun setInstructionFieldDescription(
+        instructionSetName: String,
+        instructionName: String,
+        fieldIndex: Int,
+        newDescription: String
+    ) {
+        val instructionSet = instructionSetRegistry.getInstructionSet(instructionSetName)
         val instruction = instructionSet.getInstruction(instructionName)
         instruction.setFieldDescription(fieldIndex, newDescription)
         saveInstructionSets()

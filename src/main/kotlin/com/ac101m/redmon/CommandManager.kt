@@ -271,49 +271,63 @@ class CommandManager(
     private fun LiteralArgumentBuilder<FabricClientCommandSource>.instructionCommands(): LiteralArgumentBuilder<FabricClientCommandSource> {
         return this.then(literal("instruction")
             .then(literal("add")
-                .then(str(INSTRUCTION_NAME_ARG)
-                    .then(str("description")
-                        .then(greedyStr("instruction-layout", ::suggestInstructionLayout)
-                            .executes { c -> instructionAddCommand(c) }
+                .then(str(ISA_NAME_ARG, ::suggestInstructionSetNames)
+                    .then(str(INSTRUCTION_NAME_ARG)
+                        .then(str("description")
+                            .then(greedyStr("instruction-layout", ::suggestInstructionLayout)
+                                .executes { c -> instructionAddCommand(c) }
+                            )
                         )
                     )
                 )
             )
             .then(literal("remove")
-                .then(str(INSTRUCTION_NAME_ARG, ::suggestInstructionNames)
-                    .executes { c -> instructionRemoveCommand(c) }
+                .then(str(ISA_NAME_ARG, ::suggestInstructionSetNames)
+                    .then(str(INSTRUCTION_NAME_ARG, ::suggestInstructionNames)
+                        .executes { c -> instructionRemoveCommand(c) }
+                    )
                 )
             )
             .then(literal("rename")
-                .then(str(INSTRUCTION_NAME_ARG, ::suggestInstructionNames)
-                    .then(str("new-name")
-                        .executes { c -> instructionRenameCommand(c) }
+                .then(str(ISA_NAME_ARG, ::suggestInstructionSetNames)
+                    .then(str(INSTRUCTION_NAME_ARG, ::suggestInstructionNames)
+                        .then(str("new-name")
+                            .executes { c -> instructionRenameCommand(c) }
+                        )
                     )
                 )
             )
             .then(literal("list")
-                .then(int("page")
-                    .executes { c -> instructionListCommand(c) }
+                .then(str(ISA_NAME_ARG, ::suggestInstructionSetNames)
+                    .then(int("page")
+                        .executes { c -> instructionListCommand(c) }
+                    )
+                    .executes { c -> instructionListCommandFirstPage(c) }
                 )
-                .executes { c -> instructionListCommandFirstPage(c) }
             )
             .then(literal("info")
-                .then(str(INSTRUCTION_NAME_ARG, ::suggestInstructionNames)
-                    .executes { c -> instructionInfoCommand(c) }
+                .then(str(ISA_NAME_ARG, ::suggestInstructionSetNames)
+                    .then(str(INSTRUCTION_NAME_ARG, ::suggestInstructionNames)
+                        .executes { c -> instructionInfoCommand(c) }
+                    )
                 )
             )
             .then(literal("set-description")
-                .then(str(INSTRUCTION_NAME_ARG, ::suggestInstructionNames)
-                    .then(str("new-description")
-                        .executes { c -> instructionSetDescriptionCommand(c) }
+                .then(str(ISA_NAME_ARG, ::suggestInstructionSetNames)
+                    .then(str(INSTRUCTION_NAME_ARG, ::suggestInstructionNames)
+                        .then(str("new-description")
+                            .executes { c -> instructionSetDescriptionCommand(c) }
+                        )
                     )
                 )
             )
             .then(literal("set-field-description")
-                .then(str(INSTRUCTION_NAME_ARG, ::suggestInstructionNames)
-                    .then(int("field-number", min = 1)
-                        .then(str("new-description")
-                            .executes { c -> instructionSetFieldDescription(c) }
+                .then(str(ISA_NAME_ARG, ::suggestInstructionSetNames)
+                    .then(str(INSTRUCTION_NAME_ARG, ::suggestInstructionNames)
+                        .then(int("field-number", min = 1)
+                            .then(str("new-description")
+                                .executes { c -> instructionSetFieldDescription(c) }
+                            )
                         )
                     )
                 )
@@ -408,8 +422,9 @@ class CommandManager(
         ctx: CommandContext<FabricClientCommandSource>,
         currentInput: String
     ): List<String> {
+        val isaName = getString(ctx, ISA_NAME_ARG)
         return try {
-            redmon.getCurrentIsaInstructionNames().filter { it.contains(currentInput) }
+            redmon.getIsaInstructionNames(isaName).filter { it.contains(currentInput) }
         } catch (_: Exception) {
             emptyList()
         }
@@ -822,6 +837,7 @@ class CommandManager(
     }
 
     private fun instructionAddCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val instructionSetName = getString(ctx, ISA_NAME_ARG)
         val instructionName = getString(ctx, INSTRUCTION_NAME_ARG)
         val description = getString(ctx, "description")
         val layoutText = getString(ctx, "instruction-layout")
@@ -833,25 +849,28 @@ class CommandManager(
         }
 
         val instruction = InstructionLayout.createFromArgs(instructionName, fieldTextElements, description)
-        redmon.addInstruction(instruction)
+        redmon.addInstruction(instructionSetName, instruction)
         ctx.sendFeedback("Added instruction '${instruction.name}': ${instruction.prettyPrint()}")
     }
 
     private fun instructionRemoveCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val instructionSetName = getString(ctx, ISA_NAME_ARG)
         val instructionName = getString(ctx, INSTRUCTION_NAME_ARG)
-        redmon.removeInstruction(instructionName)
+        redmon.removeInstruction(instructionSetName, instructionName)
         ctx.sendFeedback("Removed instruction '$instructionName'")
     }
 
     private fun instructionRenameCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val instructionSetName = getString(ctx, ISA_NAME_ARG)
         val instructionName = getString(ctx, INSTRUCTION_NAME_ARG)
         val newInstructionName = getString(ctx, "new-name")
-        redmon.renameInstruction(instructionName, newInstructionName)
+        redmon.renameInstruction(instructionSetName, instructionName, newInstructionName)
         ctx.sendFeedback("Renamed instruction '$instructionName' to '$newInstructionName'")
     }
 
     private fun doInstructionList(ctx: CommandContext<FabricClientCommandSource>, page: Int) {
-        val summaries = redmon.getInstructionSummaries()
+        val instructionSetName = getString(ctx, ISA_NAME_ARG)
+        val summaries = redmon.getInstructionSummaries(instructionSetName)
         paginateList(ctx, summaries, page, 5, "instructions")
     }
 
@@ -864,22 +883,25 @@ class CommandManager(
     }
 
     private fun instructionInfoCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val instructionSetName = getString(ctx, ISA_NAME_ARG)
         val instructionName = getString(ctx, INSTRUCTION_NAME_ARG)
-        ctx.sendFeedback(redmon.getInstructionInfo(instructionName))
+        ctx.sendFeedback(redmon.getInstructionInfo(instructionSetName, instructionName))
     }
 
     private fun instructionSetDescriptionCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val instructionSetName = getString(ctx, ISA_NAME_ARG)
         val instructionName = getString(ctx, INSTRUCTION_NAME_ARG)
         val newDescription = getString(ctx, "new-description")
-        redmon.setInstructionDescription(instructionName, newDescription)
+        redmon.setInstructionDescription(instructionSetName, instructionName, newDescription)
         ctx.sendFeedback("Updated description for instruction '$instructionName'.")
     }
 
     private fun instructionSetFieldDescription(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+        val instructionSetName = getString(ctx, ISA_NAME_ARG)
         val instructionName = getString(ctx, INSTRUCTION_NAME_ARG)
         val fieldIndex = getInteger(ctx, "field-number") - 1
         val newDescription = getString(ctx, "new-description")
-        redmon.setInstructionFieldDescription(instructionName, fieldIndex, newDescription)
+        redmon.setInstructionFieldDescription(instructionSetName, instructionName, fieldIndex, newDescription)
         ctx.sendFeedback("Updated description for field $fieldIndex of instruction '$instructionName'.")
     }
 
