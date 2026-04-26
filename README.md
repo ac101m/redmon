@@ -24,9 +24,9 @@ supports the following blocks:
   - [Creating an instruction set](#creating-an-instruction-set)
   - [Adding instructions](#adding-instructions)
   - [Viewing signal disassembly](#viewing-signal-disassembly)
-- Limitations
-- Roadmap
-- Dedications
+- [Limitations](#limitations)
+- [Roadmap](#roadmap)
+- [Dedication](#dedication)
 
 ## Quickstart guide
 
@@ -230,7 +230,6 @@ There are a number of considered/planned features which are not currently includ
 
 - Profile sharing.
 - Support for large memory banks.
-- Parameterizable assembler/disassembler for printing instruction disassembly in the overlay.
 - 3D overlay to show positions of signals directly in the world.
 - Server side component for more efficient and accurate signal updates.
 
