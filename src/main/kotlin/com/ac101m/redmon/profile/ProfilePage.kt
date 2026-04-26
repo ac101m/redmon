@@ -5,14 +5,27 @@ import com.ac101m.redmon.isa.InstructionSetRegistry
 import com.ac101m.redmon.persistence.v2.PersistentPageV2
 import net.minecraft.core.Vec3i
 import net.minecraft.world.level.Level
+import kotlin.math.sign
 
 class ProfilePage(
     var name: String,
     initColumns: List<ProfilePageColumn>,
-    var currentIsa: InstructionSet?
+    initIsa: InstructionSet?
 ) {
     val columns = initColumns.toMutableList()
     val signalMap = HashMap<String, SignalInfo>()
+
+    var currentIsa: InstructionSet? = initIsa
+        set(value) {
+            if (field !== value) {
+                for (signalInfo in signalMap.values) {
+                    if (signalInfo.signal.format == SignalFormat.ASM) {
+                        signalInfo.signal.markDirty()
+                    }
+                }
+            }
+            field = value
+        }
 
     class SignalInfo(
         var column: ProfilePageColumn,

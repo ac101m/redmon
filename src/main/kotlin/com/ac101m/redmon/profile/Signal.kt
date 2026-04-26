@@ -26,7 +26,7 @@ class Signal(
     var format: SignalFormat = initFormat
         set(value) {
             if (value != field) {
-                representation = null
+                markDirty()
             }
             field = value
         }
@@ -71,7 +71,7 @@ class Signal(
         }
 
         if (state != rawState || missing != missingBits) {
-            representation = null
+            markDirty()
         }
 
         rawState = state
@@ -103,12 +103,12 @@ class Signal(
 
     fun invert() {
         invert = !invert
-        representation = null
+        markDirty()
     }
 
     fun flipBits() {
         blocks = blocks.reversed()
-        representation = null
+        markDirty()
     }
 
     fun appendBlocks(newBlocks: List<BlockPos>) {
@@ -116,12 +116,16 @@ class Signal(
             "Too many blocks. Signals of type $type may contain at most ${type.maxBlocks} blocks"
         }
         blocks = blocks.plus(newBlocks)
-        representation = null
+        markDirty()
     }
 
     fun toPersistent(): PersistentSignalV2 {
         val b = blocks.map { PersistentBlockV2(it.x, it.y, it.z) }
         return PersistentSignalV2(name, type, invert, format.name, b)
+    }
+
+    fun markDirty() {
+        representation = null
     }
 
     companion object {
