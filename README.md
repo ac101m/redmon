@@ -13,6 +13,21 @@ supports the following blocks:
 - Redstone dust (on/off and signal strength)
 - Redstone lamps (on/off)
 
+
+### Table of contents
+
+- [Quick-start guide](#quickstart-guide)
+  - [Hotkeys](#hotkeys)
+  - [Creating a profile](#creating-a-profile)
+  - [Adding signals](#adding-signals)
+- [Integrated disassembler](#integrated-disassembler)
+  - [Creating an instruction set](#creating-an-instruction-set)
+  - [Adding instructions](#adding-instructions)
+  - [Viewing signal disassembly](#viewing-signal-disassembly)
+- Limitations
+- Roadmap
+- Dedications
+
 ## Quickstart guide
 
 ### Hotkeys
@@ -109,6 +124,98 @@ Signals can also be removed, moved, renamed or reformatted using the following c
 - `/redmon signal move <signal-name> column <column-number>`
 - `/redmon signal rename <signal-name> <new-signal-name>`
 - `/redmon singal format <signal-name> <signal-format>`
+
+## Integrated disassembler
+
+Redmon contains an integrated disassembler which can perform on-the-fly disassembly of signals in the overlay. The
+disassembler works by allowing the user to define an instruction set and then print instruction disassembly in the
+overlay for selected signals. The disassembler also doubles as in-game documentation for the instruction set.
+
+- Create an instruction set.
+- Add instruction layouts to the instruction set.
+- Assign an instruction set to current page of the active profile.
+
+### Creating an instruction set
+
+The first step to using the integrated disassembler is to create an instruction set to contain your instruction
+layouts:
+
+`/redmon isa create <isa-name> <instruction-size>`
+
+![image](images/created-isa.png)
+
+In the above case, an ISA with the name `test_isa` has been created with the width of 16 bits. Existing instruction
+sets may also be queried with:
+
+`/redmon isa list [<page>]`
+
+### Enabling the ISA
+
+Once an ISA is created, the next stage is to select it to the current profile page
+(see [creating a profile](#creating-a-profile) for profile creation instruction). The following command will configure 
+the current page to use the selected ISA:
+
+`/redmon page isa-set <isa-name>`
+
+Once done, an indication will appear in the top left that the ISA is selected.
+
+![image](images/enabled-isa.png)
+
+### Adding instructions
+
+With the ISA enabled, instructions can now be added to it. Instructions are added using the following command:
+
+`/redmon instruction add <instruction-name> <instruction-description> <instruction-fields>`
+
+- `<instruction-name>` - The name of the instruction (also the mnemonic that will appear in the overlay).
+- `<instruction-description>` - Description, typically a short summary of what the instruction does.
+- `<instruction-fields>` - A semicolon separated list of instruction field specifiers.
+
+The following command for example creates an instruction called "ADDI" with a five bit opcode (01000), a seven bit
+signed immediate value and a four bit register address.
+
+`/redmon instruction add ADDI "Add signed immediate to a register." opcode:01000; imm_s:7; reg_rw:4`
+
+Field specifier breakdown for this command:
+
+- `opcode:01000` - Configures the opcode for the instruction.
+- `imm_s:7` - Seven bit signed immediate value.
+- `reg_rw:4` - Four bit register address.
+
+Once the instruction is created, you can view it with the following command to print a detailed breakdown of commands:
+
+`/redmon instruction info ADDI`
+
+![image](images/instruction-info.png)
+
+Instructions can have as many fields as you like, but their total size must match the width of the instruction set and 
+the opcode must not collide with the opcode of any other instruction. Variable length opcodes are also supported.
+
+Available fields types are as follows:
+
+- `opcode:<bit pattern>` - Opcode field.
+- `flag_bit:<flag itentifier char>` - Single flag bit, expects a single character which names the flag.
+- `imm_s:<bit count>` - Signed immediate field.
+- `imm_u:<bit count>` - Unsigned immediate field.
+- `reg_r:<bit count>` - Register read address field.
+- `reg_w:<bit count>` - Register write address.
+- `reg_rw:<bit count>` - Register read + write address.
+- `ignore:<bit count>` - Bits ignored by this instruction.
+
+### Viewing signal disassembly
+
+There are two ways to view disassembly, one is with the `./redmon isa disassemble` command, which will disassemble an
+instruction passed directly in chat, and by formatting a signal with the `asm` format.
+
+In the chat: `/redmon isa disassemble <isa-name> (bin|dec|hex) <instruction-word>`
+In the overlay: `/redmon signal format <signal-name> asm`
+
+Overlay with instruction disassembly in the chat and in the overlay:
+
+![image](images/disassembly.png)
+
+If the instruction is not recognised or the wrong number of bits are present in the signal (more or less than the isa
+size), then an error will be shown in the overlay.
 
 ## Limitations
 
