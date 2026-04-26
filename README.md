@@ -149,33 +149,21 @@ sets may also be queried with:
 
 `/redmon isa list [<page>]`
 
-### Enabling the ISA
-
-Once an ISA is created, the next stage is to select it to the current profile page
-(see [creating a profile](#creating-a-profile) for profile creation instruction). The following command will configure 
-the current page to use the selected ISA:
-
-`/redmon isa select <isa-name>`
-
-Once done, an indication will appear in the top left that the ISA is selected. ISA selections are done on a per-page
-basis, allowing a single profile to reference several instruction sets on different pages.
-
-![image](images/enabled-isa.png)
-
 ### Adding instructions
 
-With the ISA enabled, instructions can now be added to it. Instructions are added using the following command:
+With the ISA created, instructions can now be added to it. Instructions are added using the following command:
 
-`/redmon instruction add <instruction-name> <instruction-description> <instruction-fields>`
+`/redmon instruction add <isa-name> <instruction-name> <instruction-description> <instruction-fields>`
 
+- `<isa-name>` -  The name of the ISA to add the instruction to.
 - `<instruction-name>` - The name of the instruction (also the mnemonic that will appear in the overlay).
 - `<instruction-description>` - Description, typically a short summary of what the instruction does.
 - `<instruction-fields>` - A semicolon separated list of instruction field specifiers.
 
 The following command for example creates an instruction called "ADDI" with a five bit opcode (01000), a seven bit
-signed immediate value and a four bit register address.
+signed immediate value and a four bit register address. The instruction is added to the `test_isa` instruction set.
 
-`/redmon instruction add ADDI "Add signed immediate to a register." opcode:01000; imm_s:7; reg_rw:4`
+`/redmon instruction add test_isa ADDI "Add signed immediate to a register." opcode:01000; imm_s:7; reg_rw:4`
 
 Field specifier breakdown for this command:
 
@@ -183,14 +171,14 @@ Field specifier breakdown for this command:
 - `imm_s:7` - Seven bit signed immediate value.
 - `reg_rw:4` - Four bit register address.
 
-Once the instruction is created, you can view it with the following command to print a detailed breakdown of commands:
+Once the instruction is created, you can view a detailed breakdown of the instruction fields like so:
 
-`/redmon instruction info ADDI`
+`/redmon instruction info test_isa ADDI`
 
 ![image](images/instruction-info.png)
 
-Instructions can have as many fields as you like, but their total size must match the width of the instruction set and 
-the opcode must not collide with the opcode of any other instruction. Variable length opcodes are also supported.
+Instructions can have as many fields as you like, but their total size must match the width of the instruction set, and 
+the opcode must not collide with that of any other instruction. Variable length opcodes are supported.
 
 Available fields types are as follows:
 
@@ -203,10 +191,24 @@ Available fields types are as follows:
 - `reg_rw:<bit count>` - Register read + write address.
 - `ignore:<bit count>` - Bits ignored by this instruction.
 
+### Enabling the ISA
+
+Once an ISA is created, the next stage is to select it to the current profile page
+(see [creating a profile](#creating-a-profile) for profile creation instruction). The following command will configure
+the current page to use the selected ISA:
+
+`/redmon isa select <isa-name>`
+
+Once done, an indication will appear in the top left that the ISA is selected. ISA selections work on a per-page
+basis, allowing a single profile to reference several instruction sets on different pages.
+
+![image](images/enabled-isa.png)
+
 ### Viewing signal disassembly
 
 There are two ways to view disassembly, one is with the `./redmon isa disassemble` command, which will disassemble an
-instruction passed directly in chat, and by formatting a signal with the `asm` format.
+instruction passed directly in the command, and the other is by selecting the ISA by formatting a signal with the `asm` 
+format specifier.
 
 In the chat: `/redmon isa disassemble <isa-name> (bin|dec|hex) <instruction-word>`
 In the overlay: `/redmon signal format <signal-name> asm`
