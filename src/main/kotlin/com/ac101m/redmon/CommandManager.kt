@@ -889,7 +889,7 @@ class CommandManager(
 
         private const val INSTRUCTION_FORMAT_FIELD_DELIMITER = ";"
 
-        private const val ISA_NAME_ARG = "isa_name"
+        private const val ISA_NAME_ARG = "isa-name"
         private const val INSTRUCTION_NAME_ARG = "instruction-name"
 
         private fun str(
