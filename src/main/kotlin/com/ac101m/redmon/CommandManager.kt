@@ -127,14 +127,6 @@ class CommandManager(
                     .executes { c -> pageRenameCommand(c) }
                 )
             )
-            .then(literal("isa-set")
-                .then(str(ISA_NAME_ARG, ::suggestInstructionSetNames)
-                    .executes { c -> pageSetIsaCommand(c) }
-                )
-            )
-            .then(literal("isa-clear")
-                .executes { c -> pageClearIsaCommand(c) }
-            )
         )
     }
 
@@ -264,6 +256,14 @@ class CommandManager(
                         )
                     )
                 )
+            )
+            .then(literal("select")
+                .then(str(ISA_NAME_ARG, ::suggestInstructionSetNames)
+                    .executes { c -> pageIsaSelectCommand(c) }
+                )
+            )
+            .then(literal("deselect")
+                .executes { c -> padeIsaDeselectCommand(c) }
             )
         )
     }
@@ -572,13 +572,13 @@ class CommandManager(
         redmon.renameCurrentPage(newName)
     }
 
-    private fun pageSetIsaCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+    private fun pageIsaSelectCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         val isaName = getString(ctx, ISA_NAME_ARG)
         redmon.setActivePageInstructionSet(isaName)
         ctx.sendFeedback("Set ISA '$isaName' as active ISA on the current page of the active profile.")
     }
 
-    private fun pageClearIsaCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
+    private fun padeIsaDeselectCommand(ctx: CommandContext<FabricClientCommandSource>) = commandWrapper(ctx) {
         redmon.clearActivePageInstructionSet()
         ctx.sendFeedback("Cleared active ISA on the current page of the active profile.")
     }

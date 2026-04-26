@@ -155,9 +155,10 @@ Once an ISA is created, the next stage is to select it to the current profile pa
 (see [creating a profile](#creating-a-profile) for profile creation instruction). The following command will configure 
 the current page to use the selected ISA:
 
-`/redmon page isa-set <isa-name>`
+`/redmon isa select <isa-name>`
 
-Once done, an indication will appear in the top left that the ISA is selected.
+Once done, an indication will appear in the top left that the ISA is selected. ISA selections are done on a per-page
+basis, allowing a single profile to reference several instruction sets on different pages.
 
 ![image](images/enabled-isa.png)
 
