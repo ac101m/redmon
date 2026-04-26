@@ -68,13 +68,13 @@ class KeybindManager(private val redmon: RedmonState) {
         private val nextPageKey = KeyBind(
             name = NEXT_PAGE_KEYBIND_NAME,
             type = InputConstants.Type.KEYSYM,
-            defaultKey = InputConstants.KEY_LBRACKET
+            defaultKey = InputConstants.KEY_RBRACKET
         )
 
         private val previousPageKey = KeyBind(
             name = PREVIOUS_PAGE_KEYBIND_NAME,
             type = InputConstants.Type.KEYSYM,
-            defaultKey = InputConstants.KEY_RBRACKET
+            defaultKey = InputConstants.KEY_LBRACKET
         )
     }
 }
