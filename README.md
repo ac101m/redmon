@@ -96,7 +96,7 @@ There are currently 5 signal types to choose from:
 
 - `repeater` - Redstone repeater.
 - `torch` - Redstone torch.
-- `dust` - Redstone dust.
+- `dust_binary` - Redstone dust (on or off).
 - `dust_ss` - Redstone dust (signal strength).
 - `comparator_binary` - Comparator.
 
